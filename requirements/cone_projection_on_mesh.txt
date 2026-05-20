@@ -1,0 +1,2 @@
+# Requirements for cone projection and geodesic mesh-space workflows.
+-r base.txt
