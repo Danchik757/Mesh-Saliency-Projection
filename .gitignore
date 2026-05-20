@@ -1,0 +1,10 @@
+__pycache__/
+*.pyc
+.DS_Store
+
+# Generated outputs
+results/**/*.json
+results/**/*.png
+results/**/*.jpg
+results/**/*.mp4
+results/**/*.npy

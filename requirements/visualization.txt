@@ -1,0 +1,5 @@
+# Requirements for image generation, overlays, and comparison figures.
+-r base.txt
+matplotlib
+pandas
+Pillow
