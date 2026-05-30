@@ -16,6 +16,7 @@
 # Required env vars:
 #   LOCAL_PACK_DIR         — where archives were created (default: /tmp/reproject_side_inputs)
 #   SSH_HOST               — SSH alias (default: vg-intellect)
+#   DRY_RUN                — set to 1 to print scp commands without executing
 #   REMOTE_SIDE_INPUTS     — absolute path on server for archives
 #                            e.g. /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs
 set -euo pipefail
@@ -24,10 +25,21 @@ set -euo pipefail
 
 LOCAL_PACK_DIR="${LOCAL_PACK_DIR:-/tmp/reproject_side_inputs}"
 SSH_HOST="${SSH_HOST:-vg-intellect}"
+DRY_RUN="${DRY_RUN:-0}"
 
 echo "[scp_archives] local_pack_dir = ${LOCAL_PACK_DIR}"
 echo "[scp_archives] ssh_host       = ${SSH_HOST}"
 echo "[scp_archives] remote_path    = ${REMOTE_SIDE_INPUTS}"
+echo "[scp_archives] dry_run        = ${DRY_RUN}"
+
+run_scp() {
+  local src="$1"
+  if [ "${DRY_RUN}" = "1" ]; then
+    echo "[scp_archives] dry-run: scp \"${src}\" \"${SSH_HOST}:${REMOTE_SIDE_INPUTS}/\""
+    return 0
+  fi
+  scp "${src}" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
+}
 
 # ---------- 3DVA ----------
 for ARCHIVE in 3dva_csv.tar.gz 3dva_json.tar.gz; do
@@ -38,7 +50,7 @@ for ARCHIVE in 3dva_csv.tar.gz 3dva_json.tar.gz; do
     continue
   fi
   echo "[scp_archives] scp ${ARCHIVE} ..."
-  scp "${SRC}" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
+  run_scp "${SRC}"
 done
 
 # ---------- MeshMamba non_texture ----------
@@ -50,7 +62,7 @@ for ARCHIVE in meshmamba_non_texture_csv.tar.gz meshmamba_non_texture_json.tar.g
     continue
   fi
   echo "[scp_archives] scp ${ARCHIVE} ..."
-  scp "${SRC}" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
+  run_scp "${SRC}"
 done
 
 echo "[scp_archives] done. Run test/side_inputs/unpack_on_server.sh next."

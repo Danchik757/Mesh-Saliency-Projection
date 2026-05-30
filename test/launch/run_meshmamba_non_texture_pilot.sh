@@ -20,6 +20,9 @@
 #   WORKERS=12
 #   NICE_LEVEL=10
 #   PILOT_MODEL=Starfruit_L3
+#   RECENTER_TO_BBOX_CENTER=true
+#   EXTRA_ROTATE_X_DEG=90
+#   OVERRIDE_FOV_DEG=37.5
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -35,6 +38,9 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 WORKERS="${WORKERS:-12}"
 NICE_LEVEL="${NICE_LEVEL:-10}"
 PILOT_MODEL="${PILOT_MODEL:-Starfruit_L3}"
+RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
+EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-90}"
+OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-37.5}"
 
 MESH_DIR="${MESHMAMBA_NON_TEXTURE_ROOT}/MeshFile/non_texture"
 GT_DIR="${MESHMAMBA_NON_TEXTURE_ROOT}/SaliencyMap/non_texture"
@@ -64,8 +70,11 @@ echo "[run_meshmamba_non_texture_pilot] csv_dir=${CSV_DIR}"
 echo "[run_meshmamba_non_texture_pilot] json_dir=${JSON_DIR}"
 echo "[run_meshmamba_non_texture_pilot] mamba_gaze_root=${MAMBA_GAZE_ROOT}"
 echo "[run_meshmamba_non_texture_pilot] output_dir=${OUTPUT_DIR}"
-echo "[run_meshmamba_non_texture_pilot] workers=${WORKERS}  nice=${NICE_LEVEL}"
+echo "[run_meshmamba_non_texture_pilot] workers=${WORKERS}  nice=${NICE_LEVEL} (workers reserved for outer multi-model pool)"
 echo "[run_meshmamba_non_texture_pilot] pilot_model=${PILOT_MODEL}"
+echo "[run_meshmamba_non_texture_pilot] recenter_to_bbox_center=${RECENTER_TO_BBOX_CENTER}"
+echo "[run_meshmamba_non_texture_pilot] extra_rotate_x_deg=${EXTRA_ROTATE_X_DEG}"
+echo "[run_meshmamba_non_texture_pilot] override_fov_deg=${OVERRIDE_FOV_DEG}"
 
 # ---------- delegate to external MAMBA_GAZE pipeline ----------
 PIPELINE_SCRIPT="${MAMBA_GAZE_ROOT}/run_meshmamba_gaze.py"
@@ -73,6 +82,12 @@ if [ ! -f "${PIPELINE_SCRIPT}" ]; then
   echo "[run_meshmamba_non_texture_pilot] PIPELINE_SCRIPT not found: ${PIPELINE_SCRIPT}"
   echo "  Verify MAMBA_GAZE_ROOT points to the MAMBA_GAZE checkout on this machine."
   exit 1
+fi
+
+if [ "${RECENTER_TO_BBOX_CENTER}" = "true" ]; then
+  RECENTER_FLAG="--recenter-to-bbox-center"
+else
+  RECENTER_FLAG="--no-recenter-to-bbox-center"
 fi
 
 nice -n "${NICE_LEVEL}" python3 "${PIPELINE_SCRIPT}" \
@@ -87,8 +102,8 @@ nice -n "${NICE_LEVEL}" python3 "${PIPELINE_SCRIPT}" \
   --frame-alignment nearest \
   --point-weight-mode unit \
   --smoothing-mode diffusion \
-  --recenter-to-bbox-center \
-  --extra-rotate-x-deg 90 \
-  --override-fov-deg 37.5
+  "${RECENTER_FLAG}" \
+  --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
+  --override-fov-deg "${OVERRIDE_FOV_DEG}"
 
 echo "[run_meshmamba_non_texture_pilot] done. results in ${OUTPUT_DIR}"
