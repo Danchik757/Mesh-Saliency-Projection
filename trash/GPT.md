@@ -356,3 +356,88 @@ Open questions: exact first pilot worker count and whether the first
 `MeshMamba rgb_texture` preview may remain geometry-only.
 Next step: convert these rules into portable `test/` wrappers and a local
 mini-test manifest.
+
+## 2026-05-30 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Implemented the first repo-local portable preview flow under `test/` and
+ran a local sanity suite across four dataset manifests.
+Files: test/tools/render_preview_from_manifest.py, test/launch/run_preview_manifest.sh,
+test/launch/run_preview_suite.sh, test/env/local_paths.example.sh,
+test/env/vg_intellect_paths.example.sh, test/manifests/preview_*.json,
+test/README.md
+Result: Local preview generation now works from manifest + env vars for
+`3DVA`, `MeshMamba non_texture`, `MeshMamba rgb_texture`, and `SAL3D`.
+Qualitative outcome: `bunny`, `Aquarium_Deep_Sea_Diver_v1_L1`, and `SAL3D A380`
+look like plausible start points; `MeshMamba rgb_texture Starfruit_L3` is too
+small in frame and needs a geometry recipe pass before server pilot.
+Open questions: whether to calibrate a single representative `rgb_texture`
+recipe next or defer that sub-track until `non_texture` pilot is stable.
+Next step: review the second agent's pilot/transfer wrappers, then prepare the
+first cleaned server-side side-input transfer plan and pilot wrapper set.
+
+## 2026-05-30 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Extended the preview flow to use the user's local original-video folders
+and generate side-by-side `video frame vs rendered preview` comparisons where a
+matching mp4 is available.
+Files: test/tools/render_preview_from_manifest.py, test/env/local_paths.example.sh,
+test/manifests/preview_3dva_bunny.json,
+test/manifests/preview_meshmamba_non_texture_starfruit.json,
+test/manifests/preview_meshmamba_rgb_texture_starfruit.json, test/README.md
+Result: Video-based comparisons now exist for `3DVA bunny`, `MeshMamba
+non_texture Starfruit_L3`, and `MeshMamba rgb_texture Starfruit_L3`.
+Qualitative outcome: `3DVA bunny` is already close in framing and pose; both
+`MeshMamba Starfruit` previews are clearly too small in frame relative to the
+source video and need geometry/camera calibration before server pilot.
+Open questions: whether to keep `Aquarium` as the non-texture geometry recipe
+reference while using `Starfruit` as the video-comparison representative.
+Next step: either calibrate `MeshMamba Starfruit` against its real video next,
+or freeze `3DVA` first and postpone the MeshMamba video-match pass.
+
+## 2026-05-30 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Calibrated preview geometry against original videos for representative
+`3DVA` and `MeshMamba` objects while preserving `json` as the base transform
+source of truth.
+Files: test/manifests/preview_3dva_bunny.json,
+test/manifests/preview_meshmamba_non_texture_starfruit.json,
+test/manifests/preview_meshmamba_rgb_texture_starfruit.json,
+test/README.md
+Result: Chosen local corrective recipes are now:
+`3DVA bunny -> recenter=true, rotX=-45, fov=37.5`,
+`MeshMamba Starfruit (non/rgb) -> recenter=true, rotX=90, fov=37.5`.
+Qualitative outcome: `bunny` no longer has the obvious orientation mismatch
+seen in the earlier compare frame; both `Starfruit` tracks now have the correct
+vertical orientation and much closer framing, though fine per-model tuning may
+still be needed before a full dataset sweep.
+Open questions: whether `Starfruit` should remain the canonical video-match
+reference for both `MeshMamba` tracks, or whether a second representative model
+should be calibrated before server pilot.
+Next step: review Claude's wrapper/transfer work, then package the first clean
+side-input transfer manifests and server pilot commands.
+
+## 2026-05-30 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Reviewed and corrected the first batch of server-facing launch/transfer
+wrappers after Claude's initial implementation.
+Files: configs/server_vg_intellect.env, test/launch/run_3dva_pilot.sh,
+test/launch/run_meshmamba_non_texture_pilot.sh,
+test/launch/mirror_side_inputs.sh, test/manifests/3dva_pilot.json,
+test/manifests/meshmamba_non_texture_pilot.json, test/side_inputs/*
+Result: server env now defaults to `WORKERS=12`; `3DVA` pilot wrapper now uses
+an object-level low-priority pool; `MeshMamba non_texture` wrapper now points
+to `run_meshmamba_gaze.py`, `SaliencyMap/non_texture`, and the real CLI
+argument names; side-input inventory/pack scripts exist and local inventories
+for `3DVA` and `MeshMamba non_texture` run successfully against real data.
+Qualitative outcome: the first server-pilot path is now much closer to runnable
+without manual path surgery, though final review is still needed before any
+actual `scp` or `tmux` launch.
+Open questions: whether to keep the current `MeshMamba` pilot centered on
+`Starfruit_L3` only, or add one second representative validated model before
+the first server run.
+Next step: final review of uncommitted branch state, then prepare a clean commit
+and the exact first transfer/launch commands.

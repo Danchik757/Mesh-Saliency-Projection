@@ -26,11 +26,16 @@
 
   "transform_recipe": {
     "recenter_to_bbox_center": true,
-    "extra_rotate_x_deg": 0,
+    "default_extra_rotate_x_deg": 0,
+    "model_overrides": {
+      "bunny": {
+        "extra_rotate_x_deg": -45.0
+      }
+    },
     "override_fov_deg": 37.5,
     "validation_status": "validated_on_subset",
     "validated_models": ["bunny", "dragon", "chair107", "flowerpot", "car-vasa"],
-    "note": "Recipe backed by local hit-rate improvement; not yet verified on full 32-model sweep."
+    "note": "Base recipe is backed by local hit-rate improvement; `bunny` additionally required `rotX=-45` after direct video-vs-preview inspection."
   },
 
   "pilot_models": ["bunny", "A380", "dragon", "chair107", "flowerpot", "car-vasa"],
@@ -86,7 +91,9 @@
     "tool": "nice",
     "env_var_workers": "WORKERS",
     "env_var_nice_level": "NICE_LEVEL",
-    "initial_server_worker_count": 8,
-    "note": "Increase only after checking host load in htop."
+    "initial_server_worker_count": 12,
+    "nested_parallelism": false,
+    "parallelism_style": "object_level_pool",
+    "note": "Increase only after checking host load in htop. No nested parallelism."
   }
 }

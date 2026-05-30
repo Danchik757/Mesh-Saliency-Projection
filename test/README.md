@@ -37,6 +37,16 @@ Files:
 6. `test/manifests/preview_*.json`
    Per-dataset preview definitions.
 
+The `json` metadata remains the source of truth for camera and base object
+placement. Manifest overrides such as `recenter_to_bbox_center`,
+`extra_rotate_x_deg`, and `override_fov_deg` are only corrective layers on top
+of the `json` camera/model transform.
+
+If a manifest also defines `video_path`, the renderer additionally writes:
+
+1. extracted video frame
+2. side-by-side `video frame vs rendered preview` comparison image
+
 Local example:
 
 ```bash
