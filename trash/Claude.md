@@ -798,6 +798,117 @@ Questions for GPT:
 Next step: wait for GPT confirmation on MAMBA_GAZE CLI flags (questions 1-2
 above) before the first server-side pilot run.
 
+## 2026-05-30 10:30 MSK
+Role: Claude
+Commit: 46cccf5 (local HEAD; server pulled to 46cccf5)
+Scope: Server preparation, side-input transfer, MeshMamba non_texture pilot run.
+Files inspected:
+  `configs/server_vg_intellect.env` (server copy)
+  `test/side_inputs/scp_archives.sh`
+  `test/side_inputs/unpack_on_server.sh`
+  `test/launch/run_meshmamba_non_texture_pilot.sh`
+  `/tmp/meshmamba_pilot.log` (server)
+  `outputs/MeshMamba_non_texture/pilot/Starfruit_L3/metrics_vs_gt.json` (server)
+  `outputs/MeshMamba_non_texture/pilot/Starfruit_L3/run_summary.json` (server)
+  `MAMBA_GAZE/mamba_gaze/name_mapping.py:120` (server)
+  `MAMBA_GAZE/run_meshmamba_gaze.py` (server, full arg list confirmed)
+Files changed: `trash/Claude.md` (this entry only)
+Findings:
+
+### Server state verified
+  Both repos present at expected server paths.
+  `Mesh-Saliency-Projection` on `reproject-benchmark` at `46cccf5`.
+  `MAMBA_GAZE` at `42eb4fc`.
+  Conda env `reproject-benchmark` fully functional:
+    python 3.11.15, numpy 2.4.4, pandas 3.0.3, scipy 1.17.1, PIL 12.2.0, torch 2.12.0+cpu.
+
+### Side-input transfer completed
+  Archives transferred via `scp_archives.sh DRY_RUN=0`:
+    3dva_csv.tar.gz 8.1M, 3dva_json.tar.gz 476K,
+    meshmamba_non_texture_csv.tar.gz 18M, meshmamba_non_texture_json.tar.gz 1.5M
+  `unpack_on_server.sh` ran clean:
+    3DVA: 32 csv + 32 json checked OK
+    MeshMamba_non_texture: 105 csv + 105 json checked OK
+  `tar` warnings about `LIBARCHIVE.xattr.com.apple.provenance` are
+  macOS extended attributes that Linux tar ignores — benign, no action needed.
+
+### 3DVA blocker: PerSubjectFixations missing
+  `eval_vs_gt_visual_attention.py:163` and `eval_geodesic_diffusion.py:158`
+  both call `load_subject_maps()` which reads from `PerSubjectFixations/`.
+  This directory does not exist on the server or locally.
+  Local `PerSubjectData.zip` is 0 bytes (empty placeholder).
+  Without `PerSubjectFixations`, both 3DVA eval scripts will crash at `np.stack([])`.
+  Server 3DVA dataset dirs present: `3DModels-Simplif-up`, `3DModels-Simplif-224-up`,
+    `CentricityAndVisibilityMaps`, `FixationMaps`, `test_viewpoints`.
+  Symlink `3DModels-Simplif -> 3DModels-Simplif-up` was created on server to
+  satisfy the hardcoded `dataset_root / "3DModels-Simplif"` in both scripts.
+  3DVA pilot is BLOCKED until `PerSubjectFixations` data is available.
+
+### MeshMamba OBJ naming mismatch — 70 of 105 models fixed
+  `MAMBA_GAZE/mamba_gaze/name_mapping.py:120` constructs mesh paths as
+    `<mesh_dir>/<dir_name>/<dir_name>.obj`
+  but the actual OBJ files use different base names, e.g.:
+    dir `Starfruit_L3` -> actual OBJ `Starfruit-L3.obj` (hyphen vs underscore)
+    dir `Bird_v1_L3` -> actual OBJ `Chick.obj` (completely different name)
+  35 models already had matching names; 70 did not.
+  Fix applied on server (no code changes to MAMBA_GAZE):
+    For each of the 70 mismatched model dirs, created symlink
+    `<dir_name>.obj -> <actual_obj_file>` within that directory.
+  Symlinks are NOT tracked in git or manifests — if server datasets are
+  re-provisioned, this script must be re-run.
+
+### MAMBA_GAZE CLI flags — fully confirmed, all mismatches closed
+  All flags used in `run_meshmamba_non_texture_pilot.sh` exist:
+    `--model`, `--gaze-csv-dir`, `--mesh-dir`, `--json-dir`, `--gt-dir`,
+    `--output-dir`, `--mapping-json`, `--device`, `--frame-alignment`,
+    `--point-weight-mode`, `--smoothing-mode`
+  `--recenter-to-bbox-center` uses `BooleanOptionalAction` — both
+    `--recenter-to-bbox-center` and `--no-recenter-to-bbox-center` are valid.
+  `--workers` does NOT exist — parallelism is external only.
+  MISMATCH-1, MISMATCH-2, MISMATCH-3 from prior log are all CLOSED.
+
+### MeshMamba non_texture pilot — Starfruit_L3 COMPLETED
+  Transform: recenter=true, extra_rotate_x_deg=90, effective_fov_deg=37.5
+  Mesh: 16,436 vertices, 32,868 faces
+  Participants: 36 loaded, 35 used (1 excluded by pipeline)
+  Points used: 21,592 | Hits: 10,781 | Hit rate: 49.9%
+  Runtime: 51.8 seconds (cpu)
+  Outputs in server `.../outputs/MeshMamba_non_texture/pilot/Starfruit_L3/`:
+    aggregate_face_saliency_sum.csv, aggregate_face_saliency_max.csv,
+    metrics_vs_gt.json, participant_summary.csv, run_summary.json,
+    resolved_paths.json, participants/
+  Primary metrics (aggregate_sum):
+    CC: -0.109   SIM: 0.326   KLD: 8.29   MSE: 0.130
+    Spearman: -0.133   Cosine: 0.351
+    AUC_Judd_gt_top_10pct_proxy: 0.393
+  IMPORTANT FOR GPT: CC and Spearman are NEGATIVE.
+    Predicted saliency is inversely correlated with GT.
+    Geometric preview (visual check) was validated for Starfruit_L3, so the
+    transform appears correct. Cause is likely in projection or diffusion step.
+    Do not proceed to full pilot without GPT analysis.
+
+### `--no-capture-output` required for conda run in tmux
+  `conda run` buffers all child stdout/stderr until process exits by default.
+  In a detached tmux session this causes the log to be empty until completion.
+  Fix: add `--no-capture-output` flag to `conda run` invocations.
+  Added to `/tmp/launch_meshmamba_pilot.sh` (server temp file, not in git).
+
+Risks:
+1. Negative CC/Spearman on Starfruit_L3 — first pilot, needs GPT analysis.
+   Do not extrapolate to other models or proceed to full run without review.
+2. 3DVA pilot blocked by missing PerSubjectFixations — do not attempt to run.
+3. OBJ symlinks (70 models) live only on server — not tracked in git.
+   Document this in any re-provisioning runbook.
+4. 1 of 36 participants excluded in Starfruit_L3 — reason not shown in log.
+Questions for GPT:
+1. CC=-0.109, Spearman=-0.133 for Starfruit_L3 pilot: what does this indicate?
+   Is it a projection/smoothing issue, or expected for a pilot on a single model?
+2. PerSubjectFixations for 3DVA: where can this data be obtained, or should
+   the eval scripts be adapted to work with FixationMaps only?
+3. Given negative metrics, should we run a second pilot model (Aquarium_Deep_Sea_Diver_v1_L1)
+   before drawing conclusions?
+Next step: wait for GPT analysis of pilot metrics before deciding next run.
+
 ---
 
 ## READ-ONLY COMMAND SHEET (current HEAD = 9a55147)
@@ -874,4 +985,87 @@ above) before the first server-side pilot run.
 
   # Detach tmux and leave running: Ctrl-b d
   # Reattach: tmux attach -t reproject_pilot
+
+---
+
+## [2026-05-30] Baseline script authoring — MeshMamba cone/screen-space + 3DVA launch wrappers
+
+### Context
+Continuing from previous session (summary: eval_3dva_raycast_cone.py created, pilot ran with CC=-0.109).
+Completed all remaining script-authoring tasks from NEXT_AGENT_HANDOFF.md.
+
+### Files created / modified
+
+**New Python evaluation scripts:**
+
+1. `reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py`
+   - Face-level adapter of the 3DVA raycast/cone approach for MeshMamba non_texture
+   - Methods: `raycast_nearest_face` (accumulate on idx_tri) + `cone_gaussian_on_mesh` (spread to nearby face centroids via cKDTree on `xmesh.triangles_center`)
+   - GT: per-face CSV (one float per line), found via fuzzy name match (underscore ↔ dash)
+   - OBJ: found via fuzzy match in `{dataset_root}/MeshFile/non_texture/{model}/`
+   - JSON prefix: `MeshMamba_non_texture_{model}.json`
+   - Env vars: `MESHMAMBA_NON_TEXTURE_ROOT`, `MESHMAMBA_CSV_ROOT`, `MESHMAMBA_JSON_ROOT`, `MESHMAMBA_OUTPUT_DIR`
+   - Output: `{model}_raycast_faces.txt`, `{model}_cone_faces.txt`, `{model}_report.json`
+   - Metrics: CC, LCC, AUC, KLD, SIM, Spearman, MSE, MAE, Cosine (same as 3DVA script)
+
+2. `reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py`
+   - Screen-space Gaussian baseline for MeshMamba non_texture
+   - Method `screen_space_gaussian`: build global gaze density map (256×144 + Gaussian blur), then per frame project face centroids to screen and sample density weighted by frame gaze count
+   - Correct per-frame rotation handling: uses `frames[f].rotation_z_radians` to transform face centroids each frame
+   - Sigma param: `--sigma-screen` (fraction of image width, default 0.05)
+   - Same GT/OBJ/JSON path logic as eval_meshmamba_cone.py
+   - Env vars: same set as cone script
+   - Output: `{model}_screen_space_faces.txt`, `{model}_report.json`
+
+**New launch scripts:**
+
+3. `test/launch/run_3dva_raycast_cone.sh`
+   - Batch wrapper for `eval_3dva_raycast_cone.py` over multiple 3DVA models
+   - Required env vars: `VISUAL_ATTENTION_3D_SHAPES_ROOT`, `THREE_DVA_CSV_ROOT`, `THREE_DVA_JSON_ROOT`, `OUTPUT_ROOT`
+   - Optional: `PILOT_OBJECTS`, `SIGMA_DEG`, `RADIUS_SIGMA_MULT`, `RECENTER_TO_BBOX_CENTER`, `EXTRA_ROTATE_X_DEG`, `OVERRIDE_FOV_DEG`
+   - Default model list: `bunny A380 dragon chair107 flowerpot car-vasa`
+   - Parallel pool with `WORKERS` (default 4, since each invocation is CPU-heavy raycast)
+   - Output: `{OUTPUT_ROOT}/3DVA/raycast_cone/`; per-model `{model}_run.log`
+
+4. `test/launch/run_meshmamba_baseline_cone.sh`
+   - Single-model pilot wrapper for `eval_meshmamba_cone.py`
+   - Required: `MESHMAMBA_NON_TEXTURE_ROOT`, `SIDE_INPUTS_ROOT`, `OUTPUT_ROOT`
+   - Default model: `Starfruit_L3` with `RECENTER_TO_BBOX_CENTER=true`, `EXTRA_ROTATE_X_DEG=90`, `OVERRIDE_FOV_DEG=37.5`
+   - Output: `{OUTPUT_ROOT}/MeshMamba_non_texture/baseline_cone/`
+
+5. `test/launch/run_meshmamba_baseline_screen_space.sh`
+   - Single-model pilot wrapper for `eval_meshmamba_screen_space.py`
+   - Same env vars as baseline_cone; replaces `SIGMA_DEG` with `SIGMA_SCREEN=0.05`
+   - Output: `{OUTPUT_ROOT}/MeshMamba_non_texture/baseline_screen_space/`
+
+**Modified:**
+
+6. `test/launch/run_meshmamba_non_texture_pilot.sh`
+   - Added `SMOOTHING_MODE="${SMOOTHING_MODE:-diffusion}"` default
+   - Added `--smoothing-mode "${SMOOTHING_MODE}"` replacing hardcoded `diffusion`
+   - Added echo line for smoothing_mode in startup banner
+   - Choices: none / diffusion / geodesic_kde
+
+### Design decisions
+
+- Face centroids in cone method are taken from `xmesh.triangles_center` (after vertex transform) — not computed separately — to ensure exact consistency with the transformed mesh.
+- Screen-space script uses 256×144 internal image (factor 7.5 downscale from 1920×1080) for speed; sigma scales proportionally with `_IMG_W`.
+- Screen-space sigma is specified as fraction of image width (`--sigma-screen`) not degrees, to decouple it from depth.
+- GT fuzzy match: tries exact, then underscore↔dash swap, then case-insensitive normalized match. Raises FileNotFoundError with helpful list of available files on failure.
+- OBJ fuzzy match: same strategy + fallback to first `*.obj` in model directory (handles server symlink setup).
+- `WORKERS=4` default in 3DVA batch script (not 12) because each call does full raycasting over all frames — much heavier per-model than the original `eval_vs_gt_visual_attention.py`.
+
+### Status
+
+All script-authoring tasks from NEXT_AGENT_HANDOFF.md now complete:
+- [x] eval_3dva_raycast_cone.py (previous session)
+- [x] eval_meshmamba_cone.py
+- [x] eval_meshmamba_screen_space.py
+- [x] run_3dva_raycast_cone.sh
+- [x] run_meshmamba_baseline_cone.sh
+- [x] run_meshmamba_baseline_screen_space.sh
+- [x] SMOOTHING_MODE support in run_meshmamba_non_texture_pilot.sh
+
+Not yet committed (pending GPT confirmation). trimesh + sklearn already installed on server.
+Next: GPT review → commit → server pilot run for baseline methods.
 
