@@ -1,0 +1,13 @@
+{
+  "dataset": "3DVA",
+  "model": "vase-15k",
+  "obj_path": "${REPROJECT_DATASET_3DVA_ROOT}/3DModels-Simplif-up/vase-15k.obj",
+  "json_path": "${REPROJECT_GAZE_JSON_3DVA_ROOT}/3DVA_vase-15k.json",
+  "video_path": "${REPROJECT_VIDEO_3DVA_ROOT}/3DVA_vase-15k.mp4",
+  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/3DVA_up/vase-15k_frame000_up_fov60",
+  "frame_index": 0,
+  "resolution_scale": 0.5,
+  "recenter_to_bbox_center": true,
+  "extra_rotate_x_deg": 0.0,
+  "override_fov_deg": null
+}

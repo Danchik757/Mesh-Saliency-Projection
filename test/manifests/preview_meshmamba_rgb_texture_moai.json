@@ -1,0 +1,13 @@
+{
+  "dataset": "MeshMamba_rgb_texture",
+  "model": "Moai_v3_L3",
+  "obj_path": "${REPROJECT_DATASET_MESHMAMBA_ROOT}/MeshFile/rgb_texture/Moai_v3_L3/Moai_L3.obj",
+  "json_path": "${REPROJECT_GAZE_JSON_MESHMAMBA_RGB_TEXTURE_ROOT}/MeshMamba_rgb_texture_Moai_v3_L3.json",
+  "video_path": "${REPROJECT_VIDEO_MESHMAMBA_RGB_TEXTURE_ROOT}/MeshMamba_rgb_texture_Moai_v3_L3.mp4",
+  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/MeshMamba_rgb_texture/Moai_v3_L3_frame000_recenter_rotx90_fov37p5",
+  "frame_index": 0,
+  "resolution_scale": 0.5,
+  "recenter_to_bbox_center": true,
+  "extra_rotate_x_deg": 90.0,
+  "override_fov_deg": 37.5
+}

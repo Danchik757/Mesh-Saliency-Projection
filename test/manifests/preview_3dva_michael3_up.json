@@ -1,0 +1,13 @@
+{
+  "dataset": "3DVA",
+  "model": "michael3",
+  "obj_path": "${REPROJECT_DATASET_3DVA_ROOT}/3DModels-Simplif-up/michael3.obj",
+  "json_path": "${REPROJECT_GAZE_JSON_3DVA_ROOT}/3DVA_michael3.json",
+  "video_path": "${REPROJECT_VIDEO_3DVA_ROOT}/3DVA_michael3.mp4",
+  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/3DVA_up/michael3_frame000_up_fov60",
+  "frame_index": 0,
+  "resolution_scale": 0.5,
+  "recenter_to_bbox_center": true,
+  "extra_rotate_x_deg": 0.0,
+  "override_fov_deg": null
+}
