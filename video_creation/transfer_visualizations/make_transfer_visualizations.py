@@ -7,11 +7,12 @@ import json
 import math
 import os
 import sys
+import tempfile
 from collections import defaultdict
 from dataclasses import dataclass
 from pathlib import Path
 
-os.environ.setdefault("MPLCONFIGDIR", "/private/tmp/mplconfig_codex")
+os.environ.setdefault("MPLCONFIGDIR", os.path.join(tempfile.gettempdir(), "mplconfig"))
 
 import matplotlib
 
@@ -622,7 +623,7 @@ def main() -> None:
         args.dataset_root,
         env_var="SALIENCY3D_CLEAR_ROOT",
         dataset_name="Saliency3D_clear",
-        example_path="/Users/admin/Documents/LAB/SALIENCY_code/Dataset (Clear)/Saliency3D_clear",
+        example_path="e.g. /srv/datasets/Saliency3D_clear",
     )
     args.output_dir.mkdir(parents=True, exist_ok=True)
 

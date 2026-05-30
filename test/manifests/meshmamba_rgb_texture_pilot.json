@@ -1,0 +1,52 @@
+{
+  "manifest_version": "1",
+  "dataset": "MeshMamba_rgb_texture",
+  "dataset_server_subdir": "MeshMambaSaliency",
+  "track": "pilot",
+  "gt_granularity": "face",
+  "status": "needs_adaptation",
+
+  "blockers": [
+    "Preview script (MAMBA_GAZE/tools/render_model_preview.py) hardcodes JSON prefix MeshMamba_non_texture_<model>.json; needs a --json-prefix or --dataset-variant flag before rgb_texture previews are reliable.",
+    "Transform recipe not validated dataset-wide; currently inherits non_texture hypothesis.",
+    "Texture-faithful preview requires Blender (heavy path); geometry-only preview may be accepted as phase-1 proxy — confirm with GPT."
+  ],
+
+  "env_vars": {
+    "dataset_root": "MESHMAMBA_RGB_TEXTURE_ROOT",
+    "side_inputs_root": "SIDE_INPUTS_ROOT",
+    "mamba_gaze_root": "MAMBA_GAZE_ROOT",
+    "output_root": "OUTPUT_ROOT"
+  },
+
+  "server_layout": {
+    "dataset_root": "${MESHMAMBA_RGB_TEXTURE_ROOT}",
+    "mesh_subdir": "MeshFile/rgb_texture",
+    "gt_subdir": "GT/rgb_texture",
+    "side_inputs_csv": "${SIDE_INPUTS_ROOT}/MeshMamba_rgb_texture/csv",
+    "side_inputs_json": "${SIDE_INPUTS_ROOT}/MeshMamba_rgb_texture/json",
+    "output_dir": "${OUTPUT_ROOT}/MeshMamba_rgb_texture/pilot"
+  },
+
+  "side_inputs_needed": true,
+  "side_inputs_to_mirror": {
+    "csv_source": "GAZE_DATA/csv_for_models/MeshMamba_rgb_texture/*.csv",
+    "json_source": "GAZE_DATA/jsons_for_models/Mamba_rgb_textured/*.json",
+    "transfer_method": "scp",
+    "note": "json metadata is mandatory; do not skip."
+  },
+
+  "transform_recipe": {
+    "recenter_to_bbox_center": "hypothesis_only",
+    "extra_rotate_x_deg": "hypothesis_only",
+    "override_fov_deg": "hypothesis_only",
+    "validation_status": "not_validated",
+    "note": "Must perform preview validation before any metric run. Start only after non_texture protocol is stable."
+  },
+
+  "execution_order": ["non_texture_first", "preview_validation", "local_mini_test", "server_pilot"],
+  "benchmark_validity_rules": [
+    "Do not start rgb_texture benchmarking before non_texture protocol is stable.",
+    "GT is per-face. Do not use vertex-level predictions directly against face-level GT."
+  ]
+}

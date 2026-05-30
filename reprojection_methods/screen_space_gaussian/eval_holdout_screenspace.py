@@ -119,7 +119,7 @@ def main() -> None:
         args.dataset_root,
         env_var="SALIENCY3D_CLEAR_ROOT",
         dataset_name="Saliency3D_clear",
-        example_path="/Users/admin/Documents/LAB/SALIENCY_code/Dataset (Clear)/Saliency3D_clear",
+        example_path="e.g. /srv/datasets/Saliency3D_clear",
     )
     model_dir = dataset_root / "3D_gaze_data" / "Code" / "Exp1" / args.model
     if not model_dir.is_dir():
