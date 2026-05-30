@@ -8,3 +8,6 @@ results/**/*.png
 results/**/*.jpg
 results/**/*.mp4
 results/**/*.npy
+
+# Local preview outputs (generated artifacts, may contain local absolute paths)
+test/output_local/

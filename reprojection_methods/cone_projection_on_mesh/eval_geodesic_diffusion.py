@@ -139,7 +139,7 @@ def main() -> None:
         args.dataset_root,
         env_var="VISUAL_ATTENTION_3D_SHAPES_ROOT",
         dataset_name="Visual Attention for Rendered 3D Shapes",
-        example_path="/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GazeToGT/Visual Attention for Rendered 3D Shapes",
+        example_path="e.g. /srv/datasets/3DVA",
     )
     results = []
     sigma_vertex_steps = args.sigma_visual_deg / args.vertex_angle_deg

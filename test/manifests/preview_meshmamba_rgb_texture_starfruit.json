@@ -1,0 +1,14 @@
+{
+  "dataset": "MeshMamba_rgb_texture",
+  "model": "Starfruit_L3",
+  "obj_path": "${REPROJECT_DATASET_MESHMAMBA_ROOT}/MeshFile/rgb_texture/Starfruit_L3/Starfruit-L3.obj",
+  "json_path": "${REPROJECT_GAZE_JSON_MESHMAMBA_RGB_TEXTURE_ROOT}/MeshMamba_rgb_texture_Starfruit_L3.json",
+  "csv_path": "${REPROJECT_GAZE_CSV_MESHMAMBA_RGB_TEXTURE_ROOT}/Starfruit_L3.csv",
+  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/MeshMamba_rgb_texture/Starfruit_L3_frame000_geometry_only",
+  "frame_index": 0,
+  "resolution_scale": 0.5,
+  "overlay_gaze": true,
+  "recenter_to_bbox_center": false,
+  "extra_rotate_x_deg": 0.0,
+  "override_fov_deg": null
+}

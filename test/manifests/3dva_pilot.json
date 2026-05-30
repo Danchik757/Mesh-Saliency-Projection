@@ -1,0 +1,92 @@
+{
+  "manifest_version": "1",
+  "dataset": "3DVA",
+  "dataset_full_name": "Visual Attention for Rendered 3D Shapes",
+  "track": "pilot",
+  "gt_granularity": "vertex",
+  "status": "ready",
+
+  "env_vars": {
+    "dataset_root": "VISUAL_ATTENTION_3D_SHAPES_ROOT",
+    "output_root": "OUTPUT_ROOT"
+  },
+
+  "server_paths_note": "All paths below are resolved from env vars at runtime. No absolute local paths.",
+  "server_layout": {
+    "dataset_root": "${VISUAL_ATTENTION_3D_SHAPES_ROOT}",
+    "models_subdir": "3DModels-Simplif",
+    "fixation_maps_subdir": "FixationMaps",
+    "per_subject_fixations_subdir": "PerSubjectFixations",
+    "visibility_maps_subdir": "CentricityAndVisibilityMaps",
+    "output_dir": "${OUTPUT_ROOT}/3DVA/pilot"
+  },
+
+  "side_inputs_needed": false,
+  "side_inputs_note": "All required data (FixationMaps, PerSubjectFixations, OBJ meshes) are part of the published dataset. No extra scp transfer needed for these in-repo scripts.",
+
+  "transform_recipe": {
+    "recenter_to_bbox_center": true,
+    "extra_rotate_x_deg": 0,
+    "override_fov_deg": 37.5,
+    "validation_status": "validated_on_subset",
+    "validated_models": ["bunny", "dragon", "chair107", "flowerpot", "car-vasa"],
+    "note": "Recipe backed by local hit-rate improvement; not yet verified on full 32-model sweep."
+  },
+
+  "pilot_models": ["bunny", "A380", "dragon", "chair107", "flowerpot", "car-vasa"],
+  "full_run_note": "32 models total; pilot must pass before full run.",
+
+  "views": ["300", "413", "599"],
+  "view_note": "Evaluate all three views in full run; pilot may start with view 300 only.",
+
+  "methods": [
+    {
+      "name": "cone_projection_on_mesh",
+      "script": "reprojection_methods/cone_projection_on_mesh/eval_vs_gt_visual_attention.py",
+      "env_var_needed": "VISUAL_ATTENTION_3D_SHAPES_ROOT",
+      "output_granularity": "vertex",
+      "status": "ready"
+    },
+    {
+      "name": "cone_projection_on_mesh+geodesic_diffusion",
+      "script": "reprojection_methods/cone_projection_on_mesh/eval_geodesic_diffusion.py",
+      "env_var_needed": "VISUAL_ATTENTION_3D_SHAPES_ROOT",
+      "output_granularity": "vertex",
+      "status": "ready"
+    }
+  ],
+
+  "external_methods_not_in_this_repo": [
+    {
+      "name": "raycast_nearest_vertex",
+      "location": "GAZE_DATA/scripts/ (outside this repo)",
+      "status": "ready but requires separate transfer"
+    },
+    {
+      "name": "cone_gaussian_on_mesh",
+      "location": "GAZE_DATA/scripts/ (outside this repo)",
+      "status": "ready but requires separate transfer"
+    }
+  ],
+
+  "metrics": {
+    "primary": ["CC", "LCC", "AUC_visible_top20"],
+    "secondary": ["Spearman", "SIM", "KLD", "MSE", "MAE", "Cosine", "hit_rate"],
+    "note": "Compute full metric set first; filter at analysis stage."
+  },
+
+  "benchmark_validity_rules": [
+    "Do not compare vertex-level predictions directly against face-level GT.",
+    "3DVA and MeshMamba are separate benchmark tracks.",
+    "Fix geometry and camera placement before drawing conclusions from metrics."
+  ],
+
+  "execution_order": ["local_mini_test", "server_pilot", "server_full_run"],
+  "parallelism": {
+    "tool": "nice",
+    "env_var_workers": "WORKERS",
+    "env_var_nice_level": "NICE_LEVEL",
+    "initial_server_worker_count": 8,
+    "note": "Increase only after checking host load in htop."
+  }
+}

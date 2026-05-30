@@ -312,7 +312,7 @@ def main() -> None:
         args.dataset_root,
         env_var="SALIENCY3D_CLEAR_ROOT",
         dataset_name="Saliency3D_clear",
-        example_path="/Users/admin/Documents/LAB/SALIENCY_code/Dataset (Clear)/Saliency3D_clear",
+        example_path="e.g. /srv/datasets/Saliency3D_clear",
     )
     sigma_px = sigma_px_from_angle(args.sigma_deg)
     coord_map = load_coordinate_map(

@@ -1,0 +1,102 @@
+{
+  "manifest_version": "1",
+  "dataset": "MeshMamba_non_texture",
+  "dataset_server_subdir": "MeshMambaSaliency",
+  "track": "pilot",
+  "gt_granularity": "face",
+  "status": "ready",
+
+  "env_vars": {
+    "dataset_root": "MESHMAMBA_NON_TEXTURE_ROOT",
+    "side_inputs_root": "SIDE_INPUTS_ROOT",
+    "mamba_gaze_root": "MAMBA_GAZE_ROOT",
+    "output_root": "OUTPUT_ROOT"
+  },
+
+  "server_layout": {
+    "dataset_root": "${MESHMAMBA_NON_TEXTURE_ROOT}",
+    "mesh_subdir": "MeshFile/non_texture",
+    "gt_subdir": "GT/non_texture",
+    "side_inputs_csv": "${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv",
+    "side_inputs_json": "${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/json",
+    "output_dir": "${OUTPUT_ROOT}/MeshMamba_non_texture/pilot"
+  },
+
+  "side_inputs_needed": true,
+  "side_inputs_to_mirror": {
+    "csv_source": "GAZE_DATA/csv_for_models/MeshMamba_non_texture/*.csv",
+    "json_source": "GAZE_DATA/jsons_for_models/Mamba_non_textured/*.json",
+    "transfer_method": "scp",
+    "note": "json camera/object metadata is mandatory for preview rendering and reprojection; do not skip."
+  },
+
+  "transform_recipe": {
+    "recenter_to_bbox_center": true,
+    "extra_rotate_x_deg": 90,
+    "override_fov_deg": 35.8972065,
+    "validation_status": "validated_on_representative_model",
+    "validated_models": ["Aquarium_Deep_Sea_Diver_v1_L1"],
+    "recipe_source": "GAZE_DATA/MAMBA_GAZE/docs/PROJECTION_TRANSFORM_RECIPE.md",
+    "note": "Recipe needs per-model verification during preview phase."
+  },
+
+  "pilot_models_note": "5-10 geometry-diverse models; exact list TBD after preview validation.",
+  "pilot_models_candidates": [
+    "Aquarium_Deep_Sea_Diver_v1_L1"
+  ],
+
+  "methods_in_this_repo": [
+    {
+      "name": "screen_space_gaussian (MeshMamba-adapted)",
+      "note": "Adapter to face-level output not yet in this repo; currently external.",
+      "status": "needs_adaptation"
+    },
+    {
+      "name": "cone_projection_on_mesh (MeshMamba-adapted)",
+      "note": "Adapter to face-level output not yet in this repo; currently external.",
+      "status": "needs_adaptation"
+    }
+  ],
+
+  "methods_external": [
+    {
+      "name": "our_pipeline",
+      "location": "${MAMBA_GAZE_ROOT}/mamba_gaze/pipeline.py",
+      "env_var_needed": "MAMBA_GAZE_ROOT",
+      "output_granularity": "face",
+      "status": "ready (external repo)"
+    },
+    {
+      "name": "our_pipeline+diffusion",
+      "location": "${MAMBA_GAZE_ROOT}",
+      "output_granularity": "face",
+      "status": "ready (external repo)"
+    },
+    {
+      "name": "our_pipeline+geodesic_kde",
+      "location": "${MAMBA_GAZE_ROOT}",
+      "output_granularity": "face",
+      "status": "ready (external repo)"
+    }
+  ],
+
+  "metrics": {
+    "primary": ["CC", "SIM", "KLD", "MSE"],
+    "secondary": ["Spearman", "Cosine", "NSS_proxy", "AUC_proxy", "assignment_rate"],
+    "note": "Collect full set first; filter at analysis stage."
+  },
+
+  "benchmark_validity_rules": [
+    "GT is per-face. Do not use vertex-level predictions directly against face-level GT.",
+    "MeshMamba non_texture and rgb_texture are separate sub-tracks.",
+    "Preview validation (one rendered frame per model) is a gate before full metric run."
+  ],
+
+  "execution_order": ["preview_validation", "local_mini_test", "server_pilot", "server_full_run"],
+  "parallelism": {
+    "tool": "nice",
+    "env_var_workers": "WORKERS",
+    "env_var_nice_level": "NICE_LEVEL",
+    "initial_server_worker_count": 8
+  }
+}

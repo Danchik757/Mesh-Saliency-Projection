@@ -1,0 +1,73 @@
+{
+  "manifest_version": "1",
+  "dataset": "Saliency3D_clear",
+  "track": "pilot",
+  "gt_granularity": "screen",
+  "status": "ready",
+
+  "env_vars": {
+    "dataset_root": "SALIENCY3D_CLEAR_ROOT",
+    "output_root": "OUTPUT_ROOT"
+  },
+
+  "server_layout": {
+    "dataset_root": "${SALIENCY3D_CLEAR_ROOT}",
+    "gaze_data_subdir": "3D_gaze_data/Code/Exp1",
+    "obj_subdir": "obj",
+    "coordinate_json": "doi-10.18419-darus-4101/3DSaliency/coordinate.json",
+    "output_dir": "${OUTPUT_ROOT}/Saliency3D_clear/pilot"
+  },
+
+  "side_inputs_needed": false,
+  "side_inputs_note": "All required data is inside the Saliency3D_clear dataset directory.",
+
+  "transform_recipe": {
+    "note": "No geometric correction needed; this dataset uses screen-space evaluation."
+  },
+
+  "pilot_models": ["hand", "bunny", "dragon"],
+  "test_participants": ["zl", "zy"],
+
+  "methods": [
+    {
+      "name": "screen_space_gaussian",
+      "script": "reprojection_methods/screen_space_gaussian/eval_holdout_screenspace.py",
+      "env_var_needed": "SALIENCY3D_CLEAR_ROOT",
+      "output_granularity": "screen",
+      "status": "ready"
+    },
+    {
+      "name": "cone_projection_on_mesh",
+      "script": "reprojection_methods/cone_projection_on_mesh/eval_visual_attention_style_saliency3d_clear.py",
+      "env_var_needed": "SALIENCY3D_CLEAR_ROOT",
+      "output_granularity": "vertex",
+      "status": "ready"
+    },
+    {
+      "name": "transfer_visualizations",
+      "script": "video_creation/transfer_visualizations/make_transfer_visualizations.py",
+      "env_var_needed": "SALIENCY3D_CLEAR_ROOT",
+      "output_granularity": "screen+vertex",
+      "status": "ready",
+      "note": "Visualization only; not an eval script."
+    }
+  ],
+
+  "metrics": {
+    "primary": ["AUC", "NSS", "CC"],
+    "secondary": ["Spearman", "SIM"],
+    "note": "Compute full metric set; filter at analysis stage."
+  },
+
+  "benchmark_validity_rules": [
+    "Do not conflate Saliency3D_clear with official SAL3D — they are different datasets.",
+    "Screen-space and mesh-space metrics are separate tracks."
+  ],
+
+  "execution_order": ["local_mini_test", "server_pilot", "server_full_run"],
+  "parallelism": {
+    "tool": "nice",
+    "env_var_workers": "WORKERS",
+    "env_var_nice_level": "NICE_LEVEL"
+  }
+}
