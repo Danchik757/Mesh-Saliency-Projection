@@ -105,10 +105,22 @@ def parse_args() -> argparse.Namespace:
         help="Recenter OBJ vertices to bounding-box center before scale/rotation.",
     )
     parser.add_argument(
+        "--base-rotate-z-deg",
+        type=float,
+        default=0.0,
+        help="Static Z correction applied before scale/animation, e.g. to match Blender OBJ import axes.",
+    )
+    parser.add_argument(
         "--extra-rotate-x-deg",
         type=float,
         default=0.0,
         help="Extra runtime X rotation in degrees (applied after Z rotation).",
+    )
+    parser.add_argument(
+        "--extra-rotate-y-deg",
+        type=float,
+        default=0.0,
+        help="Extra runtime Y rotation in degrees (applied after extra X rotation).",
     )
     parser.add_argument(
         "--override-fov-deg",
@@ -238,9 +250,17 @@ def apply_model_transform(
     camera_data: dict,
     rotation_z_rad: float,
     recenter_to_bbox_center: bool,
+    base_rotate_z_deg: float,
     extra_rotate_x_deg: float,
+    extra_rotate_y_deg: float,
 ) -> np.ndarray:
     v = np.asarray(vertices, dtype=np.float64).copy()
+    rz0 = math.radians(base_rotate_z_deg)
+    if abs(rz0) > 1e-12:
+        cz0, sz0 = math.cos(rz0), math.sin(rz0)
+        x0 = cz0 * v[:, 0] - sz0 * v[:, 1]
+        y0 = sz0 * v[:, 0] + cz0 * v[:, 1]
+        v[:, 0], v[:, 1] = x0, y0
     if recenter_to_bbox_center:
         v -= 0.5 * (v.min(axis=0) + v.max(axis=0))
 
@@ -258,6 +278,13 @@ def apply_model_transform(
         y3 = crx * v[:, 1] - srx * v[:, 2]
         z3 = srx * v[:, 1] + crx * v[:, 2]
         v[:, 1], v[:, 2] = y3, z3
+
+    ry = math.radians(extra_rotate_y_deg)
+    if abs(ry) > 1e-12:
+        cry, sry = math.cos(ry), math.sin(ry)
+        x4 = cry * v[:, 0] + sry * v[:, 2]
+        z4 = -sry * v[:, 0] + cry * v[:, 2]
+        v[:, 0], v[:, 2] = x4, z4
 
     v += np.asarray(camera_data["model_static"]["location"], dtype=np.float64)
     return v
@@ -351,14 +378,22 @@ def _apply_transform_no_recenter(
     points: np.ndarray,
     camera_data: dict,
     rotation_z_rad: float,
+    base_rotate_z_deg: float,
     extra_rotate_x_deg: float,
+    extra_rotate_y_deg: float,
 ) -> np.ndarray:
-    """Apply scale → rotZ → rotX → translate (no recentering).
+    """Apply scale → rotZ → rotX → rotY → translate (no recentering).
 
     Used for face centroids where recentering was already applied once,
     outside the per-frame loop, using the vertex bounding-box center.
     """
     v = np.asarray(points, dtype=np.float64).copy()
+    rz0 = math.radians(base_rotate_z_deg)
+    if abs(rz0) > 1e-12:
+        cz0, sz0 = math.cos(rz0), math.sin(rz0)
+        x0 = cz0 * v[:, 0] - sz0 * v[:, 1]
+        y0 = sz0 * v[:, 0] + cz0 * v[:, 1]
+        v[:, 0], v[:, 1] = x0, y0
 
     scale = np.asarray(camera_data["model_static"]["scale"], dtype=np.float64)
     v *= scale
@@ -375,6 +410,13 @@ def _apply_transform_no_recenter(
         z3 = srx * v[:, 1] + crx * v[:, 2]
         v[:, 1], v[:, 2] = y3, z3
 
+    ry = math.radians(extra_rotate_y_deg)
+    if abs(ry) > 1e-12:
+        cry, sry = math.cos(ry), math.sin(ry)
+        x4 = cry * v[:, 0] + sry * v[:, 2]
+        z4 = -sry * v[:, 0] + cry * v[:, 2]
+        v[:, 0], v[:, 2] = x4, z4
+
     v += np.asarray(camera_data["model_static"]["location"], dtype=np.float64)
     return v
 
@@ -385,7 +427,9 @@ def run_screen_space(
     gaze_batches: dict[int, FrameGazeBatch],
     sigma_screen: float,
     recenter_to_bbox_center: bool,
+    base_rotate_z_deg: float,
     extra_rotate_x_deg: float,
+    extra_rotate_y_deg: float,
     override_fov_deg: float | None,
 ) -> tuple[np.ndarray, dict]:
     n_faces = len(mesh.faces)
@@ -440,7 +484,12 @@ def run_screen_space(
         rot_z = float(frames_list[frame]["rotation_z_radians"])
         # Transform only the centroid array — O(n_faces), no BVH copy
         centroids_w = _apply_transform_no_recenter(
-            base_centroids, camera_data, rot_z, extra_rotate_x_deg
+            base_centroids,
+            camera_data,
+            rot_z,
+            base_rotate_z_deg,
+            extra_rotate_x_deg,
+            extra_rotate_y_deg,
         )
 
         screen_xy, w_clip = world_to_screen(centroids_w, view_matrix, proj_mat)
@@ -486,8 +535,12 @@ def main() -> None:
     tag_parts = [f"sigma{args.sigma_screen}".replace(".", "p")]
     if args.recenter_to_bbox_center:
         tag_parts.append("recenter")
+    if abs(args.base_rotate_z_deg) > 1e-12:
+        tag_parts.append(f"baserz{args.base_rotate_z_deg}".replace(".", "p"))
     if abs(args.extra_rotate_x_deg) > 1e-12:
         tag_parts.append(f"rotx{args.extra_rotate_x_deg}".replace(".", "p"))
+    if abs(args.extra_rotate_y_deg) > 1e-12:
+        tag_parts.append(f"roty{args.extra_rotate_y_deg}".replace(".", "p"))
     if args.override_fov_deg is not None:
         tag_parts.append(f"fov{args.override_fov_deg}".replace(".", "p"))
     tag = args.tag or "_".join(tag_parts)
@@ -498,7 +551,9 @@ def main() -> None:
         gaze_batches=gaze_batches,
         sigma_screen=args.sigma_screen,
         recenter_to_bbox_center=bool(args.recenter_to_bbox_center),
+        base_rotate_z_deg=args.base_rotate_z_deg,
         extra_rotate_x_deg=args.extra_rotate_x_deg,
+        extra_rotate_y_deg=args.extra_rotate_y_deg,
         override_fov_deg=args.override_fov_deg,
     )
 
@@ -525,9 +580,11 @@ def main() -> None:
         "method_params": {
             "sigma_screen":            args.sigma_screen,
             "recenter_to_bbox_center": bool(args.recenter_to_bbox_center),
+            "base_rotate_z_deg":       args.base_rotate_z_deg,
             "extra_rotate_x_deg":      args.extra_rotate_x_deg,
+            "extra_rotate_y_deg":      args.extra_rotate_y_deg,
             "override_fov_deg":        args.override_fov_deg,
-            "transform_order": "recenter -> scale -> rotation_z -> extra_rotate_x -> translation",
+            "transform_order": "base_rotate_z -> recenter -> scale -> rotation_z -> extra_rotate_x -> extra_rotate_y -> translation",
             "density_image":   f"{_IMG_W}x{_IMG_H}",
         },
         "metrics_vs_gt": results,

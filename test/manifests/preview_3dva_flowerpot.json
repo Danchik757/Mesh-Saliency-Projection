@@ -1,0 +1,15 @@
+{
+  "dataset": "3DVA",
+  "model": "flowerpot",
+  "obj_path": "${REPROJECT_DATASET_3DVA_ROOT}/3DModels-Simplif/flowerpot.obj",
+  "json_path": "${REPROJECT_GAZE_JSON_3DVA_ROOT}/3DVA_flowerpot.json",
+  "csv_path": "${REPROJECT_GAZE_CSV_3DVA_ROOT}/flowerpot.csv",
+  "video_path": "${REPROJECT_VIDEO_3DVA_ROOT}/3DVA_flowerpot.mp4",
+  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/3DVA/flowerpot_frame000_recenter_fov37p5_rotx0",
+  "frame_index": 0,
+  "resolution_scale": 0.5,
+  "overlay_gaze": true,
+  "recenter_to_bbox_center": true,
+  "extra_rotate_x_deg": 0.0,
+  "override_fov_deg": 37.5
+}
