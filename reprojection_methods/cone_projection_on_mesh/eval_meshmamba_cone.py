@@ -36,9 +36,7 @@ import numpy as np
 import pandas as pd
 import trimesh
 from scipy.spatial import cKDTree
-from scipy.spatial.distance import cosine
 from scipy.stats import pearsonr, spearmanr
-from sklearn.metrics import roc_auc_score
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
@@ -324,35 +322,106 @@ def screen_to_rays(
     return origins, directions
 
 
-def compute_metrics(pred: np.ndarray, gt: np.ndarray) -> dict[str, float]:
+def _normalize_sum(values: np.ndarray) -> np.ndarray:
+    values = np.asarray(values, dtype=np.float64).reshape(-1)
+    total = float(values.sum())
+    if total <= 0.0 or not np.isfinite(total):
+        return np.zeros_like(values)
+    return values / total
+
+
+def _normalize_minmax(values: np.ndarray) -> np.ndarray:
+    values = np.asarray(values, dtype=np.float64).reshape(-1)
+    vmin = float(values.min())
+    vmax = float(values.max())
+    if not np.isfinite(vmin) or not np.isfinite(vmax) or vmax <= vmin:
+        return np.zeros_like(values)
+    return (values - vmin) / (vmax - vmin)
+
+
+def _cosine_similarity(first: np.ndarray, second: np.ndarray) -> float:
+    numerator = float(np.dot(first, second))
+    denominator = float(np.linalg.norm(first) * np.linalg.norm(second))
+    if denominator == 0.0:
+        return 0.0
+    return numerator / denominator
+
+
+def _nss(saliency_map: np.ndarray, fixation_mask: np.ndarray) -> float:
+    saliency_map = np.asarray(saliency_map, dtype=np.float64)
+    fixation_mask = np.asarray(fixation_mask, dtype=bool)
+    if fixation_mask.sum() == 0:
+        return 0.0
+    std = float(saliency_map.std())
+    if std == 0.0:
+        return 0.0
+    z_map = (saliency_map - saliency_map.mean()) / std
+    return float(z_map[fixation_mask].mean())
+
+
+def _auc_judd(saliency_map: np.ndarray, fixation_mask: np.ndarray) -> float:
+    saliency_map = _normalize_minmax(saliency_map).reshape(-1)
+    fixation_mask = np.asarray(fixation_mask, dtype=bool).reshape(-1)
+    fixation_count = int(fixation_mask.sum())
+    non_fixation_count = int((~fixation_mask).sum())
+    if fixation_count == 0 or non_fixation_count == 0:
+        return 0.5
+
+    thresholds = np.sort(np.unique(saliency_map[fixation_mask]))[::-1]
+    tp = [0.0]
+    fp = [0.0]
+    for threshold in thresholds:
+        above = saliency_map >= threshold
+        tp.append(float(np.logical_and(above, fixation_mask).sum()) / fixation_count)
+        fp.append(float(np.logical_and(above, ~fixation_mask).sum()) / non_fixation_count)
+    tp.append(1.0)
+    fp.append(1.0)
+    return float(np.trapezoid(np.asarray(tp), np.asarray(fp)))
+
+
+def compute_metrics(
+    pred: np.ndarray,
+    gt: np.ndarray,
+    proxy_fixation_percentiles: tuple[float, ...] = (90.0, 95.0, 99.0),
+) -> dict[str, float]:
+    pred = np.asarray(pred, dtype=np.float64).reshape(-1)
+    gt = np.asarray(gt, dtype=np.float64).reshape(-1)
+
     lcc, _ = pearsonr(pred, gt)
     spearman_r, _ = spearmanr(pred, gt)
 
-    gt_nonzero = gt[gt > 0]
-    if len(gt_nonzero) > 0:
-        threshold = np.median(gt_nonzero)
-        gt_binary = (gt > threshold).astype(int)
-        auc = float(roc_auc_score(gt_binary, pred)) if len(np.unique(gt_binary)) > 1 else 0.5
-    else:
-        auc = 0.5
+    pred_prob = _normalize_sum(np.clip(pred, a_min=0.0, a_max=None))
+    gt_prob = _normalize_sum(np.clip(gt, a_min=0.0, a_max=None))
+    pred_unit = _normalize_minmax(pred)
+    gt_unit = _normalize_minmax(gt)
 
-    eps = 1e-10
-    pred_p = pred / (pred.sum() + eps) + eps
-    gt_p   = gt   / (gt.sum()   + eps) + eps
-    kld    = float(np.sum(gt_p * np.log(gt_p / pred_p)))
-    sim    = float(np.sum(np.minimum(pred / (pred.sum() + eps), gt / (gt.sum() + eps))))
+    eps = 1e-12
+    pred_prob_safe = pred_prob + eps
+    gt_prob_safe = gt_prob + eps
 
-    return {
-        "CC":       float(lcc),
-        "LCC":      float(lcc),
-        "AUC":      auc,
-        "KLD":      kld,
-        "SIM":      sim,
+    metrics = {
+        "CC": float(lcc),
+        "LCC": float(lcc),
+        "SIM": float(np.minimum(pred_prob, gt_prob).sum()),
+        "KLD": float(np.sum(gt_prob_safe * np.log(gt_prob_safe / pred_prob_safe))),
+        "MSE": float(np.mean((pred_unit - gt_unit) ** 2)),
+        "MAE": float(np.mean(np.abs(pred_unit - gt_unit))),
         "Spearman": float(spearman_r),
-        "MSE":      float(np.mean((pred - gt) ** 2)),
-        "MAE":      float(np.mean(np.abs(pred - gt))),
-        "Cosine":   float(1.0 - cosine(pred, gt)) if pred.sum() > 0 and gt.sum() > 0 else 0.0,
+        "Cosine": _cosine_similarity(pred, gt),
+        "PredictionSum": float(pred.sum()),
+        "GroundTruthSum": float(gt.sum()),
     }
+
+    for percentile in proxy_fixation_percentiles:
+        threshold = float(np.quantile(gt_unit, percentile / 100.0))
+        fixation_mask = gt_unit >= threshold
+        top_pct = 100.0 - percentile
+        label = str(int(round(top_pct))) if math.isclose(top_pct, round(top_pct)) else str(top_pct).replace(".", "p")
+        metrics[f"NSS_gt_top_{label}pct_proxy"] = _nss(pred_unit, fixation_mask)
+        metrics[f"AUC_Judd_gt_top_{label}pct_proxy"] = _auc_judd(pred_unit, fixation_mask)
+        metrics[f"GTMaskCount_top_{label}pct_proxy"] = float(fixation_mask.sum())
+
+    return metrics
 
 
 def run_methods(
