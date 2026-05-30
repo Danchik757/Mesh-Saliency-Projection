@@ -663,3 +663,215 @@ Questions for GPT:
 Next step: commit this batch, then GPT reviews the meshmamba_gaze CLI flags
 before any server-side run.
 
+## 2026-05-30 10:05 MSK
+Role: Claude
+Commit: 9a55147 (HEAD); also covers 85c187e and cc7cffb in this session
+Scope: Post-batch audit — document commits 85c187e → cc7cffb → 9a55147;
+embed read-only command sheet; record open mismatches.
+Files inspected:
+  `test/launch/run_meshmamba_non_texture_pilot.sh` (HEAD, 110 lines)
+  `test/side_inputs/scp_archives.sh` (HEAD, 69 lines)
+  `test/manifests/meshmamba_non_texture_pilot.json` (HEAD)
+  `test/manifests/3dva_pilot.json` (HEAD)
+  `git show --stat` for all three commits
+  `git show 9a55147` full diff
+Files changed: `trash/Claude.md` (this entry only — append-only)
+Findings:
+
+### Commit 85c187e — "Add preview calibration and server pilot wrappers"
+  Author: Danchik757 · 2026-05-30 09:45 MSK · 20 files, +786/-101
+  This was the large batch commit containing both GPT-authored and
+  Claude-authored work from Session 2. Key changes by group:
+
+  Side-input infrastructure (all Claude-authored, new files):
+    `test/side_inputs/README.md` — policy table, per-dataset inventory table,
+      file counts (3DVA: 32+32, MeshMamba: 105+105), workflow steps
+    `test/side_inputs/inventory_3dva.sh` — dry-run listing, no scp
+    `test/side_inputs/inventory_meshmamba_non_texture.sh` — same for MeshMamba
+    `test/side_inputs/pack_3dva.sh` — creates 3dva_csv.tar.gz + 3dva_json.tar.gz
+    `test/side_inputs/pack_meshmamba_non_texture.sh` — creates
+      meshmamba_non_texture_csv.tar.gz + meshmamba_non_texture_json.tar.gz
+    `test/side_inputs/scp_archives.sh` — scp template (no DRY_RUN yet in this commit)
+    `test/side_inputs/unpack_on_server.sh` — server-side unpack + file-count check
+
+  Launch wrappers and manifests (Claude-authored corrections):
+    `test/launch/run_meshmamba_non_texture_pilot.sh` — entrypoint fixed to
+      run_meshmamba_gaze.py; GT path fixed to SaliencyMap/non_texture;
+      WORKERS default raised to 12
+    `configs/server_vg_intellect.env` — WORKERS 8 → 12
+    `test/manifests/meshmamba_non_texture_pilot.json` — same three corrections
+    `test/manifests/3dva_pilot.json` — WORKERS 8 → 12, parallelism_style added
+
+  Preview calibration (GPT-authored, Claude did not touch):
+    `test/manifests/preview_3dva_bunny.json` — video_path added,
+      extra_rotate_x_deg: -45.0 (bunny calibration from video-vs-preview)
+    `test/manifests/preview_meshmamba_non_texture_starfruit.json` — NEW; Starfruit_L3,
+      fov=37.5, rotX=90, recenter=true
+    `test/manifests/preview_meshmamba_rgb_texture_starfruit.json` — video_path added
+    `test/manifests/3dva_pilot.json` — bunny model override extra_rotate_x_deg: -45.0
+    `test/launch/run_3dva_pilot.sh` — object-level parallel pool (run_pooled_eval),
+      PILOT_OBJECTS env var, WORKERS=12
+    `test/tools/render_preview_from_manifest.py` — GPT update
+    `test/env/local_paths.example.sh` — GPT update
+    `test/README.md` — GPT update
+    `test/launch/mirror_side_inputs.sh` — archive-based transfer (tar.gz → scp →
+      here-doc SSH unpack); SSH host alias usage documented
+    `trash/GPT.md` — GPT session log
+
+### Commit cc7cffb — "append Claude.md log for fixes A-C"
+  Author: Danchik757 · 2026-05-30 09:47 MSK · 7 files, +131 insertions
+  Claude.md received the prior session's full log entry (131 lines).
+  The 6 side-input shell scripts also appear in this commit's stat with 0-byte
+  changes — they were already in 85c187e but their execute-bit or index entry
+  needed a separate staging pass. No logic changes in this commit.
+
+### Commit 9a55147 — "Refine MeshMamba pilot and scp dry-run"
+  Author: Danchik757 · 2026-05-30 09:48 MSK · 2 files, +33/-6
+  Addresses GPT question #3 from the prior session log
+  ("Should scp_archives.sh include a dry-run mode?") and makes the
+  transform parameters overridable.
+
+  `test/launch/run_meshmamba_non_texture_pilot.sh`:
+    Added 3 new env-var overrides with defaults:
+      RECENTER_TO_BBOX_CENTER=true
+      EXTRA_ROTATE_X_DEG=90
+      OVERRIDE_FOV_DEG=37.5
+    Replaced hardcoded `--recenter-to-bbox-center --extra-rotate-x-deg 90
+    --override-fov-deg 37.5` with env-var-driven:
+      ${RECENTER_FLAG} (computed from RECENTER_TO_BBOX_CENTER)
+      --extra-rotate-x-deg ${EXTRA_ROTATE_X_DEG}
+      --override-fov-deg ${OVERRIDE_FOV_DEG}
+    Added per-parameter echo lines so server logs show transform values.
+    Added "(workers reserved for outer multi-model pool)" to workers log line.
+
+  `test/side_inputs/scp_archives.sh`:
+    Added DRY_RUN env var (default 0).
+    Added run_scp() helper: if DRY_RUN=1 prints the command; else executes scp.
+    All scp calls now go through run_scp().
+    DRY_RUN value echoed at startup.
+
+### Mismatches and open questions (do not fix; record only)
+  MISMATCH-1: `run_meshmamba_non_texture_pilot.sh:93-107` passes these flags
+    to run_meshmamba_gaze.py:
+      --device auto
+      --frame-alignment nearest
+      --point-weight-mode unit
+      --smoothing-mode diffusion
+    None of these flags have been confirmed against the actual script in
+    MAMBA_GAZE_ROOT. If any flag name differs, the pipeline will fail at
+    startup with an argparse error. This is the highest-priority open item
+    before any server run.
+  MISMATCH-2: `run_meshmamba_non_texture_pilot.sh:100` passes
+    `--mapping-json "${MAPPING_JSON}"`. Existence of the `--mapping-json`
+    flag in run_meshmamba_gaze.py has not been confirmed.
+  MISMATCH-3: `run_meshmamba_non_texture_pilot.sh` does not pass a `--workers`
+    flag. The WORKERS env var is declared but the script description says
+    "workers reserved for outer multi-model pool". It is unclear whether
+    run_meshmamba_gaze.py accepts --workers and whether it should be passed
+    for the pilot single-model run.
+  NOTE: All three mismatches require GPT confirmation from the real MAMBA_GAZE
+    codebase. No code changes until confirmed.
+
+Risks:
+1. MAMBA_GAZE CLI flags unconfirmed — see mismatches above. First server run
+   will fail if any flag is wrong. Mitigation: run with a single model in a
+   tmux session and watch argparse output before committing to a full pilot.
+2. `run_3dva_pilot.sh` uses `jobs -pr | wc -l` (bash-specific). Ensure the
+   server shell is bash when sourcing the script (shebang is `#!/usr/bin/env bash`
+   so direct invocation is safe; sourcing into zsh is not).
+3. Transform params are now overridable per-run (good), but default values in
+   the script (EXTRA_ROTATE_X_DEG=90, OVERRIDE_FOV_DEG=37.5) only match
+   Starfruit_L3. Running another model without an explicit override could
+   produce silently wrong geometry alignment.
+4. unpack_on_server.sh expects file counts 3DVA=32+32 and MeshMamba=105+105.
+   If the local GAZE_DATA has a different count (models added or excluded),
+   the count-check will print a mismatch warning but not fail. Verify counts
+   locally before packing.
+Questions for GPT:
+1. (Carried forward, highest priority) Confirm exact CLI flags for
+   run_meshmamba_gaze.py: --device, --frame-alignment, --point-weight-mode,
+   --smoothing-mode, --mapping-json. Are any of these wrong or missing?
+2. Does run_meshmamba_gaze.py accept a --workers flag? Should it be passed
+   for the single-model pilot or only for multi-model full run?
+3. For EXTRA_ROTATE_X_DEG: is 90 a dataset-wide constant for MeshMamba
+   non_texture, or does each model require an individually validated value?
+Next step: wait for GPT confirmation on MAMBA_GAZE CLI flags (questions 1-2
+above) before the first server-side pilot run.
+
+---
+
+## READ-ONLY COMMAND SHEET (current HEAD = 9a55147)
+## Do not execute any command below without GPT approval.
+## All commands assume the local repo root as working directory.
+
+### 0. Prerequisites
+  # SSH config must have:
+  #   Host vg-intellect
+  #       HostName <actual-ip-or-hostname>
+  #       User 29d_kon@lab.graphicon.ru
+  # LOCAL_GAZE_DATA_ROOT must point to the local GAZE_DATA directory.
+  # REMOTE_SIDE_INPUTS must point to the server-side side_inputs directory.
+
+### 1. Local inventory (dry-run — lists files and sizes, nothing created)
+  LOCAL_GAZE_DATA_ROOT=/path/to/GAZE_DATA \
+    bash test/side_inputs/inventory_3dva.sh
+
+  LOCAL_GAZE_DATA_ROOT=/path/to/GAZE_DATA \
+    bash test/side_inputs/inventory_meshmamba_non_texture.sh
+
+### 2. Local pack (creates archives under /tmp/reproject_side_inputs)
+  LOCAL_GAZE_DATA_ROOT=/path/to/GAZE_DATA \
+    bash test/side_inputs/pack_3dva.sh
+
+  LOCAL_GAZE_DATA_ROOT=/path/to/GAZE_DATA \
+    bash test/side_inputs/pack_meshmamba_non_texture.sh
+
+  # Archives created:
+  #   /tmp/reproject_side_inputs/3dva_csv.tar.gz           (~5-10 MB)
+  #   /tmp/reproject_side_inputs/3dva_json.tar.gz          (<1 MB)
+  #   /tmp/reproject_side_inputs/meshmamba_non_texture_csv.tar.gz  (~20-40 MB)
+  #   /tmp/reproject_side_inputs/meshmamba_non_texture_json.tar.gz (<5 MB)
+
+### 3. Local scp dry-run (DRY_RUN=1 — prints commands only, no transfer)
+  DRY_RUN=1 \
+  REMOTE_SIDE_INPUTS=/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs \
+    bash test/side_inputs/scp_archives.sh
+
+  # To execute the real transfer (requires GPT approval first):
+  # DRY_RUN=0 \
+  # REMOTE_SIDE_INPUTS=... \
+  #   bash test/side_inputs/scp_archives.sh
+
+### 4. Server unpack (run on vg-intellect after scp transfer)
+  # On vg-intellect, inside tmux:
+  cd /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection
+  source configs/server_vg_intellect.env
+  bash test/side_inputs/unpack_on_server.sh
+  # Expected output: 32 CSV + 32 JSON for 3DVA; 105 CSV + 105 JSON for MeshMamba.
+
+### 5. First tmux pilot launches (on vg-intellect — requires MAMBA_GAZE CLI confirmed first)
+  # Connect and start tmux:
+  ssh vg-intellect
+  tmux new -s reproject_pilot
+
+  # Inside tmux — load env and activate conda:
+  cd /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection
+  source configs/server_vg_intellect.env
+  conda activate "${CONDA_ENVS_ROOT}/reproject"
+  # (or: source "${CONDA_ENVS_ROOT}/reproject/bin/activate" if conda shell init not loaded)
+
+  # Pull latest code first:
+  git fetch origin reproject-benchmark
+  git checkout reproject-benchmark
+  git pull
+
+  # 3DVA pilot (PILOT_VIEWS=300 default, 6 models, object-level pool, WORKERS=12):
+  bash test/launch/run_3dva_pilot.sh
+
+  # MeshMamba non_texture pilot — single model Starfruit_L3, MAMBA_GAZE CLI must be confirmed:
+  # *** DO NOT RUN until MAMBA_GAZE CLI flags are confirmed by GPT ***
+  PILOT_MODEL=Starfruit_L3 bash test/launch/run_meshmamba_non_texture_pilot.sh
+
+  # Detach tmux and leave running: Ctrl-b d
+  # Reattach: tmux attach -t reproject_pilot
+
