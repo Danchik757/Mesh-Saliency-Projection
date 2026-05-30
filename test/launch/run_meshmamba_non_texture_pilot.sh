@@ -23,6 +23,7 @@
 #   RECENTER_TO_BBOX_CENTER=true
 #   EXTRA_ROTATE_X_DEG=90
 #   OVERRIDE_FOV_DEG=37.5
+#   SMOOTHING_MODE=diffusion     (choices: none, diffusion, geodesic_kde)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -41,6 +42,7 @@ PILOT_MODEL="${PILOT_MODEL:-Starfruit_L3}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-90}"
 OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-37.5}"
+SMOOTHING_MODE="${SMOOTHING_MODE:-diffusion}"
 
 MESH_DIR="${MESHMAMBA_NON_TEXTURE_ROOT}/MeshFile/non_texture"
 GT_DIR="${MESHMAMBA_NON_TEXTURE_ROOT}/SaliencyMap/non_texture"
@@ -70,6 +72,7 @@ echo "[run_meshmamba_non_texture_pilot] csv_dir=${CSV_DIR}"
 echo "[run_meshmamba_non_texture_pilot] json_dir=${JSON_DIR}"
 echo "[run_meshmamba_non_texture_pilot] mamba_gaze_root=${MAMBA_GAZE_ROOT}"
 echo "[run_meshmamba_non_texture_pilot] output_dir=${OUTPUT_DIR}"
+echo "[run_meshmamba_non_texture_pilot] smoothing_mode=${SMOOTHING_MODE}"
 echo "[run_meshmamba_non_texture_pilot] workers=${WORKERS}  nice=${NICE_LEVEL} (workers reserved for outer multi-model pool)"
 echo "[run_meshmamba_non_texture_pilot] pilot_model=${PILOT_MODEL}"
 echo "[run_meshmamba_non_texture_pilot] recenter_to_bbox_center=${RECENTER_TO_BBOX_CENTER}"
@@ -101,7 +104,7 @@ nice -n "${NICE_LEVEL}" python3 "${PIPELINE_SCRIPT}" \
   --device auto \
   --frame-alignment nearest \
   --point-weight-mode unit \
-  --smoothing-mode diffusion \
+  --smoothing-mode "${SMOOTHING_MODE}" \
   "${RECENTER_FLAG}" \
   --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
   --override-fov-deg "${OVERRIDE_FOV_DEG}"
