@@ -1352,7 +1352,7 @@ boundary in overlay_edges.png). Lower IoU is from measurement noise:
   move to A.
 - `trash/GPT_SESSION5_BRIEF.md` — summary of session 5 work + 6 questions for GPT
 
-### Pending
+### Pending (after session 5)
 
 1. ✅ DONE: Commit all changes (committed in session 5)
 2. Server eval run for 3DVA with corrected OBJ path (use `extra_rotate_x_deg=0.0`)
@@ -1360,4 +1360,54 @@ boundary in overlay_edges.png). Lower IoU is from measurement noise:
 4. Do NOT use old `preview_3dva_bunny.json`, `preview_3dva_chair107.json`,
    `preview_3dva_flowerpot.json` — they use wrong OBJ files.
 5. 3DVA gaze CSV location on server — unknown, needs GPT to clarify.
+
+---
+
+## Session 6 log — 2026-05-30
+
+### Videos organized
+
+All dataset videos copied from scattered Telegram Desktop folders to permanent location:
+
+```
+/Users/admin/Documents/LAB/SALIENCY_code/videos/
+  3DVA/                  (32 files: 3DVA_<model>.mp4)
+  MeshMamba_non_texture/ (55 files)
+  MeshMamba_rgb_texture/ (55 files)
+```
+
+- Verified no files from `3dva_videos 2/`, `3dva_videos/`, `3dva_videos 3/` were
+  unique — all are subsets of `3dva_videos 4/`.
+- All 3DVA videos are 2–3.3 MB except `3DVA_jessi.mp4` (325 KB — confirmed correct).
+- Updated `test/env/local_paths.example.sh`: `REPROJECT_VIDEO_*` now point to organized dirs.
+
+### README.md rewritten
+
+Main README now documents:
+- Dataset validation summary table
+- Quick-start commands for 3DVA and MeshMamba eval
+- Links to PIPELINE.md and DATA_PATHS.md
+
+### DATA_PATHS.md updated
+
+Video path entries updated to reflect new organized location.
+
+### SAL3D alignment — blocked
+
+Google Drive access denied (macOS sandbox). User downloading SAL3D independently;
+will provide path directly. SAL3D key render parameters:
+- `forward_axis='Z', up_axis='Y'` (differs from 3DVA's `'X'/'Z'`!)
+- FOV = 60°, camera at (0, −1.5, 0.5) in world space after import
+
+### Files created in session 6
+
+- `trash/GPT_SESSION6_BRIEF.md` — session 6 summary + questions for GPT
+
+### Pending (after session 6)
+
+1. SAL3D alignment — waiting for user to provide local dataset path
+2. Commit session 6 changes (awaiting GPT approval)
+3. Server eval run for 3DVA — awaiting GPT confirmation of correct CSV path
+4. Multi-frame 3DVA validation (frame 100, 200)
+5. GPT pipeline choice: Option A (YAML runner) vs Option B (staged) vs Option C (shell)
 

@@ -18,6 +18,7 @@ export REPROJECT_GAZE_JSON_MESHMAMBA_RGB_TEXTURE_ROOT="/Users/admin/Documents/LA
 export REPROJECT_GAZE_CSV_SAL3D_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/SAL3D"
 export REPROJECT_GAZE_JSON_SAL3D_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/SAL3D_json"
 
-export REPROJECT_VIDEO_3DVA_ROOT="/Users/admin/Downloads/Telegram Desktop/3dva_videos 4"
-export REPROJECT_VIDEO_MESHMAMBA_NON_TEXTURE_ROOT="/Users/admin/Downloads/Telegram Desktop/non_textured_videos"
-export REPROJECT_VIDEO_MESHMAMBA_RGB_TEXTURE_ROOT="/Users/admin/Downloads/Telegram Desktop/rgb_textured_videos"
+export REPROJECT_VIDEO_3DVA_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/videos/3DVA"
+export REPROJECT_VIDEO_MESHMAMBA_NON_TEXTURE_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/videos/MeshMamba_non_texture"
+export REPROJECT_VIDEO_MESHMAMBA_RGB_TEXTURE_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/videos/MeshMamba_rgb_texture"
+export REPROJECT_VIDEO_SAL3D_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/videos/SAL3D"

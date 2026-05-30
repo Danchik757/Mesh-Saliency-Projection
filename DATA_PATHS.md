@@ -1,6 +1,6 @@
 # Data Paths Reference
 
-Last updated: 2026-05-30
+Last updated: 2026-05-30 (videos reorganized)
 
 This file is the single reference for where every type of file lives,
 both locally (macOS) and on the server (vg-iai).
@@ -28,7 +28,7 @@ source test/env/local_paths.example.sh
 | Visibility/centricity maps | `/Users/admin/Documents/LAB/Dataset/3DVA/CentricityAndVisibilityMaps/` |
 | Camera JSON (per-model) | `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/3DVA_json/` |
 | Gaze CSV (per-model) | `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/` |
-| Video MP4 | `/Users/admin/Downloads/Telegram Desktop/3dva_videos 4/` |
+| Video MP4 | `/Users/admin/Documents/LAB/SALIENCY_code/videos/3DVA/` |
 
 File naming patterns (3DVA):
 - OBJ: `<model>.obj` (e.g. `bunny.obj`, `chair107.obj`)
@@ -45,7 +45,7 @@ File naming patterns (3DVA):
 | GT saliency maps (per-face) | `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/SaliencyMap/non_texture/` |
 | Camera JSON (per-model) | `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/Mamba_non_textured/` |
 | Gaze CSV (per-model) | `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/MeshMamba_non_texture/` |
-| Video MP4 | `/Users/admin/Downloads/Telegram Desktop/non_textured_videos/` |
+| Video MP4 | `/Users/admin/Documents/LAB/SALIENCY_code/videos/MeshMamba_non_texture/` |
 
 ### MeshMamba rgb_texture dataset
 
@@ -55,7 +55,7 @@ File naming patterns (3DVA):
 | GT saliency maps (per-face) | `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/SaliencyMap/rgb_texture/` |
 | Camera JSON (per-model) | `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/Mamba_rgb_textured/` |
 | Gaze CSV (per-model) | `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/MeshMamba_rgb_texture/` |
-| Video MP4 | `/Users/admin/Downloads/Telegram Desktop/rgb_textured_videos/` |
+| Video MP4 | `/Users/admin/Documents/LAB/SALIENCY_code/videos/MeshMamba_rgb_texture/` |
 
 File naming patterns (MeshMamba):
 - OBJ: `<ModelFolder>/<filename>.obj` (folder = model name, filename can differ — check `ls`)
@@ -139,7 +139,7 @@ REPROJECT_GAZE_JSON_MESHMAMBA_RGB_TEXTURE_ROOT
 REPROJECT_GAZE_CSV_3DVA_ROOT      # → .../csv_for_models/3DVA
 REPROJECT_GAZE_CSV_MESHMAMBA_NON_TEXTURE_ROOT
 REPROJECT_GAZE_CSV_MESHMAMBA_RGB_TEXTURE_ROOT
-REPROJECT_VIDEO_3DVA_ROOT         # → .../3dva_videos 4
+REPROJECT_VIDEO_3DVA_ROOT         # → .../SALIENCY_code/videos/3DVA
 REPROJECT_VIDEO_MESHMAMBA_NON_TEXTURE_ROOT
 REPROJECT_VIDEO_MESHMAMBA_RGB_TEXTURE_ROOT
 REPROJECT_OUTPUT_ROOT             # → test/output_local
