@@ -532,3 +532,134 @@ Questions for GPT:
 Next step: commit this batch to reproject-benchmark, then wait for GPT to confirm
 the MAMBA_GAZE entrypoint name and the MeshMamba rgb_texture preview policy
 before adapting the MeshMamba wrappers further.
+
+## 2026-05-30 MSK
+Role: Claude
+Commit: UNCOMMITTED (staged for second commit to reproject-benchmark)
+Scope: A — fix server-facing wrappers; B — side-input transfer infrastructure;
+C — path portability audit; D — no geometric calibration changes.
+Files inspected:
+  `test/launch/run_meshmamba_non_texture_pilot.sh`
+  `test/launch/run_3dva_pilot.sh` (read-only; updated by GPT hook)
+  `test/launch/mirror_side_inputs.sh`
+  `configs/server_vg_intellect.env`
+  `test/manifests/meshmamba_non_texture_pilot.json`
+  `test/manifests/3dva_pilot.json` (read-only; updated by GPT hook)
+  `test/manifests/preview_3dva_bunny.json` (read-only; updated by GPT hook)
+  `test/manifests/preview_meshmamba_non_texture_starfruit.json` (new by GPT)
+  `test/manifests/preview_meshmamba_rgb_texture_starfruit.json` (updated by GPT)
+  `test/tools/render_preview_from_manifest.py` (read-only; updated by GPT)
+  `test/env/local_paths.example.sh` (read-only; updated by GPT)
+  `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/*` (local sizes only)
+  All new `test/side_inputs/` files
+Files changed (Claude):
+  `test/launch/run_meshmamba_non_texture_pilot.sh` — 3 fixes:
+    1. entrypoint `run_pipeline.py` → `run_meshmamba_gaze.py`
+    2. GT path `GT/non_texture` → `SaliencyMap/non_texture`
+    3. WORKERS default `8` → `12`
+  `configs/server_vg_intellect.env` — WORKERS `8` → `12`, added
+    no-nested-parallelism note
+  `test/launch/mirror_side_inputs.sh` — complete rewrite: archive-based
+    transfer (tar.gz pack → scp → server unpack via here-doc ssh),
+    SSH note (host alias must have User set in ~/.ssh/config), references
+    new test/side_inputs/pack_*.sh scripts
+  `test/manifests/meshmamba_non_texture_pilot.json` — 3 fixes:
+    1. `gt_subdir` `GT/non_texture` → `SaliencyMap/non_texture`
+    2. entrypoint `mamba_gaze/pipeline.py` → `run_meshmamba_gaze.py`
+    3. `initial_server_worker_count` `8` → `12`, added `nested_parallelism: false`
+  `test/manifests/3dva_pilot.json` — updated pilot parallelism:
+    `initial_server_worker_count` `8` → `12`, added `parallelism_style:
+    object_level_pool`, `nested_parallelism: false`
+Files created (Claude):
+  `test/side_inputs/README.md` — policy table, per-dataset inventory table,
+    file counts (3DVA: 32+32, MeshMamba: 105+105), workflow steps
+  `test/side_inputs/inventory_3dva.sh` — lists files + sizes, outputs
+    server destination layout, dry-run only (no scp)
+  `test/side_inputs/inventory_meshmamba_non_texture.sh` — same for MeshMamba,
+    includes mandatory JSON warning
+  `test/side_inputs/pack_3dva.sh` — creates `3dva_csv.tar.gz` (~38MB) and
+    `3dva_json.tar.gz` (~2.6MB); prints server unpack commands after
+  `test/side_inputs/pack_meshmamba_non_texture.sh` — creates
+    `meshmamba_non_texture_csv.tar.gz` (~81MB) and
+    `meshmamba_non_texture_json.tar.gz` (~8.6MB); mandatory JSON warning
+  `test/side_inputs/scp_archives.sh` — scp template for both datasets,
+    skips missing archives with warnings, NO auto-execution guard
+  `test/side_inputs/unpack_on_server.sh` — server-side script, reads
+    SIDE_INPUTS_ROOT, unpacks all 4 archives, prints final file counts,
+    expected: 3DVA=32+32, MeshMamba=105+105
+Files also modified (GPT hooks, not changed by Claude):
+  `test/launch/run_3dva_pilot.sh` — GPT added object-level parallel pool,
+    WORKERS=12, PILOT_OBJECTS as env var, `run_pooled_eval` helper function
+  `test/manifests/3dva_pilot.json` — GPT added bunny model override
+    `extra_rotate_x_deg: -45.0` (calibration after video-vs-preview check)
+  `test/manifests/meshmamba_non_texture_pilot.json` — GPT updated
+    `validated_models` to `Starfruit_L3`, `override_fov_deg` to `37.5`,
+    `transfer_method` to `tar.gz + scp + server unpack`
+  `test/manifests/preview_3dva_bunny.json` — GPT added `video_path`,
+    `extra_rotate_x_deg: -45.0`
+  `test/manifests/preview_meshmamba_non_texture_starfruit.json` — new GPT file
+    (Starfruit_L3 non_texture pilot, fov=37.5, rotX=90)
+  `test/manifests/preview_meshmamba_rgb_texture_starfruit.json` — GPT updated
+    (added video_path, recenter=true, rotX=90, fov=37.5)
+  `test/tools/render_preview_from_manifest.py` — GPT update (not inspected in detail)
+  `test/env/local_paths.example.sh` — GPT update
+  `test/README.md` — GPT update
+  `trash/GPT.md` — GPT log (not staged; GPT commits their own log)
+Findings:
+1. Path cleanup verified clean.
+   Scan of all new scripts and manifests found zero hardcoded local absolute
+   paths in executable code. Absolute paths appear only in:
+   a) `configs/server_vg_intellect.env` — intentional (this IS the server config)
+   b) Comment-example lines in inventory scripts (`# Example:`) — acceptable
+   c) `e.g.` hints in error messages — acceptable
+2. Side-input inventory (confirmed from local filesystem):
+   3DVA:
+     csv: 32 files (~38 MB uncompressed, expect ~5-10 MB gzip)
+     json: 32 files (~2.6 MB uncompressed)
+   MeshMamba_non_texture:
+     csv: 105 files (~81 MB uncompressed, expect ~20-40 MB gzip)
+     json: 105 files (~8.6 MB uncompressed)
+   Total transfer estimate: <100 MB compressed for both datasets combined.
+3. GT path correction confirmed.
+   The dataset layout on server uses `SaliencyMap/non_texture` not `GT/non_texture`.
+   All references corrected in wrapper and manifest.
+4. MAMBA_GAZE entrypoint confirmed.
+   Entrypoint is `run_meshmamba_gaze.py` in MAMBA_GAZE_ROOT (confirmed by GPT).
+5. Worker count policy.
+   12 workers, object-level pool (no nested parallelism).
+   Both 3DVA pilot (via `run_pooled_eval` bash pool) and MeshMamba
+   (via `--workers` flag to `run_meshmamba_gaze.py`) use this count.
+6. Geometric calibration — NOT touched.
+   GPT's calibration updates to preview manifests (bunny rotX=-45,
+   Starfruit fov=37.5) are committed as-is.
+   `run_meshmamba_non_texture_pilot.sh` already had `--override-fov-deg 37.5`
+   and `--extra-rotate-x-deg 90` from the GPT hook (validated for Starfruit_L3).
+Risks:
+1. `run_meshmamba_non_texture_pilot.sh` passes `--override-fov-deg 37.5`
+   hardcoded. If a different pilot model has a different validated FOV, the
+   wrapper needs to be updated before that model is run. The manifest now
+   documents that `Starfruit_L3` is the validated reference; other models still
+   need individual preview checks.
+2. `mirror_side_inputs.sh` uses `ssh ... bash <<REMOTE ... REMOTE` (here-doc SSH)
+   for server unpack. This requires the SSH key to be set up without passphrase
+   (or ssh-agent) for non-interactive use. If SSH requires passphrase input,
+   use `unpack_on_server.sh` separately after manual scp.
+3. `scp_archives.sh` has no guard against accidental execution. Label is clear
+   in header: "DO NOT RUN without explicit confirmation from GPT that transfer
+   is approved."
+4. The 3DVA parallel pool in `run_3dva_pilot.sh` (GPT-authored) uses
+   `jobs -pr | wc -l` which is bash-specific. This works on Linux (server)
+   and macOS for local testing. If run in a non-bash shell, it will fail at
+   the `jobs -pr` call.
+Questions for GPT:
+1. `run_meshmamba_gaze.py` CLI: the wrapper currently passes
+   `--device auto --frame-alignment nearest --point-weight-mode unit
+   --smoothing-mode diffusion`. Confirm these flags exist in the actual
+   script and no extra required args are missing.
+2. For MeshMamba full run (not just Starfruit pilot): should `--override-fov-deg`
+   be passed per-model from the JSON, or is `37.5` a dataset-wide constant?
+3. Should `scp_archives.sh` include a dry-run mode that only prints the scp
+   commands without executing them?
+Next step: commit this batch, then GPT reviews the meshmamba_gaze CLI flags
+before any server-side run.
+
