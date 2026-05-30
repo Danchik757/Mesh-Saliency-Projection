@@ -425,7 +425,7 @@ requirements explicit in manifests and launch docs.
 
 ## 2026-05-30 MSK
 Role: Claude
-Commit: UNCOMMITTED (staged for first commit to reproject-benchmark)
+Commit: 817f6fa
 Scope: Task B — portable server wrappers, manifests, path cleanup, and first
 commit of test/ and trash/ directories to the reproject-benchmark branch.
 Files inspected:
