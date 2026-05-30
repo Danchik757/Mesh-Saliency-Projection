@@ -17,8 +17,9 @@
 #   OUTPUT_ROOT                 — writable output root
 #
 # Optional env vars (defaults shown):
-#   WORKERS=8
+#   WORKERS=12
 #   NICE_LEVEL=10
+#   PILOT_MODEL=Starfruit_L3
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,14 +32,16 @@ REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 : "${OUTPUT_ROOT:?Set OUTPUT_ROOT}"
 
 # ---------- defaults ----------
-WORKERS="${WORKERS:-8}"
+WORKERS="${WORKERS:-12}"
 NICE_LEVEL="${NICE_LEVEL:-10}"
+PILOT_MODEL="${PILOT_MODEL:-Starfruit_L3}"
 
 MESH_DIR="${MESHMAMBA_NON_TEXTURE_ROOT}/MeshFile/non_texture"
-GT_DIR="${MESHMAMBA_NON_TEXTURE_ROOT}/GT/non_texture"
+GT_DIR="${MESHMAMBA_NON_TEXTURE_ROOT}/SaliencyMap/non_texture"
 CSV_DIR="${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv"
 JSON_DIR="${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/json"
 OUTPUT_DIR="${OUTPUT_ROOT}/MeshMamba_non_texture/pilot"
+MAPPING_JSON="${OUTPUT_DIR}/meshmamba_non_texture_name_mapping.json"
 
 # ---------- side-input presence check ----------
 if [ ! -d "${CSV_DIR}" ]; then
@@ -62,26 +65,30 @@ echo "[run_meshmamba_non_texture_pilot] json_dir=${JSON_DIR}"
 echo "[run_meshmamba_non_texture_pilot] mamba_gaze_root=${MAMBA_GAZE_ROOT}"
 echo "[run_meshmamba_non_texture_pilot] output_dir=${OUTPUT_DIR}"
 echo "[run_meshmamba_non_texture_pilot] workers=${WORKERS}  nice=${NICE_LEVEL}"
+echo "[run_meshmamba_non_texture_pilot] pilot_model=${PILOT_MODEL}"
 
 # ---------- delegate to external MAMBA_GAZE pipeline ----------
-# Adjust the entrypoint path and arguments to match the MAMBA_GAZE API
-# after confirming the exact CLI on the server.
-PIPELINE_SCRIPT="${MAMBA_GAZE_ROOT}/run_pipeline.py"
+PIPELINE_SCRIPT="${MAMBA_GAZE_ROOT}/run_meshmamba_gaze.py"
 if [ ! -f "${PIPELINE_SCRIPT}" ]; then
   echo "[run_meshmamba_non_texture_pilot] PIPELINE_SCRIPT not found: ${PIPELINE_SCRIPT}"
-  echo "  Check MAMBA_GAZE_ROOT and the correct entrypoint name."
+  echo "  Verify MAMBA_GAZE_ROOT points to the MAMBA_GAZE checkout on this machine."
   exit 1
 fi
 
-nice -n "${NICE_LEVEL}" python "${PIPELINE_SCRIPT}" \
+nice -n "${NICE_LEVEL}" python3 "${PIPELINE_SCRIPT}" \
+  --model "${PILOT_MODEL}" \
+  --gaze-csv-dir "${CSV_DIR}" \
   --mesh-dir "${MESH_DIR}" \
-  --gt-dir "${GT_DIR}" \
-  --csv-dir "${CSV_DIR}" \
   --json-dir "${JSON_DIR}" \
+  --gt-dir "${GT_DIR}" \
   --output-dir "${OUTPUT_DIR}" \
-  --workers "${WORKERS}" \
+  --mapping-json "${MAPPING_JSON}" \
+  --device auto \
+  --frame-alignment nearest \
+  --point-weight-mode unit \
+  --smoothing-mode diffusion \
   --recenter-to-bbox-center \
   --extra-rotate-x-deg 90 \
-  --override-fov-deg 35.8972065
+  --override-fov-deg 37.5
 
 echo "[run_meshmamba_non_texture_pilot] done. results in ${OUTPUT_DIR}"

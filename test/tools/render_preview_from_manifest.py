@@ -6,13 +6,16 @@ import ast
 import json
 import math
 import os
+import shutil
+import subprocess
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 import numpy as np
 import pandas as pd
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageOps
 
 
 @dataclass
@@ -37,6 +40,58 @@ def load_manifest(path: Path) -> dict[str, Any]:
     if missing:
         raise ValueError(f"Manifest {path} is missing keys: {missing}")
     return payload
+
+
+def extract_video_frame(video_path: Path, timestamp_seconds: float, output_path: Path) -> None:
+    ffmpeg_path = shutil.which("ffmpeg")
+    if ffmpeg_path is None:
+        raise RuntimeError("ffmpeg is required when video_path is set but was not found in PATH")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        ffmpeg_path,
+        "-y",
+        "-loglevel",
+        "error",
+        "-ss",
+        f"{timestamp_seconds:.6f}",
+        "-i",
+        str(video_path),
+        "-frames:v",
+        "1",
+        str(output_path),
+    ]
+    subprocess.run(cmd, check=True)
+
+
+def labeled_panel(image: Image.Image, label: str) -> Image.Image:
+    label_h = 28
+    canvas = Image.new("RGB", (image.width, image.height + label_h), (245, 245, 245))
+    canvas.paste(image.convert("RGB"), (0, label_h))
+    draw = ImageDraw.Draw(canvas)
+    draw.text((10, 8), label, fill=(20, 20, 20))
+    return canvas
+
+
+def make_comparison_image(video_frame_path: Path, preview_path: Path, output_path: Path) -> None:
+    video_image = Image.open(video_frame_path).convert("RGB")
+    preview_image = Image.open(preview_path).convert("RGB")
+
+    target_height = min(video_image.height, preview_image.height)
+    target_height = max(240, target_height)
+    video_fit = ImageOps.contain(video_image, (10_000, target_height))
+    preview_fit = ImageOps.contain(preview_image, (10_000, target_height))
+
+    left = labeled_panel(video_fit, "Video Frame")
+    right = labeled_panel(preview_fit, "Rendered Preview")
+
+    gap = 16
+    out_w = left.width + gap + right.width
+    out_h = max(left.height, right.height)
+    canvas = Image.new("RGB", (out_w, out_h), (255, 255, 255))
+    canvas.paste(left, (0, 0))
+    canvas.paste(right, (left.width + gap, 0))
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    canvas.save(output_path)
 
 
 def load_mesh(obj_path: Path) -> MeshGeometry:
@@ -303,6 +358,7 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
     obj_path = expand_path(manifest["obj_path"])
     json_path = expand_path(manifest["json_path"])
     csv_path = expand_path(manifest.get("csv_path"))
+    video_path = expand_path(manifest.get("video_path"))
     output_prefix = expand_path(manifest["output_prefix"])
     if obj_path is None or json_path is None or output_prefix is None:
         raise ValueError("Manifest paths must not be null")
@@ -311,6 +367,8 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
             raise FileNotFoundError(f"Missing required input: {path}")
     if bool(manifest.get("overlay_gaze", False)) and csv_path is not None and not csv_path.exists():
         raise FileNotFoundError(f"Overlay requested but CSV is missing: {csv_path}")
+    if video_path is not None and not video_path.exists():
+        raise FileNotFoundError(f"Video path was provided but is missing: {video_path}")
 
     mesh = load_mesh(obj_path)
     metadata = json.loads(json_path.read_text(encoding="utf-8"))
@@ -356,6 +414,15 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
             gaze_points_xy=gaze_points_xy,
         )
 
+    video_frame_path = None
+    comparison_path = None
+    if video_path is not None:
+        timestamp_seconds = float(metadata["frames"][frame_idx].get("timestamp", frame_idx / max(1.0, float(metadata["video_info"]["fps"]))))
+        video_frame_path = output_prefix.parent / f"{output_prefix.name}_video_frame.png"
+        extract_video_frame(video_path=video_path, timestamp_seconds=timestamp_seconds, output_path=video_frame_path)
+        comparison_path = output_prefix.parent / f"{output_prefix.name}_compare.png"
+        make_comparison_image(video_frame_path=video_frame_path, preview_path=plain_path, output_path=comparison_path)
+
     report = {
         "manifest_path": str(manifest_path),
         "dataset": str(manifest["dataset"]),
@@ -363,6 +430,7 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
         "obj_path": str(obj_path),
         "json_path": str(json_path),
         "csv_path": None if csv_path is None else str(csv_path),
+        "video_path": None if video_path is None else str(video_path),
         "frame_index": frame_idx,
         "resolution_width": int(width),
         "resolution_height": int(height),
@@ -371,6 +439,8 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
         "override_fov_deg": manifest.get("override_fov_deg"),
         "plain_preview": str(plain_path),
         "overlay_preview": None if overlay_path is None else str(overlay_path),
+        "video_frame": None if video_frame_path is None else str(video_frame_path),
+        "comparison_preview": None if comparison_path is None else str(comparison_path),
         "overlay_points": overlay_points,
         "plain_stats": plain_stats,
     }

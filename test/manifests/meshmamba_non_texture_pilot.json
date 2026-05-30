@@ -16,7 +16,7 @@
   "server_layout": {
     "dataset_root": "${MESHMAMBA_NON_TEXTURE_ROOT}",
     "mesh_subdir": "MeshFile/non_texture",
-    "gt_subdir": "GT/non_texture",
+    "gt_subdir": "SaliencyMap/non_texture",
     "side_inputs_csv": "${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv",
     "side_inputs_json": "${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/json",
     "output_dir": "${OUTPUT_ROOT}/MeshMamba_non_texture/pilot"
@@ -26,22 +26,23 @@
   "side_inputs_to_mirror": {
     "csv_source": "GAZE_DATA/csv_for_models/MeshMamba_non_texture/*.csv",
     "json_source": "GAZE_DATA/jsons_for_models/Mamba_non_textured/*.json",
-    "transfer_method": "scp",
+    "transfer_method": "tar.gz + scp + server unpack",
     "note": "json camera/object metadata is mandatory for preview rendering and reprojection; do not skip."
   },
 
   "transform_recipe": {
     "recenter_to_bbox_center": true,
     "extra_rotate_x_deg": 90,
-    "override_fov_deg": 35.8972065,
+    "override_fov_deg": 37.5,
     "validation_status": "validated_on_representative_model",
-    "validated_models": ["Aquarium_Deep_Sea_Diver_v1_L1"],
-    "recipe_source": "GAZE_DATA/MAMBA_GAZE/docs/PROJECTION_TRANSFORM_RECIPE.md",
-    "note": "Recipe needs per-model verification during preview phase."
+    "validated_models": ["Starfruit_L3"],
+    "recipe_source": "video-vs-preview check using the local original non-texture video plus JSON camera metadata",
+    "note": "Representative recipe is now based on direct video comparison for `Starfruit_L3`; other models still need preview validation before full run."
   },
 
   "pilot_models_note": "5-10 geometry-diverse models; exact list TBD after preview validation.",
   "pilot_models_candidates": [
+    "Starfruit_L3",
     "Aquarium_Deep_Sea_Diver_v1_L1"
   ],
 
@@ -61,7 +62,7 @@
   "methods_external": [
     {
       "name": "our_pipeline",
-      "location": "${MAMBA_GAZE_ROOT}/mamba_gaze/pipeline.py",
+      "location": "${MAMBA_GAZE_ROOT}/run_meshmamba_gaze.py",
       "env_var_needed": "MAMBA_GAZE_ROOT",
       "output_granularity": "face",
       "status": "ready (external repo)"
@@ -97,6 +98,7 @@
     "tool": "nice",
     "env_var_workers": "WORKERS",
     "env_var_nice_level": "NICE_LEVEL",
-    "initial_server_worker_count": 8
+    "initial_server_worker_count": 12,
+    "nested_parallelism": false
   }
 }
