@@ -1069,3 +1069,295 @@ All script-authoring tasks from NEXT_AGENT_HANDOFF.md now complete:
 Not yet committed (pending GPT confirmation). trimesh + sklearn already installed on server.
 Next: GPT review → commit → server pilot run for baseline methods.
 
+## 2026-05-30 MSK (session 3 continuation)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: Code correctness audit — recenter order fix + compute_metrics unification.
+Files inspected:
+  `reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py`
+  `reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py`
+  `reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py`
+  `test/tools/render_preview_from_manifest.py` (canonical reference)
+  `test/launch/run_3dva_raycast_cone.sh`
+  `test/launch/run_meshmamba_baseline_cone.sh`
+  `test/launch/run_meshmamba_baseline_screen_space.sh`
+  `/Users/admin/Downloads/3dva_render_1.py` (reference Blender render script)
+  `/Users/admin/Downloads/mamba_render_2.py` (reference Blender render script)
+Files changed:
+  `reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py`
+  `reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py`
+  `reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py`
+Findings:
+
+### Blender render scripts studied (read-only)
+  Both scripts are the ground-truth source that creates the rendered videos and
+  the per-model JSON camera/animation files. Key facts:
+
+  3dva_render_1.py (3DVA dataset):
+    OBJ import: `forward_axis='X', up_axis='Z'` (non-default — rotates model on import)
+    `set_origin_to_bbox_center` + `model.location=(0,0,0)` before scale
+    → `recenter_to_bbox_center=True` is always required for 3DVA eval
+    Camera: `(0, -1.5, 0.5)` looking at `(0,0,0)` (`CAMERA_Z_OFFSET=0.5`)
+    Animation: 0→360°/15 sec × 17 sec ≈ 22.9°/sec, Z-rotation keyframed
+    JSON filename: `3DVA_{model_name}.json`
+    JSON structure: `video_info`, `camera_static` (view_matrix, projection_matrix,
+      fov_degrees, clip_start/end), `model_static` (location, scale),
+      `frames[i].rotation_z_radians`
+
+  mamba_render_2.py (MeshMamba rgb_texture; non_texture is analogous):
+    OBJ import: DEFAULT axes (no forward_axis/up_axis override)
+    Same `set_origin_to_bbox_center` + scale setup
+    → `recenter_to_bbox_center=True` required for MeshMamba eval too
+    Camera: `(0, -1.5, 0.7)` looking at `(0,0,0)` (`CAMERA_Z_OFFSET=0.7`)
+    Animation: 24.0°/sec
+    JSON filename: `MeshMamba_rgb_texture_{model_name}.json`
+    JSON structure: same schema as 3DVA
+
+  Note: `model_static.scale` in the JSON is the Blender scale AFTER bbox-centering.
+  The eval scripts replicate the exact sequence: recenter → scale → anim_rotZ.
+  The `forward_axis='X'` difference in 3DVA may require a non-zero `base_rotate_z_deg`
+  to compensate for the axis swap; exact value not yet validated for 3DVA models
+  other than bunny (calibrated separately by GPT as `extra_rotate_x_deg=-45`).
+
+### Bug: apply_model_transform recenter order (FIXED)
+  In all three eval scripts, `apply_model_transform` was computing the
+  recenter bbox center AFTER applying `base_rotate_z`, i.e.:
+    (old) rotate_z → bbox_center = (v.min + v.max)/2 → v -= bbox_center
+  The canonical reference (`render_preview_from_manifest.py`) computes
+  bbox_center from the ORIGINAL (unrotated) vertices:
+    (correct) bbox_center = (orig.min + orig.max)/2 → rotate_z → v -= bbox_center
+
+  When base_rotate_z_deg=0 (current default for all models), the two are
+  identical. The fix ensures correctness for any future non-zero base_rotate_z_deg.
+
+  Fix applied identically in all three scripts:
+    v = vertices.copy()
+    bbox_center = 0.5 * (v.min(axis=0) + v.max(axis=0))  # ORIGINAL bbox
+    # ... apply base_rotate_z ...
+    if recenter_to_bbox_center:
+        v -= bbox_center  # uses ORIGINAL bbox_center
+
+  Note: in eval_meshmamba_screen_space.py, the active code path uses
+  `_apply_transform_no_recenter` + a separately pre-applied recenter on
+  `base_centroids` (line 524-526), which was already correct (uses original
+  vertex bbox). The `apply_model_transform` function is dead code in that file
+  but was fixed and documented for consistency.
+
+### compute_metrics unification (FIXED in eval_3dva_raycast_cone.py)
+  eval_3dva_raycast_cone.py had the old/simpler metrics:
+    CC, LCC, AUC (sklearn roc_auc_score on median threshold), KLD, SIM,
+    Spearman, MSE, MAE, Cosine (scipy.spatial.distance)
+  Updated to match the rich version already in eval_meshmamba_cone.py and
+  eval_meshmamba_screen_space.py:
+    CC, LCC, SIM, KLD, MSE, MAE, Spearman, Cosine, PredictionSum, GroundTruthSum
+    NSS_gt_top_{1,5,10}pct_proxy
+    AUC_Judd_gt_top_{1,5,10}pct_proxy
+    GTMaskCount_top_{1,5,10}pct_proxy
+  Helper functions _normalize_sum, _normalize_minmax, _cosine_similarity,
+  _nss, _auc_judd added to eval_3dva_raycast_cone.py.
+  Removed unused imports: `from scipy.spatial.distance import cosine` and
+  `from sklearn.metrics import roc_auc_score`.
+
+### All three eval scripts now have identical:
+  - CLI arg set (including --base-rotate-z-deg, --extra-rotate-y-deg)
+  - apply_model_transform recenter order (canonical: original bbox)
+  - compute_metrics signature and output keys
+  - transform_order string in report JSON
+
+Risks:
+1. base_rotate_z_deg=0 for all current models means the recenter fix has no
+   impact on existing runs. But if 3DVA models require non-zero base_rotate_z_deg
+   (due to forward_axis='X' import), the corrected order is now essential.
+2. NSS/AUC_Judd in eval_3dva_raycast_cone.py uses proxy fixation masks derived
+   from GT percentiles — same approach as meshmamba scripts. For 3DVA the GT
+   is per-vertex fixation intensity (not binary), so the percentile proxy is
+   an approximation, not a ground-truth fixation map.
+3. All changes still uncommitted.
+Questions for GPT: none (all open items from previous entry still apply)
+Next step: GPT review → commit all baseline scripts together.
+
+---
+
+## 2026-05-30 MSK (session 4 — alignment investigation + new manifests)
+
+### Task
+1. Add README to test/ with alignment check documentation
+2. Add manifests for more MeshMamba models
+3. Investigate why 3DVA alignment is poor
+
+### Files added
+- `test/manifests/preview_meshmamba_non_texture_penguin.json`
+- `test/manifests/preview_meshmamba_non_texture_moai.json`
+- `test/manifests/preview_meshmamba_non_texture_seahorse.json`
+- `test/manifests/preview_meshmamba_non_texture_rhinoceros.json`
+- `test/manifests/preview_meshmamba_rgb_texture_penguin.json`
+- `test/manifests/preview_meshmamba_rgb_texture_moai.json`
+- `test/manifests/preview_meshmamba_rgb_texture_seahorse.json`
+- `test/manifests/preview_meshmamba_rgb_texture_rhinoceros.json`
+  All use recipe: recenter=true, extra_rotate_x=90°, fov=37.5°, frame_index=0
+  Blender batch check run immediately — results (frame 0):
+    non_texture Penguin_V2_L3:   IoU=0.9881  score=0.9875  video=144×357  preview=144×358
+    non_texture Moai_v3_L3:      IoU=0.9907  score=0.9897  video=159×350  preview=160×351
+    non_texture SeaHorse_v2_L3:  IoU=0.9759  score=0.9745  video=156×322  preview=157×323
+    non_texture Rhinoceros_v1_L3:IoU=0.9870  score=0.9850  video=123×256  preview=125×257
+    rgb_texture Penguin_V2_L3:   IoU=0.9920  score=0.9920  video=144×358  preview=144×358
+    rgb_texture Moai_v3_L3:      IoU=0.9971  score=0.9970  video=160×351  preview=160×351
+    rgb_texture SeaHorse_v2_L3:  IoU=0.9902  score=0.9895  video=158×323  preview=157×323
+    rgb_texture Rhinoceros_v1_L3:IoU=0.9918  score=0.9898  video=123×256  preview=125×257
+  All 8 pass threshold ≥0.90. SeaHorse non-texture 0.976 (lowest — thin elongated shape, expected).
+
+### Files updated
+- `test/README.md` — comprehensive alignment workflow documentation:
+  - two check paths (Python/trimesh vs Blender canonical)
+  - manifest format reference
+  - acceptance thresholds
+  - 3DVA root cause section
+  - validated results summary table
+
+### Root cause of 3DVA alignment problem — CONFIRMED
+
+**The render script used `3DModels-Simplif-up/` (server-only preprocessed models).
+Local dataset only has `3DModels-Simplif/` (standard published 3DVA dataset).
+The `-up` models are server-side manually pre-rotated versions — NOT in the repo.**
+
+Evidence (scale factors computed from local OBJ vs JSON):
+  bunny:     JSON=0.5684, computed from local OBJ=0.481  → 18% discrepancy
+  chair107:  JSON=0.3952, computed from local OBJ=0.451  → 14% discrepancy
+  flowerpot: JSON=0.002345, computed=0.002388             →  2% (smallest model, close)
+
+This explains why even Blender canonical (same import axes as render script) gives
+IoU=0.72 for bunny and IoU=0.32 for chair107. The geometry is structurally different.
+
+MeshMamba is NOT affected — local OBJ files match server OBJ files exactly (confirmed
+by IoU ≥ 0.987 across all 8 validated models × 3 frames).
+
+### Additional findings from render script analysis
+
+The 3DVA render script (`3dva_render_1.py`) uses:
+  - `forward_axis='X', up_axis='Z'` at OBJ import
+  - `set_origin_to_bbox_center` (ORIGIN_GEOMETRY, center=BOUNDS) AFTER import
+  - scale fits model into (0.8m × 0.8m × 0.7m) bounding box
+  - camera at (0, -1.5, 0.5) with FOV=60° horizontal
+  - start_angle_deg=0, no randomisation, rotation direction = counter-clockwise
+
+The JSON stores `fov_degrees=60` = Blender's `camera.data.angle` = horizontal FOV.
+The projection matrix stored in JSON uses `f = 1/tan(fov_rad/2)` where `fov_rad`
+= horizontal FOV. The Python renderer `build_projection_matrix_from_fov_degrees`
+uses the same formula, so `override_fov_deg=60` gives the exact JSON projection matrix.
+The grid search finding of override_fov_deg=34 for bunny was compensating for both
+the axis mismatch AND the geometry mismatch simultaneously — it is NOT the true FOV.
+
+### Resolution
+Option 1 (preferred): Transfer `3DModels-Simplif-up/` from server via side-input workflow.
+  Update 3DVA manifests to point to `-up` OBJ files. Expected IoU should reach ≥0.90.
+Option 2: Accept mismatch, document as 3DVA limitation. Relative method rankings preserved.
+
+### Status (Session 4)
+All 8 new manifests created. test/README.md updated. Changes uncommitted.
+Pending: GPT review → commit.
+
+---
+
+## Session 5 Log — 2026-05-30
+
+### 3DVA Root Cause: RESOLVED ✅
+
+**User hypothesis confirmed correct.** The `-up` OBJ files are the SAME MESH as
+local `3DModels-Simplif/` — just pre-rotated. Kabsch rigid-body analysis:
+- Frobenius norm ratio local/up = 1.000000 exactly
+- Max vertex residual after rotation: < 2×10⁻⁶ (machine precision)
+- Scale factors appeared different only because of different OBJ-space orientation
+  feeding into `scale_to_bbox(BBOX_MAX_WIDTH=0.8, ...)` — same mesh, different axis alignment.
+
+**Root cause of scale discrepancy in session 4** (18% for bunny, 14% for chair107):
+The scale is computed from world-space bbox AFTER `forward='X', up='Z'` import.
+Different orientation in OBJ space → different world-space bbox extents → different scale.
+This is NOT evidence of different meshes — it was a misinterpretation.
+
+**Rotations required (OBJ space → world space after Blender import):**
+- bunny:     rotX=-11°, rotY=-51°, rotZ=+9° (complex 3D rotation)
+- chair107:  rotY≈90°,  rotZ≈-139°           (purely Y+Z, no X component!)
+- flowerpot: rotZ≈-10°                       (almost identical to local)
+
+This explains why `rotX` grid-search could not fix chair107 (IoU went from 0.32 to max 0.72):
+the dominant rotation is in Y+Z, not X.
+
+### Actions Taken
+
+1. **Downloaded all 32 `-up` OBJ files** from vg-iai:
+   `/mnt/hd2/29d_kon/projects/Rendering/Dataset/3DVA/3DModels-Simplif-up/*.obj`
+   → local: `${REPROJECT_DATASET_3DVA_ROOT}/3DModels-Simplif-up/` (32 files, 2-3 MB each)
+
+2. **Fixed 2 corrupted video files** (incomplete Telegram downloads):
+   - `3DVA_james.mp4`: 256KB → downloaded 2.1MB from server
+   - `3DVA_meca-15k.mp4`: 48 bytes → downloaded 2.0MB from server
+   Note: `3DVA_jessi.mp4` = 326KB is normal for that model (also 326KB on server).
+
+3. **Created 32 new manifests** `test/manifests/preview_3dva_<model>_up.json`:
+   All use: `obj_path → 3DModels-Simplif-up/`, `extra_rotate_x_deg=0.0`,
+   `override_fov_deg=null` (→ uses JSON FOV=60°), `recenter_to_bbox_center=true`.
+
+4. **Updated `eval_3dva_raycast_cone.py`**:
+   Line 146: `3DModels-Simplif` → `3DModels-Simplif-up`
+   (eval projection now uses the same mesh orientation as the video render)
+
+5. **Updated `test/README.md`**:
+   3DVA alignment problem section rewritten as "RESOLVED". Full 32-model results table.
+
+### Blender Canonical Validation Results (all 32 3DVA models, frame 0)
+
+Recipe confirmed: `extra_rotate_x_deg=0.0`, `override_fov_deg=null` (FOV=60° from JSON).
+
+| Model | IoU | | Model | IoU |
+|-------|-----|-|-------|-----|
+| fandisk | 0.984 ✅ | | turbine | 0.978 ✅ |
+| casting | 0.979 ✅ | | house | 0.979 ✅ |
+| bunny | 0.978 ✅ | | gorgoile | 0.973 ✅ |
+| carter | 0.977 ✅ | | car-vasa | 0.975 ✅ |
+| blade-200K | 0.971 ✅ | | flowerpot | 0.956 ✅ |
+| meca-15k | 0.970 ✅ | | vase-15k | 0.954 ✅ |
+| hand-35K | 0.966 ✅ | | bimba | 0.953 ✅ |
+| torso | 0.968 ✅ | | prot | 0.947 ✅ |
+| rockerarm | 0.965 ✅ | | horse-110k | 0.946 ✅ |
+| james | 0.941 ✅ | | jessi | 0.934 ✅ |
+| michael8 | 0.937 ✅ | | chair107 | 0.933 ✅ |
+| dragon | 0.932 ✅ | | Max-Planck | 0.929 ✅ |
+| cow | 0.922 ✅ | | michael3 | 0.923 ✅ |
+| camel | 0.916 ✅ | | A380 | 0.907 ✅ |
+| Harley | 0.912 ✅ | | octopus | 0.891 ⚠️ thin tentacles |
+| igea-100K | 0.888 ⚠️ hair | | dinosaur-40K | 0.875 ⚠️ self-shadow |
+
+Mean IoU = 0.946. 29/32 ✅. 3/32 ⚠️ (0.875–0.891, accepted with note). 0/32 🔴.
+Versus old (wrong OBJ): bunny 0.72, chair107 0.32, flowerpot 0.85.
+
+The 3 models ⚠️ have geometrically perfect alignment (red edge precisely traces model
+boundary in overlay_edges.png). Lower IoU is from measurement noise:
+- octopus: 8 thin tentacles = enormous perimeter-to-area (same as seahorse case)
+- igea-100K: detailed hair texture causes 1-2px edge uncertainty in video mask
+- dinosaur-40K: strong Cycles self-shadows on limbs → darker than background threshold
+
+### Comparison: before and after fix
+
+| Model | Old IoU (wrong OBJ) | New IoU (-up OBJ) | Gain |
+|-------|--------------------|--------------------|------|
+| bunny | 0.720 | 0.978 | +0.258 |
+| chair107 | 0.321 | 0.933 | +0.612 |
+| flowerpot | 0.854 | 0.956 | +0.102 |
+
+### Additional files created in session 5
+
+- `DATA_PATHS.md` — reference file listing all local + server paths (OBJ, JSON, CSV, MP4, scripts)
+- `PIPELINE.md` — pipeline design document with 3 options (Option A: YAML config,
+  Option B: staged pipeline, Option C: shell batch). Recommendation: start with C,
+  move to A.
+- `trash/GPT_SESSION5_BRIEF.md` — summary of session 5 work + 6 questions for GPT
+
+### Pending
+
+1. ✅ DONE: Commit all changes (committed in session 5)
+2. Server eval run for 3DVA with corrected OBJ path (use `extra_rotate_x_deg=0.0`)
+3. Multi-frame stability check for 3DVA (currently only frame 0)
+4. Do NOT use old `preview_3dva_bunny.json`, `preview_3dva_chair107.json`,
+   `preview_3dva_flowerpot.json` — they use wrong OBJ files.
+5. 3DVA gaze CSV location on server — unknown, needs GPT to clarify.
+

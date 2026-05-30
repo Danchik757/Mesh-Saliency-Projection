@@ -252,7 +252,16 @@ def apply_model_transform(
     extra_rotate_x_deg: float,
     extra_rotate_y_deg: float,
 ) -> np.ndarray:
+    """Full per-frame vertex transform (not used in the main screen-space loop,
+    which uses _apply_transform_no_recenter instead; kept for reference).
+
+    Canonical order (matches render_preview_from_manifest.py):
+      bbox_center from ORIGINAL vertices → base_rotZ → recenter → scale →
+      anim_rotZ → extra_rotX → extra_rotY → translate.
+    """
     v = np.asarray(vertices, dtype=np.float64).copy()
+    # Compute bbox center from ORIGINAL vertices (before any rotation)
+    bbox_center = 0.5 * (v.min(axis=0) + v.max(axis=0))
     rz0 = math.radians(base_rotate_z_deg)
     if abs(rz0) > 1e-12:
         cz0, sz0 = math.cos(rz0), math.sin(rz0)
@@ -260,7 +269,7 @@ def apply_model_transform(
         y0 = sz0 * v[:, 0] + cz0 * v[:, 1]
         v[:, 0], v[:, 1] = x0, y0
     if recenter_to_bbox_center:
-        v -= 0.5 * (v.min(axis=0) + v.max(axis=0))
+        v -= bbox_center
 
     scale = np.asarray(camera_data["model_static"]["scale"], dtype=np.float64)
     v *= scale
