@@ -102,12 +102,31 @@ run_model() {
   echo "[run_3dva_raycast_cone] finished model=${model}"
 }
 
+PIDS=()
+MODELS=()
+
 for MODEL in ${PILOT_OBJECTS}; do
   while [ "$(jobs -pr | wc -l | tr -d ' ')" -ge "${WORKERS}" ]; do
     sleep 2
   done
   run_model "${MODEL}" &
+  PIDS+=("$!")
+  MODELS+=("${MODEL}")
 done
-wait
+
+FAILURES=0
+for IDX in "${!PIDS[@]}"; do
+  PID="${PIDS[$IDX]}"
+  MODEL="${MODELS[$IDX]}"
+  if ! wait "${PID}"; then
+    echo "[run_3dva_raycast_cone] ERROR: model=${MODEL} failed" >&2
+    FAILURES=$((FAILURES + 1))
+  fi
+done
+
+if [ "${FAILURES}" -gt 0 ]; then
+  echo "[run_3dva_raycast_cone] completed with ${FAILURES} failed model(s)" >&2
+  exit 1
+fi
 
 echo "[run_3dva_raycast_cone] all done. results in ${OUTPUT_DIR}"
