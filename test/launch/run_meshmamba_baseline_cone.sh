@@ -30,6 +30,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 EVAL_SCRIPT="${REPO_ROOT}/reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py"
+PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 
 # ---------- required env var checks ----------
 : "${MESHMAMBA_NON_TEXTURE_ROOT:?Set MESHMAMBA_NON_TEXTURE_ROOT (see configs/server_vg_intellect.env)}"
@@ -57,6 +58,7 @@ echo "[run_meshmamba_baseline_cone] dataset_root=${MESHMAMBA_NON_TEXTURE_ROOT}"
 echo "[run_meshmamba_baseline_cone] csv_dir=${CSV_DIR}"
 echo "[run_meshmamba_baseline_cone] json_dir=${JSON_DIR}"
 echo "[run_meshmamba_baseline_cone] output_dir=${OUTPUT_DIR}"
+echo "[run_meshmamba_baseline_cone] python_bin=${PYTHON_BIN}"
 echo "[run_meshmamba_baseline_cone] workers=${WORKERS}  nice=${NICE_LEVEL}"
 echo "[run_meshmamba_baseline_cone] sigma_deg=${SIGMA_DEG}  radius_sigma_mult=${RADIUS_SIGMA_MULT}"
 echo "[run_meshmamba_baseline_cone] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG}"
@@ -68,7 +70,7 @@ else
   RECENTER_FLAG="--no-recenter-to-bbox-center"
 fi
 
-nice -n "${NICE_LEVEL}" python3 "${EVAL_SCRIPT}" \
+nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
   --model "${PILOT_MODEL}" \
   --dataset-root "${MESHMAMBA_NON_TEXTURE_ROOT}" \
   --csv-root "${CSV_DIR}" \

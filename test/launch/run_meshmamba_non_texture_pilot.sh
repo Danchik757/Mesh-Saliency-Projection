@@ -28,6 +28,7 @@ set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
+PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 
 # ---------- required env var checks ----------
 : "${MESHMAMBA_NON_TEXTURE_ROOT:?Set MESHMAMBA_NON_TEXTURE_ROOT (see configs/server_vg_intellect.env)}"
@@ -72,6 +73,7 @@ echo "[run_meshmamba_non_texture_pilot] csv_dir=${CSV_DIR}"
 echo "[run_meshmamba_non_texture_pilot] json_dir=${JSON_DIR}"
 echo "[run_meshmamba_non_texture_pilot] mamba_gaze_root=${MAMBA_GAZE_ROOT}"
 echo "[run_meshmamba_non_texture_pilot] output_dir=${OUTPUT_DIR}"
+echo "[run_meshmamba_non_texture_pilot] python_bin=${PYTHON_BIN}"
 echo "[run_meshmamba_non_texture_pilot] smoothing_mode=${SMOOTHING_MODE}"
 echo "[run_meshmamba_non_texture_pilot] workers=${WORKERS}  nice=${NICE_LEVEL} (workers reserved for outer multi-model pool)"
 echo "[run_meshmamba_non_texture_pilot] pilot_model=${PILOT_MODEL}"
@@ -93,7 +95,7 @@ else
   RECENTER_FLAG="--no-recenter-to-bbox-center"
 fi
 
-nice -n "${NICE_LEVEL}" python3 "${PIPELINE_SCRIPT}" \
+nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${PIPELINE_SCRIPT}" \
   --model "${PILOT_MODEL}" \
   --gaze-csv-dir "${CSV_DIR}" \
   --mesh-dir "${MESH_DIR}" \

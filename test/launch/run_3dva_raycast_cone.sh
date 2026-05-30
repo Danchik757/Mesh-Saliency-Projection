@@ -35,6 +35,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 EVAL_SCRIPT="${REPO_ROOT}/reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py"
+PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 
 # ---------- required env var checks ----------
 : "${VISUAL_ATTENTION_3D_SHAPES_ROOT:?Set VISUAL_ATTENTION_3D_SHAPES_ROOT (see configs/server_vg_intellect.env)}"
@@ -45,12 +46,11 @@ EVAL_SCRIPT="${REPO_ROOT}/reprojection_methods/cone_projection_on_mesh/eval_3dva
 # ---------- defaults ----------
 WORKERS="${WORKERS:-4}"
 NICE_LEVEL="${NICE_LEVEL:-10}"
-# Keep the default to a single validated model. Other 3DVA objects still need
-# per-model geometry verification before their metrics are comparable.
+# Keep the default to a single validated model.
 PILOT_OBJECTS="${PILOT_OBJECTS:-bunny}"
 SIGMA_DEG="${SIGMA_DEG:-1.0}"
 RADIUS_SIGMA_MULT="${RADIUS_SIGMA_MULT:-3.0}"
-RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-false}"
+RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
 BASE_ROTATE_Z_DEG="${BASE_ROTATE_Z_DEG:-0}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-0.0}"
 OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
@@ -63,6 +63,7 @@ echo "[run_3dva_raycast_cone] dataset_root=${VISUAL_ATTENTION_3D_SHAPES_ROOT}"
 echo "[run_3dva_raycast_cone] csv_root=${THREE_DVA_CSV_ROOT}"
 echo "[run_3dva_raycast_cone] json_root=${THREE_DVA_JSON_ROOT}"
 echo "[run_3dva_raycast_cone] output_dir=${OUTPUT_DIR}"
+echo "[run_3dva_raycast_cone] python_bin=${PYTHON_BIN}"
 echo "[run_3dva_raycast_cone] workers=${WORKERS}  nice=${NICE_LEVEL}"
 echo "[run_3dva_raycast_cone] sigma_deg=${SIGMA_DEG}  radius_sigma_mult=${RADIUS_SIGMA_MULT}"
 echo "[run_3dva_raycast_cone] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG:-<from_json>}"
@@ -85,7 +86,7 @@ run_model() {
   fi
 
   echo "[run_3dva_raycast_cone] starting model=${model} ..."
-  nice -n "${NICE_LEVEL}" python3 "${EVAL_SCRIPT}" \
+  nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
     --model "${model}" \
     --dataset-root "${VISUAL_ATTENTION_3D_SHAPES_ROOT}" \
     --csv-root "${THREE_DVA_CSV_ROOT}" \
