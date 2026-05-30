@@ -29,13 +29,13 @@
     "default_extra_rotate_x_deg": 0,
     "model_overrides": {
       "bunny": {
-        "extra_rotate_x_deg": -45.0
+        "extra_rotate_x_deg": -70.0
       }
     },
-    "override_fov_deg": 37.5,
+    "override_fov_deg": 34.0,
     "validation_status": "validated_on_subset",
     "validated_models": ["bunny", "dragon", "chair107", "flowerpot", "car-vasa"],
-    "note": "Base recipe is backed by local hit-rate improvement; `bunny` additionally required `rotX=-45` after direct video-vs-preview inspection."
+    "note": "Recipe is anchored to the 3DVA Blender render script and JSON: origin is moved to bbox center before scaling, camera z-offset is 0.5, start yaw is 0, and scale/FOV come from JSON. A static OBJ import-axis correction is supported in code but is not yet validated as a dataset-wide default. `bunny` currently uses `rotX=-70` and `FOV=34.0` as the best local preview match from contour-based search on frame 0."
   },
 
   "pilot_models": ["bunny", "A380", "dragon", "chair107", "flowerpot", "car-vasa"],

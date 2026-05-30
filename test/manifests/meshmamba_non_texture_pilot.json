@@ -37,7 +37,7 @@
     "validation_status": "validated_on_representative_model",
     "validated_models": ["Starfruit_L3"],
     "recipe_source": "video-vs-preview check using the local original non-texture video plus JSON camera metadata",
-    "note": "Representative recipe is now based on direct video comparison for `Starfruit_L3`; other models still need preview validation before full run."
+    "note": "Recipe is anchored to the MeshMamba Blender render script and JSON: origin is moved to bbox center before scaling, camera z-offset is 0.7, start yaw is 0, and scale/FOV come from JSON. A static OBJ import-axis correction is supported in code but is not yet validated as a dataset-wide default. Other models still need preview validation before full run."
   },
 
   "pilot_models_note": "5-10 geometry-diverse models; exact list TBD after preview validation.",

@@ -22,6 +22,7 @@
 #   SIGMA_DEG=1.0
 #   RADIUS_SIGMA_MULT=3.0
 #   RECENTER_TO_BBOX_CENTER=true
+#   BASE_ROTATE_Z_DEG=0
 #   EXTRA_ROTATE_X_DEG=90
 #   OVERRIDE_FOV_DEG=37.5
 set -euo pipefail
@@ -42,6 +43,7 @@ PILOT_MODEL="${PILOT_MODEL:-Starfruit_L3}"
 SIGMA_DEG="${SIGMA_DEG:-1.0}"
 RADIUS_SIGMA_MULT="${RADIUS_SIGMA_MULT:-3.0}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
+BASE_ROTATE_Z_DEG="${BASE_ROTATE_Z_DEG:-0}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-90}"
 OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-37.5}"
 
@@ -57,7 +59,7 @@ echo "[run_meshmamba_baseline_cone] json_dir=${JSON_DIR}"
 echo "[run_meshmamba_baseline_cone] output_dir=${OUTPUT_DIR}"
 echo "[run_meshmamba_baseline_cone] workers=${WORKERS}  nice=${NICE_LEVEL}"
 echo "[run_meshmamba_baseline_cone] sigma_deg=${SIGMA_DEG}  radius_sigma_mult=${RADIUS_SIGMA_MULT}"
-echo "[run_meshmamba_baseline_cone] recenter=${RECENTER_TO_BBOX_CENTER}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG}"
+echo "[run_meshmamba_baseline_cone] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG}"
 echo "[run_meshmamba_baseline_cone] pilot_model=${PILOT_MODEL}"
 
 if [ "${RECENTER_TO_BBOX_CENTER}" = "true" ]; then
@@ -75,6 +77,7 @@ nice -n "${NICE_LEVEL}" python3 "${EVAL_SCRIPT}" \
   --sigma-deg "${SIGMA_DEG}" \
   --radius-sigma-mult "${RADIUS_SIGMA_MULT}" \
   "${RECENTER_FLAG}" \
+  --base-rotate-z-deg "${BASE_ROTATE_Z_DEG}" \
   --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
   --override-fov-deg "${OVERRIDE_FOV_DEG}" \
   2>&1 | tee "${OUTPUT_DIR}/${PILOT_MODEL}_run.log"

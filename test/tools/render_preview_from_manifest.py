@@ -63,6 +63,27 @@ def extract_video_frame(video_path: Path, timestamp_seconds: float, output_path:
     subprocess.run(cmd, check=True)
 
 
+def extract_video_frame_by_index(video_path: Path, frame_index: int, output_path: Path) -> None:
+    ffmpeg_path = shutil.which("ffmpeg")
+    if ffmpeg_path is None:
+        raise RuntimeError("ffmpeg is required when video_path is set but was not found in PATH")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    cmd = [
+        ffmpeg_path,
+        "-y",
+        "-loglevel",
+        "error",
+        "-i",
+        str(video_path),
+        "-vf",
+        f"select=eq(n\\,{int(frame_index)})",
+        "-vframes",
+        "1",
+        str(output_path),
+    ]
+    subprocess.run(cmd, check=True)
+
+
 def labeled_panel(image: Image.Image, label: str) -> Image.Image:
     label_h = 28
     canvas = Image.new("RGB", (image.width, image.height + label_h), (245, 245, 245))
@@ -166,7 +187,9 @@ def apply_projection_transform(
     rotation_z_rad: float,
     translation_xyz: np.ndarray,
     recenter_to_bbox_center: bool = False,
+    base_rotate_z_deg: float = 0.0,
     extra_rotate_x_deg: float = 0.0,
+    extra_rotate_y_deg: float = 0.0,
 ) -> tuple[np.ndarray, np.ndarray]:
     vertices = np.asarray(vertices, dtype=np.float64)
     scale_xyz = np.asarray(scale_xyz, dtype=np.float64).reshape(1, 3)
@@ -174,6 +197,14 @@ def apply_projection_transform(
 
     bbox_center = 0.5 * (vertices.min(axis=0) + vertices.max(axis=0))
     transformed = vertices.copy()
+    rz0 = math.radians(float(base_rotate_z_deg))
+    if abs(rz0) > 1e-12:
+        cz0 = math.cos(rz0)
+        sz0 = math.sin(rz0)
+        x0 = transformed[:, 0]
+        y0 = transformed[:, 1]
+        transformed[:, 0] = cz0 * x0 - sz0 * y0
+        transformed[:, 1] = sz0 * x0 + cz0 * y0
     if recenter_to_bbox_center:
         transformed = transformed - bbox_center.reshape(1, 3)
 
@@ -200,7 +231,17 @@ def apply_projection_transform(
         y3 = y2
         z3 = z2
 
-    out = np.stack([x2, y3, z3], axis=1)
+    ry = math.radians(float(extra_rotate_y_deg))
+    if abs(ry) > 1e-12:
+        cry = math.cos(ry)
+        sry = math.sin(ry)
+        x4 = cry * x2 + sry * z3
+        z4 = -sry * x2 + cry * z3
+    else:
+        x4 = x2
+        z4 = z3
+
+    out = np.stack([x4, y3, z4], axis=1)
     out = out + translation_xyz
     return out, bbox_center
 
@@ -253,7 +294,9 @@ def render_preview(
     width: int,
     height: int,
     recenter_to_bbox_center: bool = False,
+    base_rotate_z_deg: float = 0.0,
     extra_rotate_x_deg: float = 0.0,
+    extra_rotate_y_deg: float = 0.0,
     override_fov_deg: float | None = None,
     gaze_points_xy: np.ndarray | None = None,
 ) -> dict[str, Any]:
@@ -273,7 +316,9 @@ def render_preview(
         rotation_z_rad=float(metadata["frames"][frame_idx]["rotation_z_radians"]),
         translation_xyz=np.asarray(metadata["model_static"]["location"], dtype=np.float64),
         recenter_to_bbox_center=recenter_to_bbox_center,
+        base_rotate_z_deg=base_rotate_z_deg,
         extra_rotate_x_deg=extra_rotate_x_deg,
+        extra_rotate_y_deg=extra_rotate_y_deg,
     )
     screen_xy, verts_cam, valid_vertices = project_vertices(transformed_vertices, metadata, projection_matrix, width, height)
     faces = mesh.faces
@@ -385,7 +430,9 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
         width=width,
         height=height,
         recenter_to_bbox_center=bool(manifest.get("recenter_to_bbox_center", False)),
+        base_rotate_z_deg=float(manifest.get("base_rotate_z_deg", 0.0)),
         extra_rotate_x_deg=float(manifest.get("extra_rotate_x_deg", 0.0)),
+        extra_rotate_y_deg=float(manifest.get("extra_rotate_y_deg", 0.0)),
         override_fov_deg=manifest.get("override_fov_deg"),
     )
 
@@ -409,7 +456,9 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
             width=width,
             height=height,
             recenter_to_bbox_center=bool(manifest.get("recenter_to_bbox_center", False)),
+            base_rotate_z_deg=float(manifest.get("base_rotate_z_deg", 0.0)),
             extra_rotate_x_deg=float(manifest.get("extra_rotate_x_deg", 0.0)),
+            extra_rotate_y_deg=float(manifest.get("extra_rotate_y_deg", 0.0)),
             override_fov_deg=manifest.get("override_fov_deg"),
             gaze_points_xy=gaze_points_xy,
         )
@@ -417,9 +466,8 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
     video_frame_path = None
     comparison_path = None
     if video_path is not None:
-        timestamp_seconds = float(metadata["frames"][frame_idx].get("timestamp", frame_idx / max(1.0, float(metadata["video_info"]["fps"]))))
         video_frame_path = output_prefix.parent / f"{output_prefix.name}_video_frame.png"
-        extract_video_frame(video_path=video_path, timestamp_seconds=timestamp_seconds, output_path=video_frame_path)
+        extract_video_frame_by_index(video_path=video_path, frame_index=frame_idx, output_path=video_frame_path)
         comparison_path = output_prefix.parent / f"{output_prefix.name}_compare.png"
         make_comparison_image(video_frame_path=video_frame_path, preview_path=plain_path, output_path=comparison_path)
 
@@ -435,7 +483,9 @@ def render_from_manifest(manifest: dict[str, Any], manifest_path: Path) -> dict[
         "resolution_width": int(width),
         "resolution_height": int(height),
         "recenter_to_bbox_center": bool(manifest.get("recenter_to_bbox_center", False)),
+        "base_rotate_z_deg": float(manifest.get("base_rotate_z_deg", 0.0)),
         "extra_rotate_x_deg": float(manifest.get("extra_rotate_x_deg", 0.0)),
+        "extra_rotate_y_deg": float(manifest.get("extra_rotate_y_deg", 0.0)),
         "override_fov_deg": manifest.get("override_fov_deg"),
         "plain_preview": str(plain_path),
         "overlay_preview": None if overlay_path is None else str(overlay_path),

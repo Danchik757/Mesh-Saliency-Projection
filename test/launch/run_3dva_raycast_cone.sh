@@ -22,6 +22,7 @@
 #   SIGMA_DEG=1.0          — cone Gaussian angular sigma (degrees)
 #   RADIUS_SIGMA_MULT=3.0  — cone Gaussian query radius multiplier
 #   RECENTER_TO_BBOX_CENTER=false
+#   BASE_ROTATE_Z_DEG=0    — optional static Z correction; keep 0 unless explicitly validated
 #   EXTRA_ROTATE_X_DEG=0.0
 #   OVERRIDE_FOV_DEG=""    — leave empty to use JSON FOV
 #
@@ -50,6 +51,7 @@ PILOT_OBJECTS="${PILOT_OBJECTS:-bunny}"
 SIGMA_DEG="${SIGMA_DEG:-1.0}"
 RADIUS_SIGMA_MULT="${RADIUS_SIGMA_MULT:-3.0}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-false}"
+BASE_ROTATE_Z_DEG="${BASE_ROTATE_Z_DEG:-0}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-0.0}"
 OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
 
@@ -63,7 +65,7 @@ echo "[run_3dva_raycast_cone] json_root=${THREE_DVA_JSON_ROOT}"
 echo "[run_3dva_raycast_cone] output_dir=${OUTPUT_DIR}"
 echo "[run_3dva_raycast_cone] workers=${WORKERS}  nice=${NICE_LEVEL}"
 echo "[run_3dva_raycast_cone] sigma_deg=${SIGMA_DEG}  radius_sigma_mult=${RADIUS_SIGMA_MULT}"
-echo "[run_3dva_raycast_cone] recenter=${RECENTER_TO_BBOX_CENTER}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG:-<from_json>}"
+echo "[run_3dva_raycast_cone] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG:-<from_json>}"
 echo "[run_3dva_raycast_cone] objects=${PILOT_OBJECTS}"
 
 build_recenter_flag() {
@@ -92,6 +94,7 @@ run_model() {
     --sigma-deg "${SIGMA_DEG}" \
     --radius-sigma-mult "${RADIUS_SIGMA_MULT}" \
     "$(build_recenter_flag)" \
+    --base-rotate-z-deg "${BASE_ROTATE_Z_DEG}" \
     --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
     "${extra_args[@]}" \
     2>&1 | tee "${OUTPUT_DIR}/${model}_run.log"

@@ -20,6 +20,7 @@
 #   PILOT_MODEL=Starfruit_L3
 #   SIGMA_SCREEN=0.05          — Gaussian sigma as fraction of image width
 #   RECENTER_TO_BBOX_CENTER=true
+#   BASE_ROTATE_Z_DEG=0
 #   EXTRA_ROTATE_X_DEG=90
 #   OVERRIDE_FOV_DEG=37.5
 set -euo pipefail
@@ -39,6 +40,7 @@ NICE_LEVEL="${NICE_LEVEL:-10}"
 PILOT_MODEL="${PILOT_MODEL:-Starfruit_L3}"
 SIGMA_SCREEN="${SIGMA_SCREEN:-0.05}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
+BASE_ROTATE_Z_DEG="${BASE_ROTATE_Z_DEG:-0}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-90}"
 OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-37.5}"
 
@@ -54,7 +56,7 @@ echo "[run_meshmamba_baseline_screen_space] json_dir=${JSON_DIR}"
 echo "[run_meshmamba_baseline_screen_space] output_dir=${OUTPUT_DIR}"
 echo "[run_meshmamba_baseline_screen_space] workers=${WORKERS}  nice=${NICE_LEVEL}"
 echo "[run_meshmamba_baseline_screen_space] sigma_screen=${SIGMA_SCREEN}"
-echo "[run_meshmamba_baseline_screen_space] recenter=${RECENTER_TO_BBOX_CENTER}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG}"
+echo "[run_meshmamba_baseline_screen_space] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG}"
 echo "[run_meshmamba_baseline_screen_space] pilot_model=${PILOT_MODEL}"
 
 if [ "${RECENTER_TO_BBOX_CENTER}" = "true" ]; then
@@ -71,6 +73,7 @@ nice -n "${NICE_LEVEL}" python3 "${EVAL_SCRIPT}" \
   --output-dir "${OUTPUT_DIR}" \
   --sigma-screen "${SIGMA_SCREEN}" \
   "${RECENTER_FLAG}" \
+  --base-rotate-z-deg "${BASE_ROTATE_Z_DEG}" \
   --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
   --override-fov-deg "${OVERRIDE_FOV_DEG}" \
   2>&1 | tee "${OUTPUT_DIR}/${PILOT_MODEL}_run.log"

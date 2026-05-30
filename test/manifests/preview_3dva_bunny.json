@@ -5,11 +5,11 @@
   "json_path": "${REPROJECT_GAZE_JSON_3DVA_ROOT}/3DVA_bunny.json",
   "csv_path": "${REPROJECT_GAZE_CSV_3DVA_ROOT}/bunny.csv",
   "video_path": "${REPROJECT_VIDEO_3DVA_ROOT}/3DVA_bunny.mp4",
-  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/3DVA/bunny_frame000_recenter_fov37p5_rotxm45",
+  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/3DVA/bunny_frame000_recenter_fov34p0_rotxm70",
   "frame_index": 0,
   "resolution_scale": 0.5,
   "overlay_gaze": true,
   "recenter_to_bbox_center": true,
-  "extra_rotate_x_deg": -45.0,
-  "override_fov_deg": 37.5
+  "extra_rotate_x_deg": -70.0,
+  "override_fov_deg": 34.0
 }

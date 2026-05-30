@@ -1,0 +1,15 @@
+{
+  "dataset": "MeshMamba_non_texture",
+  "model": "Pear_L3",
+  "obj_path": "${REPROJECT_DATASET_MESHMAMBA_ROOT}/MeshFile/non_texture/Pear_L3/Pear.obj",
+  "json_path": "${REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT}/MeshMamba_non_texture_Pear_L3.json",
+  "csv_path": "${REPROJECT_GAZE_CSV_MESHMAMBA_NON_TEXTURE_ROOT}/Pear_L3.csv",
+  "video_path": "${REPROJECT_VIDEO_MESHMAMBA_NON_TEXTURE_ROOT}/MeshMamba_non_texture_Pear_L3.mp4",
+  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/MeshMamba_non_texture/Pear_L3_frame000_recenter_rotx90_fov37p5",
+  "frame_index": 0,
+  "resolution_scale": 0.5,
+  "overlay_gaze": true,
+  "recenter_to_bbox_center": true,
+  "extra_rotate_x_deg": 90.0,
+  "override_fov_deg": 37.5
+}
