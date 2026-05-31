@@ -11,5 +11,5 @@
   "overlay_gaze": true,
   "recenter_to_bbox_center": true,
   "extra_rotate_x_deg": 90.0,
-  "override_fov_deg": 37.5
+  "override_fov_deg": null
 }

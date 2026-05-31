@@ -51,11 +51,11 @@ def reset_scene(bpy) -> None:
     bpy.ops.wm.read_factory_settings(use_empty=True)
 
 
-def import_obj_with_blender_axes(bpy, obj_path: Path):
+def import_obj_with_blender_axes(bpy, obj_path: Path, forward_axis: str = "X", up_axis: str = "Z"):
     bpy.ops.wm.obj_import(
         filepath=str(obj_path),
-        forward_axis="X",
-        up_axis="Z",
+        forward_axis=forward_axis,
+        up_axis=up_axis,
     )
     obj = bpy.context.selected_objects[0]
     bpy.context.view_layer.objects.active = obj
@@ -75,11 +75,6 @@ def set_camera_from_json(bpy, metadata: dict, manifest: dict):
     cam_obj.rotation_mode = "XYZ"
     cam_obj.rotation_euler = tuple(float(v) for v in camera_static["rotation_euler_radians"])
 
-    override_fov_deg = manifest.get("override_fov_deg")
-    if override_fov_deg is None:
-        cam_data.angle = float(camera_static["fov_radians"])
-    else:
-        cam_data.angle = float(override_fov_deg) * 3.141592653589793 / 180.0
     if "lens_mm" in camera_static:
         cam_data.lens = float(camera_static["lens_mm"])
     if "sensor_width_mm" in camera_static:
@@ -88,6 +83,12 @@ def set_camera_from_json(bpy, metadata: dict, manifest: dict):
         cam_data.sensor_height = float(camera_static["sensor_height_mm"])
     cam_data.clip_start = float(camera_static["clip_start"])
     cam_data.clip_end = float(camera_static["clip_end"])
+    # Set angle last so it always overrides the lens/sensor derived value
+    override_fov_deg = manifest.get("override_fov_deg")
+    if override_fov_deg is None:
+        cam_data.angle = float(camera_static["fov_radians"])
+    else:
+        cam_data.angle = float(override_fov_deg) * 3.141592653589793 / 180.0
     return cam_obj
 
 
@@ -161,7 +162,9 @@ def main() -> None:
     scene = bpy.context.scene
     configure_render(scene, width=width, height=height, output_path=output_path)
     set_camera_from_json(bpy, metadata, manifest)
-    obj = import_obj_with_blender_axes(bpy, obj_path)
+    forward_axis = str(manifest.get("forward_axis", "X"))
+    up_axis = str(manifest.get("up_axis", "Z"))
+    obj = import_obj_with_blender_axes(bpy, obj_path, forward_axis=forward_axis, up_axis=up_axis)
     apply_object_transform(bpy, obj, metadata, manifest, frame_idx)
     set_object_color(obj)
 
