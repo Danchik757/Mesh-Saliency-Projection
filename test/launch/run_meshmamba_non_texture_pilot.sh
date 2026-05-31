@@ -22,7 +22,7 @@
 #   PILOT_MODEL=Starfruit_L3
 #   RECENTER_TO_BBOX_CENTER=true
 #   EXTRA_ROTATE_X_DEG=90
-#   OVERRIDE_FOV_DEG=37.5
+#   OVERRIDE_FOV_DEG=""         — leave empty to use JSON FOV
 #   SMOOTHING_MODE=diffusion     (choices: none, diffusion, geodesic_kde)
 set -euo pipefail
 
@@ -42,7 +42,7 @@ NICE_LEVEL="${NICE_LEVEL:-10}"
 PILOT_MODEL="${PILOT_MODEL:-Starfruit_L3}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-90}"
-OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-37.5}"
+OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
 SMOOTHING_MODE="${SMOOTHING_MODE:-diffusion}"
 
 MESH_DIR="${MESHMAMBA_NON_TEXTURE_ROOT}/MeshFile/non_texture"
@@ -79,7 +79,7 @@ echo "[run_meshmamba_non_texture_pilot] workers=${WORKERS}  nice=${NICE_LEVEL} (
 echo "[run_meshmamba_non_texture_pilot] pilot_model=${PILOT_MODEL}"
 echo "[run_meshmamba_non_texture_pilot] recenter_to_bbox_center=${RECENTER_TO_BBOX_CENTER}"
 echo "[run_meshmamba_non_texture_pilot] extra_rotate_x_deg=${EXTRA_ROTATE_X_DEG}"
-echo "[run_meshmamba_non_texture_pilot] override_fov_deg=${OVERRIDE_FOV_DEG}"
+echo "[run_meshmamba_non_texture_pilot] override_fov_deg=${OVERRIDE_FOV_DEG:-<from_json>}"
 
 # ---------- delegate to external MAMBA_GAZE pipeline ----------
 PIPELINE_SCRIPT="${MAMBA_GAZE_ROOT}/run_meshmamba_gaze.py"
@@ -93,6 +93,11 @@ if [ "${RECENTER_TO_BBOX_CENTER}" = "true" ]; then
   RECENTER_FLAG="--recenter-to-bbox-center"
 else
   RECENTER_FLAG="--no-recenter-to-bbox-center"
+fi
+
+EXTRA_ARGS=()
+if [ -n "${OVERRIDE_FOV_DEG}" ]; then
+  EXTRA_ARGS+=(--override-fov-deg "${OVERRIDE_FOV_DEG}")
 fi
 
 nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${PIPELINE_SCRIPT}" \
@@ -109,6 +114,6 @@ nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${PIPELINE_SCRIPT}" \
   --smoothing-mode "${SMOOTHING_MODE}" \
   "${RECENTER_FLAG}" \
   --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
-  --override-fov-deg "${OVERRIDE_FOV_DEG}"
+  "${EXTRA_ARGS[@]}"
 
 echo "[run_meshmamba_non_texture_pilot] done. results in ${OUTPUT_DIR}"

@@ -24,7 +24,7 @@
 #   RECENTER_TO_BBOX_CENTER=true
 #   BASE_ROTATE_Z_DEG=0
 #   EXTRA_ROTATE_X_DEG=90
-#   OVERRIDE_FOV_DEG=37.5
+#   OVERRIDE_FOV_DEG=""       — leave empty to use JSON FOV
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -46,7 +46,7 @@ RADIUS_SIGMA_MULT="${RADIUS_SIGMA_MULT:-3.0}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
 BASE_ROTATE_Z_DEG="${BASE_ROTATE_Z_DEG:-0}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-90}"
-OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-37.5}"
+OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
 
 CSV_DIR="${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv"
 JSON_DIR="${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/json"
@@ -61,13 +61,18 @@ echo "[run_meshmamba_baseline_cone] output_dir=${OUTPUT_DIR}"
 echo "[run_meshmamba_baseline_cone] python_bin=${PYTHON_BIN}"
 echo "[run_meshmamba_baseline_cone] workers=${WORKERS}  nice=${NICE_LEVEL}"
 echo "[run_meshmamba_baseline_cone] sigma_deg=${SIGMA_DEG}  radius_sigma_mult=${RADIUS_SIGMA_MULT}"
-echo "[run_meshmamba_baseline_cone] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG}"
+echo "[run_meshmamba_baseline_cone] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG:-<from_json>}"
 echo "[run_meshmamba_baseline_cone] pilot_model=${PILOT_MODEL}"
 
 if [ "${RECENTER_TO_BBOX_CENTER}" = "true" ]; then
   RECENTER_FLAG="--recenter-to-bbox-center"
 else
   RECENTER_FLAG="--no-recenter-to-bbox-center"
+fi
+
+EXTRA_ARGS=()
+if [ -n "${OVERRIDE_FOV_DEG}" ]; then
+  EXTRA_ARGS+=(--override-fov-deg "${OVERRIDE_FOV_DEG}")
 fi
 
 nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
@@ -81,7 +86,7 @@ nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
   "${RECENTER_FLAG}" \
   --base-rotate-z-deg "${BASE_ROTATE_Z_DEG}" \
   --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
-  --override-fov-deg "${OVERRIDE_FOV_DEG}" \
+  "${EXTRA_ARGS[@]}" \
   2>&1 | tee "${OUTPUT_DIR}/${PILOT_MODEL}_run.log"
 
 echo "[run_meshmamba_baseline_cone] done. results in ${OUTPUT_DIR}"
