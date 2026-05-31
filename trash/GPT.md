@@ -548,6 +548,80 @@ Next step:
 - Run a small table with both external-GT metrics and split-half reliability
   columns for `screen_space_gaussian` and `cone_gaussian_on_mesh`.
 
+## 2026-06-01 MSK
+Role: GPT
+Commit: 390b0d3
+Scope: Stage-1 audit only. No code changes after the snapshot commit.
+Checked `EVAL_RUNBOOK.md` against the current eval scripts, launchers, and
+path docs to define the authoritative per-dataset recipe and record current
+contradictions before any cleanup or new metric runs.
+Files:
+`trash/EVAL_RUNBOOK.md`,
+`trash/Claude.md`,
+`reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py`,
+`reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py`,
+`reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py`,
+`reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py`,
+`reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py`,
+`test/launch/run_meshmamba_baseline_cone.sh`,
+`test/launch/run_meshmamba_baseline_screen_space.sh`,
+`test/launch/run_3dva_raycast_cone.sh`,
+`test/launch/run_3dva_screen_space.sh`,
+`DATA_PATHS.md`
+Result:
+Authoritative recipe table based on current code behavior:
+
+| Dataset | Script | Current code recipe to use | GT |
+|---|---|---|---|
+| MeshMamba non_texture | `eval_meshmamba_cone.py` | `--texture-type non_texture --recenter-to-bbox-center --extra-rotate-x-deg 90 --projection-fov-mode horizontal_to_vertical --transform-order blender_rig` | per-face CSV |
+| MeshMamba rgb_texture | `eval_meshmamba_cone.py` | same flags, but `--texture-type rgb_texture` and matching `csv/json` dirs | per-face CSV |
+| MeshMamba non_texture | `eval_meshmamba_screen_space.py` | same geometry/FOV flags as cone, plus `--sigma-screen 0.05` | per-face CSV |
+| 3DVA | `eval_3dva_raycast_cone.py` | `--recenter-to-bbox-center`; use `3DModels-Simplif-up`; compare against all 3 GT views `300/413/599` | per-vertex TXT |
+| 3DVA | `eval_3dva_screen_space.py` | `--recenter-to-bbox-center`; use `3DModels-Simplif-up`; compare against all 3 GT views `300/413/599` | per-vertex TXT |
+| SAL3D | `eval_sal3d_cone.py` | defaults already aligned: `gt_column=6`, `recenter=true`, `extra_rotate_x=90`, `projection_fov_mode=horizontal_to_vertical`, `transform_order=blender_rig` | per-vertex from `Gaze/*.txt` |
+
+Main confirmed mismatches:
+1. `MeshMamba` runbook and launchers are not in sync.
+   Both launchers still default to `PROJECTION_FOV_MODE=vertical` and
+   `TRANSFORM_ORDER=eval`, while the runbook says the correct recipe is
+   `horizontal_to_vertical + blender_rig`.
+2. `MeshMamba screen_space` still appears to lack the back-face culling fix.
+   The issue is documented in `trash/Claude.md`, but the current code does not
+   show the promised face-normal filtering in the active path.
+3. `3DVA` runbook is internally contradictory:
+   it recommends `--override-fov-deg 35.9834`, but later says the validated
+   geometry recipe is `override_fov_deg=null (use JSON 60°)`.
+   Current `run_3dva_raycast_cone.sh` follows the JSON-FOV path by default.
+4. `3DVA` A380 special handling is documented but not implemented.
+   Neither `eval_3dva_raycast_cone.py` nor `eval_3dva_screen_space.py`
+   currently filters A380 CSV rows by `video_id`.
+5. `MeshMamba` GT mismatch handling is partial.
+   `Moai` fuzzy matching is plausibly covered by the current normalization.
+   `Penguin_V2_L3 -> Penguin_v1_iterations-2.csv` is still not explicitly
+   handled and should be treated as unresolved until proven by a run.
+6. `DATA_PATHS.md` is not authoritative in its current state.
+   It still mixes `vg-iai` server-era paths and old SAL3D wording
+   (`Smooth_Gaze` as GT), while current eval logic uses `vg-intellect` and
+   `Gaze/*.txt col.6` as the operative SAL3D GT source.
+
+Interpretation:
+The codebase now has three competing sources of truth:
+`EVAL_RUNBOOK.md`, the current eval scripts, and the current launchers/docs.
+Before cleanup or full runs, we should freeze one explicit authoritative
+recipe per dataset and then bring launchers/docs into alignment with that
+recipe in a separate code pass.
+Open questions:
+1. For `3DVA`, which FOV policy is authoritative for metrics:
+   `override_fov_deg=35.9834` or `JSON 60° / override_fov_deg=null`?
+2. For `MeshMamba screen_space`, is the back-face culling fix intentionally
+   still pending, or was it expected to already be merged?
+3. For `Penguin_V2_L3`, do we want an explicit GT alias table rather than
+   relying on filename normalization heuristics?
+Next step:
+Do not change eval code yet. First freeze the authoritative recipe table in
+human-readable form, then perform cleanup of non-essential files in a separate
+commit, and only after that change launchers/docs to match the frozen recipe.
+
 ## 2026-05-31 MSK
 Role: GPT
 Commit: UNCOMMITTED
