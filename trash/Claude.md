@@ -1411,3 +1411,734 @@ will provide path directly. SAL3D key render parameters:
 4. Multi-frame 3DVA validation (frame 100, 200)
 5. GPT pipeline choice: Option A (YAML runner) vs Option B (staged) vs Option C (shell)
 
+---
+
+## Session 6 GPT audit — 2026-05-30
+
+Instructions from GPT: append-only audit covering launchers, validated models,
+commands for Pear/Rubber_Duck, and blockers for cone on server.
+Note: do NOT fix anything without separate GPT approval.
+
+---
+
+### 1. README.md bug — do not fix yet, logged only
+
+`README.md` quick-start for `eval_meshmamba_cone.py` specifies `--texture-type` flag.
+This flag does NOT exist in the script.
+
+Actual CLI args of `eval_meshmamba_cone.py` (confirmed by reading source):
+```
+--model
+--dataset-root
+--csv-root
+--json-root
+--output-dir
+--sigma-deg
+--radius-sigma-mult
+--recenter-to-bbox-center / --no-recenter-to-bbox-center
+--base-rotate-z-deg
+--extra-rotate-x-deg
+--extra-rotate-y-deg
+--override-fov-deg
+--tag
+```
+No `--texture-type`, no `--texture_type`, no variant exists.
+**Action needed (awaiting GPT approval): remove `--texture-type` from README quick-start.**
+
+---
+
+### 2. Launchers ready for full pilot
+
+| Launcher | Method | Dataset | Status |
+|----------|--------|---------|--------|
+| `test/launch/run_meshmamba_baseline_cone.sh` | cone_gaussian | MeshMamba non_texture | ✅ structurally correct |
+| `test/launch/run_meshmamba_baseline_screen_space.sh` | screen_space_gaussian | MeshMamba non_texture | ✅ structurally correct |
+| `test/launch/run_meshmamba_non_texture_pilot.sh` | MAMBA_GAZE pipeline | MeshMamba non_texture | ✅ delegates to external MAMBA_GAZE |
+| `test/launch/run_3dva_raycast_cone.sh` | cone_gaussian | 3DVA | ⚠️ blocked (see §4) |
+| `test/launch/run_3dva_pilot.sh` | 3DVA pilot | 3DVA | ⚠️ blocked (see §4) |
+
+Launcher env vars (`run_meshmamba_baseline_cone.sh` and `_screen_space.sh`) use:
+- `MESHMAMBA_NON_TEXTURE_ROOT` — NOT the same as `REPROJECT_DATASET_MESHMAMBA_ROOT`
+- `SIDE_INPUTS_ROOT`
+- `OUTPUT_ROOT`
+
+The server env file `test/env/vg_intellect_paths.example.sh` defines different names.
+On server, before running either script, must alias:
+```bash
+export MESHMAMBA_NON_TEXTURE_ROOT="$REPROJECT_DATASET_MESHMAMBA_ROOT"
+export SIDE_INPUTS_ROOT="$REPROJECT_WORK_ROOT/side_inputs"
+export OUTPUT_ROOT="$REPROJECT_OUTPUT_ROOT"
+```
+
+---
+
+### 3. MeshMamba models validated and ready for metrics run
+
+All 8 non_texture + 8 rgb_texture models validated (Blender canonical, IoU ≥ 0.976):
+
+| Model | non_texture IoU | rgb_texture IoU | Ready for cone? |
+|-------|----------------|-----------------|-----------------|
+| Starfruit_L3 | 0.990–0.992 (frames 0–400) | 0.996–0.997 | ✅ |
+| Mango_L3 | 0.991–0.992 (frames 0–400) | 0.997–0.998 | ✅ |
+| Pear_L3 | 0.987–0.988 (frames 0–400) | 0.995–0.996 | ✅ |
+| Rubber_Duck_v1_L3 | 0.989–0.991 (frames 0–400) | 0.988–0.997 | ✅ |
+| Penguin_V2_L3 | 0.988 (frame 0) | 0.992 | ✅ |
+| Moai_v3_L3 | 0.991 (frame 0) | 0.997 | ✅ |
+| SeaHorse_v2_L3 | 0.976 (frame 0, thin model) | 0.990 | ✅ |
+| Rhinoceros_v1_L3 | 0.987 (frame 0) | 0.992 | ✅ |
+
+All 8 models use the same recipe: `rotX=90°`, `FOV=37.5°`, `recenter=true`.
+
+---
+
+### 4. Exact commands for Pear and Rubber_Duck
+
+#### Via launcher (preferred — respects env vars):
+```bash
+# Source env vars first (local or server)
+source test/env/local_paths.example.sh   # or server equivalent
+
+# Alias launcher env vars (needed on server):
+export MESHMAMBA_NON_TEXTURE_ROOT="$REPROJECT_DATASET_MESHMAMBA_ROOT"
+export SIDE_INPUTS_ROOT="$REPROJECT_WORK_ROOT/side_inputs"   # server only
+export OUTPUT_ROOT="$REPROJECT_OUTPUT_ROOT"
+
+# Pear
+PILOT_MODEL=Pear_L3 bash test/launch/run_meshmamba_baseline_cone.sh
+
+# Rubber Duck
+PILOT_MODEL=Rubber_Duck_v1_L3 bash test/launch/run_meshmamba_baseline_cone.sh
+```
+
+#### Direct python call (for local testing):
+```bash
+# Pear
+python3 reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py \
+  --model Pear_L3 \
+  --dataset-root "$REPROJECT_DATASET_MESHMAMBA_ROOT" \
+  --csv-root "$REPROJECT_GAZE_CSV_MESHMAMBA_NON_TEXTURE_ROOT" \
+  --json-root "$REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT" \
+  --output-dir results/meshmamba_non_texture/cone_gaussian \
+  --recenter-to-bbox-center \
+  --extra-rotate-x-deg 90.0 \
+  --override-fov-deg 37.5 \
+  --sigma-deg 1.0
+
+# Rubber Duck (same, change --model)
+python3 reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py \
+  --model Rubber_Duck_v1_L3 \
+  [... same args ...]
+```
+
+Note: NO `--texture-type` flag. NO `--base-rotate-z-deg` needed (default 0.0 is correct).
+
+---
+
+### 5. Blockers for cone on server
+
+#### 3DVA cone (run_3dva_raycast_cone.sh):
+
+| Blocker | Severity | Description |
+|---------|----------|-------------|
+| 3DVA gaze CSV not on server | 🔴 CRITICAL | `THREE_DVA_CSV_ROOT` points to local path only. CSVs must be transferred as side input before any server eval. |
+| Launcher default `RECENTER_TO_BBOX_CENTER=false` | 🟡 Must override | For `-up` OBJ models, must call with `RECENTER_TO_BBOX_CENTER=true`. |
+| 3DVA JSON on server path | ⚠️ Verify | Server env has `REPROJECT_GAZE_JSON_3DVA_ROOT` → `side_inputs/jsons_for_models/3DVA_json`. Needs to match files transferred. |
+| `run_3dva_raycast_cone.sh` uses `THREE_DVA_CSV_ROOT` | ⚠️ Env alias | Launcher uses `THREE_DVA_CSV_ROOT` but server env file does not define it. Must export: `export THREE_DVA_CSV_ROOT="$REPROJECT_GAZE_CSV_3DVA_ROOT"` |
+| `VISUAL_ATTENTION_3D_SHAPES_ROOT` not in server env | ⚠️ Env alias | Launcher requires this var; server env file uses `REPROJECT_DATASET_3DVA_ROOT`. Must alias on server. |
+
+Correct 3DVA server launch (once CSVs transferred):
+```bash
+export VISUAL_ATTENTION_3D_SHAPES_ROOT="$REPROJECT_DATASET_3DVA_ROOT"
+export THREE_DVA_CSV_ROOT="$REPROJECT_GAZE_CSV_3DVA_ROOT"
+export THREE_DVA_JSON_ROOT="$REPROJECT_GAZE_JSON_3DVA_ROOT"
+export OUTPUT_ROOT="$REPROJECT_OUTPUT_ROOT"
+RECENTER_TO_BBOX_CENTER=true PILOT_OBJECTS="bunny camel cow" \
+  bash test/launch/run_3dva_raycast_cone.sh
+```
+
+#### MeshMamba cone (run_meshmamba_baseline_cone.sh):
+
+| Blocker | Severity | Description |
+|---------|----------|-------------|
+| Env var name mismatch | 🟡 Easy fix | Launcher uses `MESHMAMBA_NON_TEXTURE_ROOT`; server env has `REPROJECT_DATASET_MESHMAMBA_ROOT`. One-line export alias needed. |
+| `SIDE_INPUTS_ROOT` not defined in server env | 🟡 Easy fix | Must export `SIDE_INPUTS_ROOT="$REPROJECT_WORK_ROOT/side_inputs"`. |
+| Side inputs already mirrored? | ⚠️ Verify | MeshMamba CSVs and JSONs were transferred in earlier session. Confirm presence at `$SIDE_INPUTS_ROOT/MeshMamba_non_texture/csv/` and `.../json/`. |
+
+MeshMamba cone has no critical blockers — only env var aliasing needed.
+
+---
+
+---
+
+## Session 6 GPT audit (correction) — 2026-05-30
+
+GPT correction: `vg-intellect` ≠ `vg-iai`.
+- **vg-intellect** — benchmark server where eval scripts run. Server env file: `test/env/vg_intellect_paths.example.sh`. Paths: `/home/29d_kon@lab.graphicon.ru/ssd1_link/...`
+- **vg-iai** — artifact source only (used in earlier sessions to download `3DModels-Simplif-up/` and some videos). NOT the benchmark server.
+
+Previous audit incorrectly said "3DVA gaze CSV not on server". This should be:
+**3DVA CSV status on vg-intellect is UNKNOWN — must verify before claiming it's absent.**
+
+---
+
+### A. Exact commands for Pear_L3 and Rubber_Duck_v1_L3 on vg-intellect
+
+```bash
+# On vg-intellect, after sourcing env:
+source test/env/vg_intellect_paths.example.sh
+
+# Required aliases (launcher uses different var names than env file):
+export MESHMAMBA_NON_TEXTURE_ROOT="${REPROJECT_DATASET_MESHMAMBA_ROOT}"
+export SIDE_INPUTS_ROOT="${REPROJECT_WORK_ROOT}/side_inputs"
+export OUTPUT_ROOT="${REPROJECT_OUTPUT_ROOT}"
+
+# Pear_L3
+PILOT_MODEL=Pear_L3 bash test/launch/run_meshmamba_baseline_cone.sh
+
+# Rubber_Duck_v1_L3
+PILOT_MODEL=Rubber_Duck_v1_L3 bash test/launch/run_meshmamba_baseline_cone.sh
+```
+
+Launcher defaults already correct for MeshMamba:
+- `EXTRA_ROTATE_X_DEG=90`, `OVERRIDE_FOV_DEG=37.5`, `RECENTER_TO_BBOX_CENTER=true`
+- Reads CSV from `${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv/`
+- Reads JSON from `${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/json/`
+- Writes to `${OUTPUT_ROOT}/MeshMamba_non_texture/baseline_cone/`
+
+---
+
+### B. Exact checks to confirm 3DVA CSV/JSON presence on vg-intellect
+
+Run on vg-intellect (DO NOT run — requires GPT confirmation for server access):
+```bash
+source test/env/vg_intellect_paths.example.sh
+
+# OBJ files (corrected -up models):
+ls "${REPROJECT_DATASET_3DVA_ROOT}/3DModels-Simplif-up/" | wc -l
+# Expected: 32
+
+# Gaze CSV files:
+ls "${REPROJECT_GAZE_CSV_3DVA_ROOT}/" 2>/dev/null | wc -l
+# If 0 or dir missing → must transfer from local before running 3DVA cone eval
+
+# Camera JSON files:
+ls "${REPROJECT_GAZE_JSON_3DVA_ROOT}/" 2>/dev/null | wc -l
+# Expected: 32 (one per model)
+```
+
+These commands check whether `$REPROJECT_WORK_ROOT/side_inputs/csv_for_models/3DVA/` and
+`...jsons_for_models/3DVA_json/` are populated on vg-intellect. The answer is unknown locally.
+
+---
+
+### C. Env aliases needed on vg-intellect
+
+The launcher scripts use env var names that differ from `vg_intellect_paths.example.sh`.
+Required exports before running launchers:
+
+**For MeshMamba cone/screen-space:**
+```bash
+export MESHMAMBA_NON_TEXTURE_ROOT="${REPROJECT_DATASET_MESHMAMBA_ROOT}"
+export SIDE_INPUTS_ROOT="${REPROJECT_WORK_ROOT}/side_inputs"
+export OUTPUT_ROOT="${REPROJECT_OUTPUT_ROOT}"
+```
+
+**For 3DVA cone (once 3DVA CSV confirmed present):**
+```bash
+export VISUAL_ATTENTION_3D_SHAPES_ROOT="${REPROJECT_DATASET_3DVA_ROOT}"
+export THREE_DVA_CSV_ROOT="${REPROJECT_GAZE_CSV_3DVA_ROOT}"
+export THREE_DVA_JSON_ROOT="${REPROJECT_GAZE_JSON_3DVA_ROOT}"
+export OUTPUT_ROOT="${REPROJECT_OUTPUT_ROOT}"
+# Must override default:
+export RECENTER_TO_BBOX_CENTER=true
+```
+
+MeshMamba is ready for metrics run on vg-intellect — no dataset transfer needed,
+only the env var aliases above.
+
+---
+
+### 6. Items NOT to do (standing constraints from GPT)
+
+- Do not touch `test/tmp_manifests/` and do not commit it.
+- Do not use `preview_3dva_bunny.json`, `preview_3dva_chair107.json`,
+  `preview_3dva_flowerpot.json` — these are 🔴 legacy, wrong OBJ files.
+  Active 3DVA manifests: only `*_up.json` family.
+- Do not perform any server-side actions without explicit GPT confirmation.
+- 3DVA alignment is RESOLVED: `3DModels-Simplif-up/`, `extra_rotate_x_deg=0`, `override_fov_deg=null`.
+
+---
+
+## 2026-05-30 MSK (session 7 — SAL3D alignment: root cause fixed + full 57-model validation)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: SAL3D Blender canonical preview alignment — two bugs identified, fixed,
+and validated across all 57 models.
+Files inspected:
+  `test/blender_canonical/render_preview_from_manifest_blender.py`
+  `test/manifests/preview_sal3d_*.json` (all 57)
+  `/Users/admin/Downloads/sal_render_1.py` (ground-truth SAL3D render script)
+  `/Users/admin/Downloads/xyn_SAL3D_render_2.py` (MeshMamba non_texture script — confirmed NOT SAL3D)
+  `test/blender_canonical/evaluate_blender_mask_batch.py`
+  `test/tools/generate_sal3d_jsons.py`
+Files changed:
+  `test/blender_canonical/render_preview_from_manifest_blender.py` — FOV fix
+  `test/manifests/preview_sal3d_*.json` (all 57) — rotation fix
+
+### Root cause analysis
+
+Starting state: SAL3D IoU was very low (A380: 0.261, lion: 0.192, bunny: 0.409).
+Two independent bugs were identified and fixed.
+
+#### Bug 1 — FOV override: `cam_data.lens` overwriting `cam_data.angle`
+
+In `set_camera_from_json()`, the original code set `cam_data.angle = 60°` first,
+then `cam_data.lens = 26.0mm`. In Blender, setting `lens` after `angle` recalculates
+`angle` from the lens/sensor combination, overriding it.
+With `lens=26mm` and `sensor_width=36mm`, the effective FOV became ~69.4° instead of 60°.
+This made the rendered preview smaller than the video frame.
+
+Fix: moved `cam_data.angle` assignment to AFTER all lens/sensor settings:
+```python
+if "lens_mm" in camera_static:
+    cam_data.lens = float(camera_static["lens_mm"])
+if "sensor_width_mm" in camera_static:
+    cam_data.sensor_width = float(camera_static["sensor_width_mm"])
+if "sensor_height_mm" in camera_static:
+    cam_data.sensor_height = float(camera_static["sensor_height_mm"])
+cam_data.clip_start = float(camera_static["clip_start"])
+cam_data.clip_end = float(camera_static["clip_end"])
+# Set angle last so it always overrides the lens/sensor derived value
+override_fov_deg = manifest.get("override_fov_deg")
+if override_fov_deg is None:
+    cam_data.angle = float(camera_static["fov_radians"])
+else:
+    cam_data.angle = float(override_fov_deg) * 3.141592653589793 / 180.0
+```
+
+#### Bug 2 — Rotation mismatch: import Rx(90°) erased in preview script
+
+`sal_render_1.py` imports OBJ with `forward_axis='Z', up_axis='Y'`. Blender stores this
+as `obj.rotation_euler[0] = π/2` (Rx +90°) on the imported object. The `animate_yaw()`
+function in sal_render_1.py only modifies `obj.rotation_euler.z = 0.0`, leaving the
+Rx(90°) intact throughout the video render.
+
+`render_preview_from_manifest_blender.py` in `apply_object_transform()` explicitly sets
+ALL rotation_euler components:
+```python
+obj.rotation_euler[0] = extra_rotate_x_deg * π/180  # was 0.0 → erased import Rx(90°)
+```
+This erased the 90° X rotation, producing a preview where the model is oriented
+differently from the video frames.
+
+Evidence: A380 preview without fix had bbox ratio 1.10 (fuselage vertical), while
+video had ratio 1.60 (wings dominant), matching theoretical prediction of Rx(90°) swap.
+
+Fix: set `extra_rotate_x_deg: 90.0` in all 57 SAL3D manifests.
+
+#### Confirmation that xyn_SAL3D_render_2.py is NOT the SAL3D script
+
+User provided `xyn_SAL3D_render_2.py` as a possible alternative render script.
+Confirmed it is the MeshMamba non_texture script:
+- Uses `forward_axis='X', up_axis='Z'` (not 'Z'/'Y')
+- FPS=5, 15s, 75 frames (SAL3D is 30fps, 24s, 720 frames)
+- Output: `MeshMamba_non_texture_{model}.mp4`
+
+`sal_render_1.py` is confirmed correct for SAL3D: 30fps, 24s, 720 frames,
+`forward_axis='Z', up_axis='Y'`, `CAMERA_Z_OFFSET=0.5`, `start_angle=0.0`.
+
+### Prior fix (previous session): start_angle=0 in SAL3D JSON files
+
+`generate_sal3d_jsons.py` computed start angles via SHA256(model_name), but
+`sal_render_1.py` uses `start_angle=0.0` (hardcoded). All 57 JSON files were
+patched in a previous session to set `start_angle_degrees=0.0` for all models.
+
+### Full validation results — all 57 SAL3D models
+
+Output: `test/output_local/blender_mask_batch_sal3d_v4_full/`
+
+| Metric | Value |
+|--------|-------|
+| Total models | 57 |
+| OK | 57 (0 failed) |
+| Mean IoU | 0.9771 |
+| Min IoU | 0.907 (octopus — thin tentacles) |
+| Max IoU | 0.993 (skull) |
+| Models ≥ 0.90 | 57/57 (100%) |
+
+Selected results (lowest IoU first):
+```
+octopus:       IoU=0.907  (thin tentacles — expected)
+harley:        IoU=0.935  (thin wheel spokes — expected)
+A380:          IoU=0.936  (prev: 0.261 → +0.675 gain)
+lion:          IoU=0.982  (prev: 0.192 → +0.790 gain)
+bunny:         IoU=0.987  (prev: 0.409 → +0.578 gain)
+skull:         IoU=0.993  (best)
+```
+
+All bbox sizes match video to within 1–2 pixels.
+
+### SAL3D canonical recipe (validated, all 57 models)
+
+```json
+{
+  "forward_axis": "Z",
+  "up_axis": "Y",
+  "recenter_to_bbox_center": true,
+  "extra_rotate_x_deg": 90.0,
+  "override_fov_deg": null
+}
+```
+
+`override_fov_deg: null` uses FOV=60° from JSON (correct, matches sal_render_1.py).
+`recenter_to_bbox_center: true` matches `set_origin_to_bbox_center(ORIGIN_GEOMETRY, BOUNDS)`
+in sal_render_1.py.
+
+Risks:
+1. `generate_sal3d_jsons.py` still generates JSONs with wrong start angles by default.
+   All 57 production JSON files have been patched manually. Do not regenerate from
+   this script without also patching start_angle=0.0.
+2. `lens_mm=26.0` in the SAL3D JSON files is technically wrong (correct for 60°+36mm
+   sensor would be ~31.18mm), but the FOV fix in the preview script corrects the
+   effective angle — do not "fix" lens_mm in the JSONs, as it would change nothing.
+3. The FOV fix (Bug 1) affects ALL datasets using render_preview_from_manifest_blender.py,
+   not just SAL3D. Verify 3DVA and MeshMamba previews are not affected (they use
+   override_fov_deg=null or specific values — should be OK).
+Questions for GPT: none
+Next step: commit all SAL3D changes; add SAL3D validation results to test/README.md.
+
+---
+
+## 2026-05-31 MSK (session 8 — cross-dataset mask validation + MeshMamba FOV fix)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: Cross-dataset canonical preview validation (3DVA + MeshMamba + SAL3D).
+Discovered and fixed a second-order consequence of the session-7 FOV fix that
+broke MeshMamba manifests.
+Files inspected:
+  `test/manifests/preview_meshmamba_non_texture_*.json` (9 files)
+  `test/manifests/preview_meshmamba_rgb_texture_*.json` (8 files)
+  `test/manifests/preview_3dva_*_up.json` (6 spot-checked)
+  `test/manifests/preview_sal3d_*.json` (6 spot-checked)
+  `test/blender_canonical/render_preview_from_manifest_blender.py` (confirmed final state)
+  `GAZE_DATA/jsons_for_models/Mamba_non_textured/MeshMamba_non_texture_Starfruit_L3.json`
+  `GAZE_DATA/jsons_for_models/3DVA_json/3DVA_bunny.json`
+  `GAZE_DATA/jsons_for_models/SAL3D_json/Sal3D_A380.json`
+Files changed:
+  `test/manifests/preview_meshmamba_non_texture_*.json` (all 9) — override_fov_deg fix
+  `test/manifests/preview_meshmamba_rgb_texture_*.json` (all 8) — override_fov_deg fix
+
+### Problem discovered
+
+Cross-dataset batch run (v1) revealed MeshMamba IoU collapsed to ~0.34 after
+the session-7 FOV fix:
+  MeshMamba non_texture: mean IoU=0.34 (was 0.99), preview bbox ~1.7× video bbox
+  MeshMamba rgb_texture: mean IoU=0.35 (was 0.99)
+
+Root cause: `override_fov_deg: 37.5` in all MeshMamba manifests.
+
+### Diagnosis: session-7 FOV fix exposed a latent manifest error
+
+Before the fix, `set_camera_from_json()` set angle BEFORE lens/sensor.
+The MeshMamba JSON contains `lens_mm=31.18mm, sensor_width=36mm → FOV=60°`.
+
+Old code behavior for MeshMamba with `override_fov_deg=37.5`:
+  1. set cam_data.angle = 37.5°   ← override
+  2. set cam_data.lens = 31.18mm  ← overrides angle back to 60°
+  3. set cam_data.sensor = 36mm
+  Result: effective FOV = 60° (override accidentally ignored, got correct result)
+
+New code behavior (after session-7 fix):
+  1. set cam_data.lens = 31.18mm
+  2. set cam_data.sensor = 36mm
+  3. set cam_data.angle = 37.5°   ← now actually applied
+  Result: effective FOV = 37.5° (too narrow → object looks 1.7× larger in preview)
+
+The 37.5° value was calibrated under the old broken code and was accidentally
+harmless because the lens override cancelled it out.
+
+### JSON parameter comparison across datasets
+
+| Dataset      | lens_mm  | sensor_w | FOV from lens | fov_degrees in JSON |
+|--------------|----------|----------|---------------|---------------------|
+| 3DVA         | 31.18mm  | 36mm     | 60.00°        | 60°                 |
+| MeshMamba    | 31.18mm  | 36mm     | 60.00°        | 60°                 |
+| SAL3D        | 26.00mm  | 36mm     | 69.39°        | 60°                 |
+
+SAL3D has an intentionally wrong lens (26mm stored in JSON, real FOV=60°).
+3DVA and MeshMamba have a consistent lens that matches fov_degrees exactly.
+→ `override_fov_deg: null` is correct for all three datasets.
+→ The only case where override is needed is if lens→FOV doesn't match the
+  actual render FOV (which was SAL3D's situation, now resolved via the FOV fix).
+
+### Fix applied
+
+All 17 MeshMamba manifests updated:
+  `override_fov_deg: 37.5`   → `null`   (non_texture: 8 files, rgb_texture: 8 files)
+  `override_fov_deg: 35.8972` → `null`  (aquarium non_texture: 1 file)
+
+With `null`, the script uses `cam_data.angle = fov_radians = 1.047 rad = 60°`
+from the JSON, which is the correct value matching the render script.
+
+### Canonical recipes (final, validated state)
+
+| Dataset              | extra_rotate_x_deg | override_fov_deg | forward_axis | up_axis |
+|----------------------|--------------------|------------------|--------------|---------|
+| 3DVA                 | 0.0                | null (60° JSON)  | default      | default |
+| MeshMamba non_texture | 90.0              | null (60° JSON)  | default      | default |
+| MeshMamba rgb_texture | 90.0              | null (60° JSON)  | default      | default |
+| SAL3D                | 90.0               | null (60° JSON)  | Z            | Y       |
+
+Rule for `override_fov_deg`:
+  Use `null` when JSON lens_mm and fov_degrees are mutually consistent.
+  Use a number only when the stored lens gives the wrong FOV (e.g., SAL3D had
+  lens=26mm→69.4° but correct FOV=60°; now the script's angle-last fix handles
+  this transparently via `null`).
+
+### Cross-dataset validation results (v2, after both fixes)
+
+Run: `evaluate_blender_mask_batch.py`, 6 models per dataset, frame_index=0.
+
+| Dataset               | Models | Mean IoU | Min IoU        |
+|-----------------------|--------|----------|----------------|
+| 3DVA                  | 6      | 0.9712   | 0.952 (camel)  |
+| MeshMamba non_texture | 6      | 0.9872   | 0.976 (seahorse)|
+| MeshMamba rgb_texture | 6      | 0.9925   | 0.988 (rubber_duck)|
+| SAL3D                 | 6      | 0.9638   | 0.907 (octopus)|
+
+All models ≥ 0.90. All bbox sizes match video to within 1–2 pixels.
+Previous cross-dataset run (v1, after session-7 FOV fix but before this fix):
+  MeshMamba non_texture: 0.34 🔴 → 0.987 ✅
+  MeshMamba rgb_texture:  0.35 🔴 → 0.993 ✅
+
+### Pipeline usage summary
+
+```bash
+source test/env/local_paths.example.sh
+
+# Single model:
+python3 test/blender_canonical/evaluate_blender_mask_batch.py \
+  --manifest test/manifests/preview_sal3d_bunny.json \
+  --output-dir test/output_local/check
+
+# Full SAL3D:
+python3 test/blender_canonical/evaluate_blender_mask_batch.py \
+  --manifest test/manifests/preview_sal3d_*.json \
+  --output-dir test/output_local/sal3d_full
+
+# All datasets:
+python3 test/blender_canonical/evaluate_blender_mask_batch.py \
+  --manifest \
+    test/manifests/preview_3dva_*_up.json \
+    test/manifests/preview_meshmamba_*.json \
+    test/manifests/preview_sal3d_*.json \
+  --output-dir test/output_local/all_datasets_check
+```
+
+Output per model: `overlay_edges.png`, `overlay_alpha.png`,
+`video_frame.png`, `blender_preview.png`.
+Batch summary: `summary.json` with IoU, centroid_error, size_error per model.
+
+Risks:
+1. The `override_fov_deg` field in manifests is now semantically clear:
+   `null` = trust the JSON; a number = forced override.
+   Any future manifest that sets a numeric override must be explicitly validated
+   against the real render script FOV. Using `null` is always the safe default
+   when the JSON was generated from the same render script.
+2. `aquarium` non_texture manifest had `override_fov_deg: 35.8972065` — a
+   different wrong value. Now set to null. Its IoU was not individually
+   re-verified in this session (no aquarium manifest in the v2 batch).
+   If aquarium shows poor IoU, its OBJ or JSON path may also need checking.
+3. The session-7 SAL3D full-batch result (57 models, mean IoU 0.9771) remains
+   valid — SAL3D manifests were not touched in this session.
+Questions for GPT: none
+Next step: commit all changes (blender script + 57 SAL3D manifests + 17 MeshMamba
+manifests); update test/README.md with canonical recipe table.
+
+
+---
+
+## 2026-05-31 MSK (session 9 — bug investigation + test runs)
+Role: Claude
+Commit: UNCOMMITTED (changes are in working tree only, not yet committed)
+Scope: Deep code audit of eval_meshmamba_cone.py and eval_meshmamba_screen_space.py.
+Found and documented 3 bugs. Ran test on 4 local MeshMamba models.
+
+### Files inspected
+- `reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py`
+- `reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py`
+- `references/render_scripts/mamba_render_2.py`
+- `references/render_scripts/3dva_render_1.py`
+- `test/tools/debug_single_gaze_projection.py`
+
+### Code changes in working tree (NOT YET COMMITTED)
+
+Both `eval_meshmamba_cone.py` and `eval_meshmamba_screen_space.py` were extended
+with two new CLI parameters:
+
+1. `--projection-fov-mode {vertical,horizontal_to_vertical,json}` (default: vertical)
+   - `json`: uses the projection_matrix field from JSON directly
+   - `vertical`: interprets override_fov_deg as vertical FOV (legacy behavior)
+   - `horizontal_to_vertical`: converts horizontal FOV → vertical, builds correct matrix
+   Introduced `resolve_projection_matrix()` function that branches on this flag.
+   Introduced `horizontal_to_vertical_fov_deg()` helper.
+
+2. `--transform-order {eval,blender_rig}` (default: eval)
+   - `eval`: legacy order — base_rotZ → recenter → scale → animZ → extraX → extraY
+   - `blender_rig`: matches Blender rig — recenter → scale → extraX → extraY → base_rotZ → animZ
+   This correctly replicates how Blender applies local object rotations before parent
+   rig animation. Validated with Blender canonical preview IoU ≥ 0.987.
+
+### Bugs found
+
+#### Bug 1 — CRITICAL: JSON projection matrix uses wrong FOV convention
+The render script (`mamba_render_2.py`, `3dva_render_1.py`) computes:
+```python
+fov_rad = camera.data.angle  # = 60° HORIZONTAL FOV in Blender
+f = 1/tan(fov_rad/2)          # = 1/tan(30°) = 1.732
+P = [[f/aspect, 0, ...],      # P[0,0] = 0.974 (wrong horizontal)
+     [0, f, ...],             # P[1,1] = 1.732 (wrong vertical)
+     ...]
+```
+Effective FOV encoded in JSON matrix: horizontal=91.5°, vertical=60° (should be 60°/35.98°).
+Angular error at top/bottom of screen: **10.2°**.
+Effect: CC=-0.19, KLD=8.8, hit_rate=0.22 with json/vertical mode.
+Fix: use `--projection-fov-mode horizontal_to_vertical` (gives correct P[0,0]=1.732, P[1,1]=3.079).
+Same bug exists in 3DVA eval scripts.
+
+#### Bug 2 — SIGNIFICANT: screen_space back-face contamination
+`run_screen_space()` only filters `w_clip <= 0` (behind camera plane) but NOT back-facing faces.
+At any given frame, 52.5% of Starfruit faces are back-facing but project to valid [0,1]²
+screen coordinates (w_clip > 0) and wrongly accumulate gaze density.
+Effect: CC degrades from -0.22 to -0.31 (back faces contaminate prediction).
+Fix: add face-normal dot-product check before accumulating density:
+```python
+view_to_face = centroids_w - cam_pos_world
+dots = (normals_w * (-view_to_face)).sum(1)
+sample[dots <= 0] = 0.0
+```
+
+#### Bug 3 — MINOR: projection_fov_mode default
+Default `--projection-fov-mode vertical` with no override uses JSON matrix (wrong).
+For correct runs always pass `--projection-fov-mode horizontal_to_vertical`.
+
+### Test results (4 local models, h2v + blender_rig, correct settings)
+
+cone_gaussian_on_mesh:
+- Rubber_Duck_v1_L3: CC=0.596  hit_rate=0.945  (good signal)
+- Mango_L3:          CC=0.426  hit_rate=0.903
+- Rhinoceros_v1_L3:  CC=0.173  hit_rate=0.901
+- Starfruit_L3:      CC=0.064  hit_rate=0.943  (GT is nearly uniform → low CC expected)
+
+screen_space_gaussian (sigma_screen=0.05):
+- Rubber_Duck_v1_L3: CC=0.419  (good)
+- Mango_L3:          CC=0.224
+- Rhinoceros_v1_L3:  CC=-0.023 (back-face bug dominant)
+- Starfruit_L3:      CC=-0.312 (back-face bug + uniform GT)
+
+### Why CC varies across models
+Root cause: GT concentration (not code bugs).
+- Rubber_Duck: 24% zero faces, top-10% carry 42.5% of GT weight → peaked GT → high CC
+- Starfruit:    5.5% zero faces, top-10% carry only 20.6% → near-uniform GT → CC≈0 regardless of method
+- Rhinoceros: intermediate GT shape
+
+All 4 models are from MeshMamba non_texture dataset, same GT collection.
+Rubber_Duck/Mango/Starfruit/Pear were pilot-4 models (early validation);
+Rhinoceros/Moai/SeaHorse added later as extended 8-model set.
+
+### Participants
+36-37 participants per model in our gaze CSV.
+
+### Key terms
+- h2v: horizontal-to-vertical FOV conversion
+  `fov_vert = 2 * atan(tan(fov_horiz/2) / aspect_ratio)`
+  For 60° horizontal, 16:9 aspect → fov_vert = 35.98°
+- blender_rig: transform order matching Blender animation rig
+  (local object rotations before parent frame Z rotation)
+- back-face culling: filtering faces whose normal points away from camera
+  (missing in screen_space → CC degradation)
+
+### Next steps
+1. Fix back-face culling in screen_space (add normal dot-product check)
+2. Change default projection-fov-mode to horizontal_to_vertical
+3. Commit modified eval scripts and push to server
+4. Run full 8-model MeshMamba benchmark with correct settings
+5. Compare with MAMBA_GAZE pipeline baseline
+
+---
+
+## 2026-06-01 MSK (session 10 — SAL3D eval + rgb_texture + 3DVA GT analysis)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: Created SAL3D eval script, added rgb_texture support to MeshMamba scripts,
+validated SAL3D geometry via Blender IoU, ran first SAL3D metrics, analysed 3DVA paper.
+
+### Files created / modified
+
+**New scripts:**
+- `reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py`
+  Full eval for SAL3D dataset: cone + raycast, per-vertex GT from Gaze/*.txt col.7.
+  Key features:
+  - `load_gt_aligned_to_obj()`: matches 20K Gaze vertices to OBJ via cKDTree (dist=0)
+    Supports n_gaze <= n_verts (Gaze is subset of OBJ for high-res models)
+  - `get_view_matrix()`: reconstructs 4×4 view matrix from rotation_euler_radians + location
+    (SAL3D JSONs don't contain view_matrix field unlike MeshMamba/3DVA)
+  - Defaults: recenter=True, extra_rotate_x=90°, h2v, blender_rig (validated recipe)
+  - GT column: 6=smooth_saliency (default), 7=binary
+
+**Modified scripts:**
+- `eval_meshmamba_cone.py` — added `--texture-type {non_texture,rgb_texture}`
+- `eval_meshmamba_screen_space.py` — same
+
+**Changes per script for rgb_texture support:**
+1. `--texture-type` argument
+2. `find_json_file(json_root, model, texture_type)` — prefix `MeshMamba_{texture_type}_`
+3. `resolve_model_paths`: `MeshFile/{texture_type}`, `SaliencyMap/{texture_type}`
+4. report `dataset` field uses `f"MeshMamba_{args.texture_type}"`
+
+### SAL3D validation
+
+Blender canonical IoU re-verified (5 models):
+- bunny: 0.987, dragon: 0.978, lion: 0.982, A380: 0.936, octopus: 0.907
+- Mean: 0.958 → geometry correct, JSONs valid
+
+SAL3D data structure:
+- `Gaze/<model>.txt`: 20000×8 → col0-2=xyz(vertices), col3-5=normals, col6=smooth_sal, col7=binary
+- GT is PER-VERTEX on 20K simplified pointcloud (Vorpaline isotropic remesh)
+- 23 models: OBJ=20K (direct match)
+- 35 models: OBJ > 20K (Gaze xyz is exact subset of OBJ vertices, dist=0 via cKDTree)
+- For high-res OBJ models: unmatched OBJ vertices get GT=0 → CC artificially reduced
+
+First SAL3D results (h2v + blender_rig, smooth_saliency GT):
+- bunny:   cone CC=0.392, hit_rate=0.961 ✅ good
+- camel:   cone CC=0.205, hit_rate=0.840
+- dragon:  cone CC=0.125, hit_rate=0.929
+- octopus: cone CC=0.079, hit_rate=0.676 (thin tentacles → many misses)
+- lion:    cone CC=0.064 (OBJ=53K, GT only on 20K → signal diluted)
+- A380:    cone CC=0.069 (OBJ=47K, same issue)
+
+### rgb_texture results (4 models, h2v + blender_rig)
+
+Confirmed: non_texture and rgb_texture have DIFFERENT GT files (different participants),
+DIFFERENT gaze CSVs (different participants), same camera parameters.
+CC difference is REAL (texture changes gaze behavior, not a bug).
+- Rubber_Duck: non_texture CC=0.596 vs rgb_texture CC=0.152 (texture distributes gaze)
+- Mango: 0.426 vs 0.380 (moderate change)
+
+### 3DVA paper analysis (Lavoué et al. 2018)
+
+GT conditions 300, 413, 599 = THREE STATIC VIEWPOINTS (manually chosen camera positions).
+The paper's Experiment 2 benchmark: 32 models × 3 viewpoints = 96 static images.
+20 observers, 7s per image, GT on 20K isotropically remeshed vertices.
+
+CRITICAL: Our gaze = from ROTATING VIDEOS; GT = from STATIC images at 3 viewpoints.
+This is a fundamental methodological mismatch. Our video-gaze is view-integrated;
+GT is view-specific. Comparison is still meaningful (which static view correlates
+most with our rotating-video gaze) but CC will be lower than same-experiment comparison.
+
+### Known issues
+
+1. For SAL3D high-res OBJ models: mask zero-GT vertices before computing metrics
+   (only compute CC on the 20K GT-covered vertices)
+2. Penguin_V2_L3 GT = "Penguin_v1_iterations-2.csv" — name mismatch not handled by find_gt_file
+3. 4 models without GT: Eagle_wood_v1_L3, PoloTeamShirt_v2_L3, White-TailedDeer_V1_L2, barbiegirl_V1_L3

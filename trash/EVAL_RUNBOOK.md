@@ -1,0 +1,258 @@
+# Eval Runbook — Correct Evaluation Pipeline
+Last updated: 2026-06-01
+
+This document describes the **correct** way to run gaze-to-mesh saliency evaluation
+for all three datasets. Read this before running any eval on the server.
+
+---
+
+## Quick-start summary
+
+| Dataset | Script | Key flags | GT type |
+|---|---|---|---|
+| MeshMamba non_texture | `eval_meshmamba_cone.py` | `--texture-type non_texture --projection-fov-mode horizontal_to_vertical --transform-order blender_rig --extra-rotate-x-deg 90` | per-face CSV |
+| MeshMamba rgb_texture | same | `--texture-type rgb_texture` + different `--csv-root --json-root` | per-face CSV |
+| 3DVA | `eval_3dva_raycast_cone.py` | `--recenter-to-bbox-center --override-fov-deg 35.9834` | per-vertex TXT (3 views) |
+| SAL3D | `eval_sal3d_cone.py` | defaults already correct | per-vertex from Gaze/*.txt col.6 |
+
+---
+
+## Dataset 1: MeshMamba non_texture
+
+### Data paths (local)
+```
+OBJ:   GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/MeshFile/non_texture/<model>/
+GT:    GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/SaliencyMap/non_texture/<model>.csv
+CSV:   GAZE_DATA/csv_for_models/MeshMamba_non_texture/<model>.csv
+JSON:  GAZE_DATA/jsons_for_models/Mamba_non_textured/MeshMamba_non_texture_<model>.json
+```
+
+### Correct command
+```bash
+VENV="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/venv/bin/python3"
+REPO="/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection"
+
+"$VENV" "$REPO/reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py" \
+    --model Rubber_Duck_v1_L3 \
+    --texture-type non_texture \
+    --dataset-root "GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency" \
+    --csv-root "GAZE_DATA/csv_for_models/MeshMamba_non_texture" \
+    --json-root "GAZE_DATA/jsons_for_models/Mamba_non_textured" \
+    --output-dir "/tmp/results_mamba" \
+    --recenter-to-bbox-center \
+    --extra-rotate-x-deg 90.0 \
+    --projection-fov-mode horizontal_to_vertical \
+    --transform-order blender_rig
+```
+
+### Why these flags
+- `--projection-fov-mode horizontal_to_vertical` — JSON stores 60° HORIZONTAL FOV,
+  this flag converts it correctly to vertical 35.98°. WITHOUT this flag the projection
+  matrix is wrong (rays miss by up to 10°), CC drops from ~0.60 to ~0.06.
+- `--transform-order blender_rig` — replicates the Blender animation rig where local
+  object rotations (extra_rotate_x) happen before the per-frame Z animation rotation.
+  Validated with Blender canonical preview: IoU ≥ 0.987 for all 8 pilot models.
+- `--extra-rotate-x-deg 90.0` — replicates the implicit OBJ import rotation from
+  Blender's default axes (Y-up import tilts the model 90°).
+
+### Screen-space variant
+Same flags, use `eval_meshmamba_screen_space.py` with `--sigma-screen 0.05`.
+Note: screen_space has a back-face contamination bug (52.5% of faces project to screen
+incorrectly). CC for screen_space is typically lower and sometimes negative.
+
+### Pilot models with validated geometry (IoU ≥ 0.987)
+Starfruit_L3, Mango_L3, Pear_L3, Rubber_Duck_v1_L3,
+Penguin_V2_L3, Moai_v3_L3, SeaHorse_v2_L3, Rhinoceros_v1_L3
+
+### GT name mismatches to be aware of
+- Penguin_V2_L3 → GT file = Penguin_v1_iterations-2.csv (name mismatch, script fails)
+- Moai_v3_L3 → GT file = Moai_L3.csv (handled by fuzzy match)
+- 4 models have NO GT: Eagle_wood, PoloTeamShirt, White-TailedDeer, barbiegirl
+
+---
+
+## Dataset 2: MeshMamba rgb_texture
+
+### Data paths (local)
+```
+OBJ:   GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/MeshFile/rgb_texture/<model>/
+GT:    GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/SaliencyMap/rgb_texture/<model>.csv
+CSV:   GAZE_DATA/csv_for_models/MeshMamba_rgb_texture/<model>.csv
+JSON:  GAZE_DATA/jsons_for_models/Mamba_rgb_textured/MeshMamba_rgb_texture_<model>.json
+```
+
+### Correct command
+```bash
+"$VENV" "$REPO/reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py" \
+    --model Rubber_Duck_v1_L3 \
+    --texture-type rgb_texture \                # ← KEY DIFFERENCE
+    --dataset-root "GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency" \
+    --csv-root "GAZE_DATA/csv_for_models/MeshMamba_rgb_texture" \       # ← different CSV dir
+    --json-root "GAZE_DATA/jsons_for_models/Mamba_rgb_textured" \       # ← different JSON dir
+    --output-dir "/tmp/results_mamba_rgb" \
+    --recenter-to-bbox-center \
+    --extra-rotate-x-deg 90.0 \
+    --projection-fov-mode horizontal_to_vertical \
+    --transform-order blender_rig
+```
+
+### Important
+- rgb_texture GT is DIFFERENT from non_texture GT (different participants, different saliency)
+- rgb_texture CSV is also DIFFERENT (different participants watched different video)
+- Same camera parameters (same JSON structure, same flags)
+
+---
+
+## Dataset 3: 3DVA
+
+### Data paths (local)
+```
+OBJ:   GAZE_DATA/datasets/3DVA/3DModels-Simplif-up/<model>.obj   ← MUST use -up version
+GT:    GAZE_DATA/datasets/3DVA/FixationMaps/<model>_300norm.txt   (+ 413, 599)
+CSV:   GAZE_DATA/csv_for_models/3DVA/<model>.csv
+JSON:  GAZE_DATA/jsons_for_models/3DVA_json/3DVA_<model>.json
+```
+
+### Correct command
+```bash
+"$VENV" "$REPO/reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py" \
+    --model bunny \
+    --dataset-root "GAZE_DATA/datasets/3DVA" \
+    --csv-root "GAZE_DATA/csv_for_models/3DVA" \
+    --json-root "GAZE_DATA/jsons_for_models/3DVA_json" \
+    --output-dir "/tmp/results_3dva" \
+    --recenter-to-bbox-center \
+    --override-fov-deg 35.9834    # ← h2v(60°, 16:9) = correct vertical FOV
+```
+
+### Why --override-fov-deg 35.9834
+The 3dva eval script does NOT have --projection-fov-mode. Use --override-fov-deg
+with the pre-computed correct vertical FOV: h2v(60°, 16:9) = 35.9834°.
+Do NOT omit this flag (JSON matrix uses wrong FOV convention → bad metrics).
+
+### CRITICAL: OBJ version
+Always use 3DModels-Simplif-up/ (pre-rotated by render script).
+NEVER use 3DModels-Simplif/ (wrong orientation → IoU drops from 0.978 to 0.72).
+The dataset_root path should be the parent containing both 3DModels-Simplif-up/ and FixationMaps/.
+
+### Understanding the three GT files (300, 413, 599)
+These are THREE DIFFERENT STATIC VIEWPOINTS from the original 3DVA paper benchmark.
+GT was collected from 20 observers looking at STATIC renderings of each model from
+3 manually chosen camera positions. The numbers are viewpoint identifiers.
+
+OUR data: from rotating videos → view-integrated gaze.
+GT: from static images → view-specific gaze.
+This mismatch is expected and all three GT variants should be reported.
+
+### Validated geometry
+All 32 3DVA models: mean IoU = 0.946 (min = 0.875 for octopus/igea/dinosaur-40K).
+Recipe: recenter=True, extra_rotate_x=0°, override_fov_deg=null (use JSON 60°).
+NOTE: 3DVA render script uses forward='X', up='Z' → no extra rotation needed with -up OBJ.
+
+### A380 special case
+A380 CSV has TWO video_ids [1970, 2365] — data from two different sessions mixed.
+Current script processes all rows together. For clean eval, filter by one video_id.
+
+---
+
+## Dataset 4: SAL3D
+
+### Data paths (local)
+```
+OBJ:   GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Meshes/<model>.obj
+GT:    GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Gaze/<model>.txt  (col 6 = smooth_saliency)
+CSV:   GAZE_DATA/csv_for_models/SAL3D/<model>.csv
+JSON:  GAZE_DATA/jsons_for_models/SAL3D_json/Sal3D_<model>.json
+```
+
+### Correct command
+```bash
+"$VENV" "$REPO/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py" \
+    --model bunny \
+    --dataset-root "GAZE_DATA/datasets/SAL3D/SAL3D_Dataset" \
+    --csv-root "GAZE_DATA/csv_for_models/SAL3D" \
+    --json-root "GAZE_DATA/jsons_for_models/SAL3D_json" \
+    --output-dir "/tmp/results_sal3d"
+    # All other flags are correct by default: h2v, blender_rig, recenter, rotX=90°
+```
+
+### SAL3D-specific issues
+
+1. **20K vertex problem**: SAL3D GT was computed on 20K isotropic pointcloud.
+   - 23 models: OBJ = 20K vertices → direct match, full GT coverage
+   - 35 models: OBJ > 20K vertices → Gaze 20K is exact subset of OBJ vertices (dist=0)
+     → unmatched OBJ vertices get GT=0 → CC is artificially lower for these models
+   - FUTURE FIX: mask zero-GT vertices before computing CC for high-res models
+
+2. **No view_matrix in JSON**: SAL3D JSONs lack view_matrix field.
+   The script reconstructs it from rotation_euler_radians + location.
+
+3. **GT format**: Gaze/<model>.txt columns:
+   - 0-2: xyz vertex coordinates (20K points, subset of OBJ)
+   - 3-5: vertex normals
+   - 6: smooth saliency (use this as GT)
+   - 7: binary saliency (1000 fixation points)
+
+4. **Geometry validation**: IoU verified for 5 models (mean 0.958, min 0.907).
+   JSONs are generated from sal_render_1.py parameters and are correct.
+
+### Models with matching OBJ=20K (safe for eval)
+bunny, dragon, octopus, camel, cow, cat... (23 total)
+Check with: `python3 -c "import numpy as np,trimesh; m=trimesh.load('Meshes/X.obj',process=False); g=np.loadtxt('Gaze/X.txt'); print(len(m.vertices)==len(g))"`
+
+---
+
+## Parallel run template (4 models)
+
+```bash
+VENV="/path/to/venv/bin/python3"
+SCRIPT="path/to/eval_meshmamba_cone.py"
+OUT="/tmp/results"
+mkdir -p "$OUT"
+
+for MODEL in Rubber_Duck_v1_L3 Mango_L3 Rhinoceros_v1_L3 Starfruit_L3; do
+    "$VENV" "$SCRIPT" \
+        --model "$MODEL" \
+        --texture-type non_texture \
+        --dataset-root "$DATASET" \
+        --csv-root "$CSV_ROOT" \
+        --json-root "$JSON_ROOT" \
+        --output-dir "$OUT" \
+        --recenter-to-bbox-center \
+        --extra-rotate-x-deg 90.0 \
+        --projection-fov-mode horizontal_to_vertical \
+        --transform-order blender_rig \
+        > "$OUT/${MODEL}.log" 2>&1 &
+done
+wait && echo "All done"
+```
+
+---
+
+## Common mistakes and fixes
+
+| Mistake | Symptom | Fix |
+|---|---|---|
+| Missing `--projection-fov-mode h2v` | CC~0, KLD>8, hit_rate~0.22 | Add `--projection-fov-mode horizontal_to_vertical` |
+| Using 3DModels-Simplif instead of -up | IoU~0.72, wrong geometry | Use `3DModels-Simplif-up/` |
+| Wrong `--texture-type` | FileNotFoundError on JSON | Match texture_type to the csv/json directory |
+| SAL3D OBJ≠20K | CC lower than expected | Normal — GT only covers 20K vertices |
+| Penguin GT not found | FileNotFoundError | GT name = Penguin_v1_iterations-2.csv, use workaround |
+
+---
+
+## Server paths (vg-intellect)
+
+```
+Repo:    /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection
+Env:     /home/29d_kon@lab.graphicon.ru/ssd1_link/environments/reproject-benchmark/bin/python3
+Dataset: /home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/
+Side inputs: /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/
+```
+
+Before server run: push commits to GitHub, then on server:
+```bash
+cd .../Mesh-Saliency-Projection
+git pull
+source configs/server_vg_intellect.env
+```

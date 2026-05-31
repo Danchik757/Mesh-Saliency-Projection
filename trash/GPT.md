@@ -441,3 +441,438 @@ Open questions: whether to keep the current `MeshMamba` pilot centered on
 the first server run.
 Next step: final review of uncommitted branch state, then prepare a clean commit
 and the exact first transfer/launch commands.
+
+## 2026-05-30 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Prepared the benchmark runtime for real metric runs, validated the
+server environment, completed a focused `MeshMamba non_texture` comparison, and
+started a separate `3DVA` top10 run using the corrected `-up` OBJ alignment.
+Files: configs/server_vg_intellect.env, test/launch/run_metric_preflight.sh,
+test/launch/run_3dva_raycast_cone.sh, test/launch/run_meshmamba_baseline_cone.sh,
+test/launch/run_meshmamba_baseline_screen_space.sh,
+test/launch/run_meshmamba_non_texture_pilot.sh,
+test/tools/export_metrics_csv.py,
+reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py,
+reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py,
+reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py,
+trash/FULL_RUN_INSTRUCTIONS_2026-05-30.md
+Result:
+- server preflight on `vg-intellect` passes with the runtime env
+  `/home/29d_kon@lab.graphicon.ru/ssd1_link/environments/reproject-benchmark`
+- `rtree` was installed and smoke tests succeeded for:
+  `MeshMamba screen_space`, `MeshMamba cone`, `MeshMamba our_pipeline+diffusion`,
+  `3DVA bunny`
+- a focused `MeshMamba non_texture` CSV was built at:
+  `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/metrics_summary_meshmamba_non_texture_focus.csv`
+  using four validated models:
+  `Starfruit_L3`, `Mango_L3`, `Rubber_Duck_v1_L3`, `Rhinoceros_v1_L3`
+- a separate `3DVA` top10 run was started in:
+  `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs_3dva_top10_20260530/3DVA/raycast_cone`
+  with corrected alignment:
+  `3DModels-Simplif-up`, `recenter=true`, `extra_rotate_x_deg=0`,
+  JSON FOV (no override)
+- a detailed continuation/handoff file was added:
+  `trash/FULL_RUN_INSTRUCTIONS_2026-05-30.md`
+Qualitative outcome:
+- `MeshMamba` is now the cleanest completed comparison block and should be kept
+  separate from `3DVA` and `SAL3D`
+- `3DVA` server runs are using the correct corrected OBJ source and launcher
+  recipe, but exact mask-overlay verification on server is not yet possible
+  because `blender` and `3DVA` mp4 videos were not available there during this
+  chat
+- server repo HEAD checked during this phase was `9622219`, which is valid for
+  the current `3DVA`/`MeshMamba` runs but not equal to the newest local working
+  tree
+Open questions:
+- whether to push the latest local lowercase/alias-resolution patch before any
+  future `Pear_L3` or case-sensitive path runs
+- whether to transfer `3DVA` mp4 videos and install Blender on server for exact
+  server-side mask overlay validation
+Next step:
+- finish the current `3DVA` top10 batch
+- rebuild
+  `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs_3dva_top10_20260530/metrics_summary_3dva_top10.csv`
+- summarize `raycast` and `cone` separately, preferably at `GT 413`
+- only after that decide whether to expand to full `3DVA` or return to pending
+  alias/overlay infrastructure work.
+
+## 2026-05-31 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Audited unexpectedly poor metrics for `screen_space_gaussian` and
+`cone_gaussian_on_mesh`, focusing on whether the implementation or the GT
+comparison target is the main failure mode.
+Files inspected/used:
+`reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py`,
+`reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py`,
+server reports under
+`/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/`,
+local MeshMamba CSV/JSON/OBJ/GT paths from `test/env/local_paths.example.sh`.
+Findings:
+- Server reports use the expected validated MeshMamba geometry recipe:
+  `recenter=true`, `extra_rotate_x_deg=90`, JSON FOV (`override_fov_deg=null`)
+  for the newest runs.
+- Tried two experimental code changes locally: per-hit normalized cone Gaussian
+  and centroid z-buffer visibility for screen-space. Both were runtime-valid,
+  but they did not improve Starfruit metrics; they were reverted before commit.
+- `screen_space_gaussian` split-half diagnostic on MeshMamba is very high:
+  Starfruit `CC=0.988/Spearman=0.997`; Rubber Duck, Mango, Rhinoceros also
+  `CC≈0.975-0.985` and `Spearman≈0.994-0.995`.
+- `cone_gaussian_on_mesh` split-half diagnostic on Starfruit is also high:
+  `CC=0.919/Spearman=0.959`.
+- Despite high split-half stability, comparison to MeshMamba GT remains near
+  zero or negative for these models. This strongly suggests the current low
+  metrics are not caused by random projection failure; the collected gaze maps
+  are internally consistent but do not match the MeshMamba GT saliency maps.
+Changes kept:
+- MeshMamba launchers now accept local/env-specific `MESHMAMBA_CSV_ROOT` and
+  `MESHMAMBA_JSON_ROOT`, fall back from `REPROJECT_DATASET_MESHMAMBA_ROOT` and
+  `REPROJECT_OUTPUT_ROOT`, and no longer fail on empty `OVERRIDE_FOV_DEG` under
+  macOS bash `set -u`.
+- `run_3dva_screen_space.sh` now respects `REPROJECT_PYTHON`.
+Validation:
+- `python3 -m py_compile` passes for the four active eval scripts.
+- `PYTHONPATH=. pytest -q tests/test_metrics_smoke.py` passes.
+- Local launcher smoke for `run_meshmamba_baseline_screen_space.sh` works with
+  `GAZE_DATA/venv` and explicit MeshMamba CSV/JSON roots.
+Risks:
+- Do not interpret low MeshMamba GT metrics as proof that geometry alignment is
+  wrong without an additional protocol/GT audit. The split-half numbers show
+  the projected maps are stable across participants.
+- Next useful check is to verify what MeshMamba `SaliencyMap/*.csv` represents
+  and whether it is expected to correlate with the collected video-viewing gaze
+  protocol.
+Next step:
+- Keep current method implementations unchanged except path/launcher fixes.
+- Run a small table with both external-GT metrics and split-half reliability
+  columns for `screen_space_gaussian` and `cone_gaussian_on_mesh`.
+
+## 2026-05-31 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Added first single-gaze-point debug preview for checking CSV timestamp
+to video frame to mesh raycast consistency.
+Files changed:
+`test/tools/debug_single_gaze_projection.py`
+Files generated:
+`test/output_local/single_point_debug/meshmamba_non_texture/Starfruit_L3/blender_rig/compare_json_fov_vs_fov37p5.png`
+Findings:
+- For `MeshMamba_non_texture / Starfruit_L3`, selected participant `28745`,
+  timestamp `8.478s`, JSON frame index `254` (`json_t=8.4667s`).
+- Red CSV gaze point and green reprojected raycast hit overlap with
+  `pixel_error ~= 0`, so the ray construction and back-projection are internally
+  consistent for the chosen transform/camera settings.
+- The debug overlay shows an important visual issue: with JSON FOV (`60 deg`),
+  the projected mesh mask is too small relative to the object in the extracted
+  video frame. With `override_fov_deg=37.5`, the projected mask is visually much
+  closer to the video object.
+Risks:
+- This is one point/frame/model only; do not change benchmark defaults until
+  the same debug check is repeated across several frames and several MeshMamba
+  models.
+Next step:
+- Generate the same debug preview for at least `frame~0`, `frame~100`,
+  `frame~250`, `frame~400` and for at least `Mango_L3` / `Rubber_Duck_v1_L3`.
+
+## 2026-05-31 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Extended `debug_single_gaze_projection.py` with mask IoU diagnostics and
+tested MeshMamba FOV handling across several objects/timestamps.
+Files changed:
+`test/tools/debug_single_gaze_projection.py`
+Generated outputs:
+`test/output_local/single_point_debug_fov_iou/`,
+`test/output_local/single_point_debug_fov_iou_grid/`
+Changes:
+- Added video-mask extraction from the real source video frame.
+- Added projected-mesh-mask vs video-mask IoU, normalized centroid error, bbox
+  size error, and mask comparison image.
+- Added robust timestamp candidate search: if the nearest gaze point misses the
+  mesh, the script tries nearby points before failing.
+Findings:
+- `json_fov` uses the JSON projection matrix (`fov_degrees ~= 60`) and gives
+  IoU around `0.31` on MeshMamba non_texture because it treats the stored FOV as
+  vertical FOV in the OpenGL-style projection. The projected mesh is too small.
+- `override_fov_deg=37.5` is much better, IoU around `0.91`, but still not exact.
+- The best value is not `37.5`; it is `35.98339777`, the vertical FOV derived
+  from horizontal `60 deg` at aspect `16:9`:
+  `vertical = 2 * atan(tan(horizontal / 2) / aspect)`.
+- With `override_fov_deg=35.98339777` and `transform_order=blender_rig`, IoU at
+  frame around `8.5s` is:
+  Starfruit `0.9956`, Pear `0.9946`, Rubber Duck `0.9956`, Mango `0.9963`.
+- Starfruit across timestamps `1.0/4.0/8.5/12.0/15.0s` stays high:
+  `0.9940/0.9947/0.9956/0.9917/0.9948`.
+- Transform order matters independently of FOV. With `FOV=37.5`, old `eval`
+  order gives much lower IoU on some models (`Pear ~0.407`, Rubber Duck ~0.528`,
+  Starfruit ~0.620), while `blender_rig` stays around `0.91`.
+Interpretation:
+- MeshMamba JSON likely stores the original Blender camera angle as horizontal
+  FOV, but the saved projection matrix / current eval projection math uses it as
+  vertical FOV. The benchmark code should not blindly reuse the JSON projection
+  matrix for MeshMamba; it should either derive vertical FOV from the stored
+  horizontal FOV and aspect ratio, or use the exact Blender camera projection
+  convention.
+Next step:
+- Add canonical MeshMamba projection mode to both
+  `eval_meshmamba_cone.py` and `eval_meshmamba_screen_space.py`:
+  `transform_order=blender_rig` and `projection_fov_mode=horizontal_to_vertical`
+  (or explicit `override_fov_deg=35.98339777` as a short-term launcher override).
+- Rerun small metrics only after the eval scripts use this same geometry recipe.
+
+## 2026-05-31 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Checked whether the negative MeshMamba metric smoke tests used
+`override_fov_deg=37.5`, then ran a quick Starfruit retest with `37.5`.
+Findings:
+- The negative reports under
+  `test/output_local/smoke_after_metric_fixes_launcher/` did NOT use `37.5`.
+  Their `method_params.override_fov_deg` is `null`; they used the JSON
+  projection matrix.
+- They also used the old eval transform order:
+  `base_rotate_z -> recenter -> scale -> rotation_z -> extra_rotate_x ->
+  extra_rotate_y -> translation`.
+- Quick retest with `OVERRIDE_FOV_DEG=37.5` was run for
+  `MeshMamba_non_texture / Starfruit_L3`.
+Results:
+- `screen_space_gaussian`: old JSON FOV `CC=-0.194949`,
+  `Spearman=-0.175986`, `SIM=0.335547`, `KLD=8.763546`; new `37.5`
+  `CC=0.006084`, `Spearman=0.004534`, `SIM=0.724759`, `KLD=0.268168`.
+- `cone_gaussian_on_mesh`: old JSON FOV `CC=-0.120387`,
+  `Spearman=-0.137622`, `SIM=0.437408`, `KLD=3.116225`; new `37.5`
+  `CC=-0.006520`, `Spearman=-0.024032`, `SIM=0.517984`, `KLD=2.806486`.
+- `raycast_nearest_face`: old hit rate `0.221239`; new `37.5` hit rate
+  `0.499444`.
+Interpretation:
+- `37.5` strongly improves scale-sensitive metrics and ray hit rate, but it
+  does not fully fix correlation against GT because the eval scripts still do
+  not use the `blender_rig` transform order that gives high mask IoU.
+Next step:
+- Patch MeshMamba eval scripts to support the same transform order used by the
+  high-IoU debug preview, then rerun the same one-model smoke test.
+
+## 2026-05-31 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Implemented and smoke-tested MeshMamba eval support for the high-IoU
+preview recipe.
+Files changed:
+`reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py`,
+`reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py`,
+`test/launch/run_meshmamba_baseline_cone.sh`,
+`test/launch/run_meshmamba_baseline_screen_space.sh`.
+Code changes:
+- Added `--transform-order {eval,blender_rig}`.
+- Added `--projection-fov-mode {vertical,horizontal_to_vertical,json}`.
+- `horizontal_to_vertical` with no explicit override reads `fov_degrees` from
+  JSON (`~60 deg`) as horizontal FOV and derives effective vertical FOV
+  (`35.9833989 deg` for 16:9).
+- Launchers now accept `PROJECTION_FOV_MODE` and `TRANSFORM_ORDER`.
+Validation:
+- `py_compile` passed for both eval scripts and debug tool.
+- `bash -n` passed for both launchers.
+Smoke commands:
+- `screen_space_gaussian`: `PROJECTION_FOV_MODE=horizontal_to_vertical`,
+  `TRANSFORM_ORDER=blender_rig`, `PILOT_MODEL=Starfruit_L3`.
+- `cone_gaussian_on_mesh`: same settings.
+Results versus MeshMamba GT for `Starfruit_L3`:
+- `screen_space_gaussian`, old `json+eval`: `CC=-0.194949`,
+  `Spearman=-0.175986`, `SIM=0.335547`, `KLD=8.763546`.
+- `screen_space_gaussian`, `37.5+eval`: `CC=0.006084`,
+  `Spearman=0.004534`, `SIM=0.724759`, `KLD=0.268168`.
+- `screen_space_gaussian`, `h2v+eval`: `CC=0.010507`,
+  `Spearman=0.006391`, `SIM=0.719969`, `KLD=0.282286`.
+- `screen_space_gaussian`, `h2v+blender_rig`: `CC=-0.311927`,
+  `Spearman=-0.360560`, `SIM=0.720660`, `KLD=0.252931`.
+- `cone_gaussian_on_mesh`, old `json+eval`: `CC=-0.120387`,
+  `Spearman=-0.137622`, `SIM=0.437408`, `KLD=3.116225`,
+  `hit_rate=0.221239`.
+- `cone_gaussian_on_mesh`, `37.5+eval`: `CC=-0.006520`,
+  `Spearman=-0.024032`, `SIM=0.517984`, `KLD=2.806486`,
+  `hit_rate=0.499444`.
+- `cone_gaussian_on_mesh`, `h2v+blender_rig`: `CC=0.064081`,
+  `Spearman=-0.147117`, `SIM=0.599305`, `KLD=0.484604`,
+  `hit_rate=0.942849`.
+Interpretation:
+- Geometry got much better in the strict sense: cone hit rate rose from `0.22`
+  to `0.94`, matching the mask-IoU diagnostics.
+- Metrics against MeshMamba GT did not become high. This means the remaining
+  issue is likely not only screen-to-mesh projection. Candidate causes:
+  GT protocol/semantics differ from our collected video-gaze protocol; GT face
+  correspondence/orientation differs from the OBJ used for rendered videos; or
+  the comparison should use a different saliency-map convention/normalization.
+Next step:
+- Do not launch full server metrics yet. First inspect whether MeshMamba GT
+  face order and canonical orientation correspond to `MeshFile/non_texture`
+  objects rendered in the videos, preferably by visualizing GT top faces and
+  our projected top faces on the same mesh.
+
+## 2026-05-31 MSK
+Role: GPT
+Commit: UNCOMMITTED
+Scope: Current handoff note and task definition for Claude: FOV search and
+current problem diagnosis.
+
+### Current Technical State
+- MeshMamba projection preview/debug now has two independent diagnostics:
+  screen-to-ray-to-screen point consistency and projected mesh mask vs video
+  object mask IoU.
+- `test/tools/debug_single_gaze_projection.py` can generate a per-point debug
+  preview and now writes `mask_metrics` into `report.json`.
+- High video-mask IoU was obtained for MeshMamba non_texture with:
+  `recenter_to_bbox_center=true`, `extra_rotate_x_deg=90`,
+  `transform_order=blender_rig`, and effective vertical FOV near `35.9833989`.
+- `35.9833989` is not an arbitrary tuned value; it is the vertical FOV derived
+  from a horizontal `60 deg` FOV at aspect `16:9`:
+  `vertical = 2 * atan(tan(horizontal / 2) / aspect)`.
+- `37.5` is much better than using the JSON projection matrix directly, but it
+  is not the best mask-IoU value in the current Starfruit/Pear/Rubber/Mango
+  tests.
+- Both MeshMamba eval scripts now support:
+  `--transform-order {eval,blender_rig}` and
+  `--projection-fov-mode {vertical,horizontal_to_vertical,json}`.
+- The launchers now expose these as `TRANSFORM_ORDER` and
+  `PROJECTION_FOV_MODE`.
+
+### Important Smoke Results
+- Previous negative metric reports did not use `37.5`; they used
+  `override_fov_deg=null` and the old `eval` transform order.
+- `screen_space_gaussian` on Starfruit:
+  `json+eval`: `CC=-0.194949`, `Spearman=-0.175986`, `SIM=0.335547`,
+  `KLD=8.763546`.
+- `screen_space_gaussian` on Starfruit:
+  `37.5+eval`: `CC=0.006084`, `Spearman=0.004534`, `SIM=0.724759`,
+  `KLD=0.268168`.
+- `screen_space_gaussian` on Starfruit:
+  `horizontal_to_vertical+blender_rig`: `CC=-0.311927`,
+  `Spearman=-0.360560`, `SIM=0.720660`, `KLD=0.252931`.
+- `cone_gaussian_on_mesh` on Starfruit:
+  `json+eval`: `CC=-0.120387`, `Spearman=-0.137622`, `SIM=0.437408`,
+  `KLD=3.116225`, `hit_rate=0.221239`.
+- `cone_gaussian_on_mesh` on Starfruit:
+  `37.5+eval`: `CC=-0.006520`, `Spearman=-0.024032`, `SIM=0.517984`,
+  `KLD=2.806486`, `hit_rate=0.499444`.
+- `cone_gaussian_on_mesh` on Starfruit:
+  `horizontal_to_vertical+blender_rig`: `CC=0.064081`,
+  `Spearman=-0.147117`, `SIM=0.599305`, `KLD=0.484604`,
+  `hit_rate=0.942849`.
+
+### Current Problem
+- We can make the projected mesh match the actual video object very well
+  geometrically. This is proven by high mask IoU and high ray hit rate.
+- However, high geometry correctness does not yet produce high correlation
+  against MeshMamba GT face saliency maps.
+- Therefore the remaining blocker is likely not only "wrong screen-to-mesh
+  projection". The failure may be in the GT comparison target, face
+  correspondence, coordinate convention, or saliency-map semantics.
+
+### Working Hypotheses
+- Hypothesis A: MeshMamba GT `SaliencyMap/non_texture/*.csv` is defined on the
+  same OBJ face order, but it corresponds to a different viewing protocol or
+  saliency definition than our collected video gaze CSV. This would explain high
+  split-half reliability in our gaze maps but poor correlation with GT.
+- Hypothesis B: MeshMamba GT face order or face orientation does not match the
+  exact OBJ that was rendered in the videos. This would preserve good video
+  alignment but break face-level GT comparison.
+- Hypothesis C: The object pose in the videos is correct, but GT is in a
+  canonical object coordinate system and needs an inverse/aggregation over
+  rotations before comparison.
+- Hypothesis D: The FOV/transform recipe should be selected by video-mask IoU,
+  while GT metrics should be evaluated only after confirming GT face-index
+  compatibility by visualizing top-GT faces on the same OBJ.
+- Hypothesis E: Some metrics are scale/distribution sensitive. The improvement
+  of SIM/KLD and hit rate after FOV fixes is real, but CC/Spearman can remain
+  low if GT hotspots are semantically different or face correspondence is wrong.
+
+### Task For Claude: MeshMamba FOV Search
+Goal: determine the best FOV recipe for MeshMamba video alignment using
+video-mask IoU, not GT correlation. Do not use GT metrics to tune FOV until the
+face-level GT compatibility is separately verified.
+
+Constraints:
+- Work only in branch `reproject-benchmark`.
+- Do not push, commit, scp to server, or run server jobs without explicit GPT
+  approval.
+- Keep all generated outputs under `test/output_local/`.
+- Append findings to `trash/Claude.md`; do not overwrite existing notes.
+- If code is changed, keep it small and reviewable. Prefer adding a helper
+  script under `test/tools/` instead of modifying core eval logic unless needed.
+
+Use this existing tool:
+- `test/tools/debug_single_gaze_projection.py`
+- Required local env can be loaded from `test/env/local_paths.example.sh`.
+- For MeshMamba non_texture, use:
+  `--dataset meshmamba_non_texture`,
+  `--transform-order blender_rig`,
+  `--recenter-to-bbox-center`,
+  `--extra-rotate-x-deg 90`.
+
+Suggested models:
+- Minimum first pass:
+  `Starfruit_L3`, `Pear_L3`, `Rubber_Duck_v1_L3`, `Mango_L3`.
+- If first pass is stable, add diverse shapes:
+  `Elephant_v01_l3`, `Fighter_Jet_SG_v1_L3`, `Cat_v1_L3`,
+  `Aquarium_Deep_Sea_Diver_v1_L1`, `Bird_v1_L3`, `Boombox_v2_L3`.
+- Resolve names case-insensitively because the repo has mixed case filenames.
+
+Suggested timestamps:
+- First pass: `1.0`, `4.0`, `8.5`, `12.0`, `15.0`.
+- These map roughly to frames `30`, `120`, `255`, `360`, `450` at `30 FPS`.
+- If a timestamp has no valid gaze hit, the debug tool should already try nearby
+  candidate points. Record any failures.
+
+Search procedure:
+- Baselines to always include:
+  `json_fov` / no override,
+  `37.5`,
+  `35.98339777`,
+  `36.0`.
+- Coarse FOV grid:
+  `30.0` to `45.0` degrees, step `0.5`.
+- Refined grid:
+  around the best coarse FOV for each model, `best-1.0` to `best+1.0`,
+  step `0.05`.
+- Run with `transform_order=blender_rig` first.
+- Optional control: repeat a small subset with `transform_order=eval` to confirm
+  that `blender_rig` remains geometrically superior.
+
+Metrics to collect from each `report.json`:
+- `mask_metrics.iou`
+- `mask_metrics.centroid_error_norm`
+- `mask_metrics.size_error_norm`
+- `mask_metrics.video_bbox_width/height`
+- `mask_metrics.preview_bbox_width/height`
+- selected `gaze_point.timestamp`
+- `frame_mapping.json_frame_index_0_based`
+- `transform.override_fov_deg`
+- `transform.transform_order`
+
+Expected output:
+- A CSV summary, for example:
+  `test/output_local/fov_search_meshmamba_non_texture/fov_search_summary.csv`.
+- A JSON summary with per-model/per-timestamp aggregates:
+  `test/output_local/fov_search_meshmamba_non_texture/fov_search_summary.json`.
+- A short Markdown section appended to `trash/Claude.md` with:
+  best FOV per model, global median best FOV, mean/median IoU for `37.5`,
+  `35.98339777`, and best-grid FOV, plus failure cases.
+- Save a few visual comparison panels for representative models:
+  `json_fov` vs `37.5` vs best FOV.
+
+Interpretation rules:
+- If best FOV is consistently `35.98-36.00`, treat the correct recipe as
+  "horizontal 60 degrees from JSON converted to vertical FOV".
+- If best FOV varies materially by model, do not hardcode a dataset-wide
+  numeric FOV. Investigate whether model scale/location or JSON export differs
+  by model.
+- If video-mask IoU is high but GT correlation remains low, do not keep tuning
+  FOV to maximize GT. Move to GT face-order/semantics validation.
+
+### Next Work After Claude's FOV Search
+- Visualize top faces from MeshMamba GT and top faces from our predictions on
+  the same OBJ to test face-index compatibility.
+- If face-index compatibility is confirmed, investigate protocol mismatch
+  between our gaze CSV and MeshMamba GT.
+- If face-index compatibility fails, build a face remapping or use the exact GT
+  mesh source expected by `SaliencyMap`.

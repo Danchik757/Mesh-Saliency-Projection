@@ -23,6 +23,8 @@
 #   BASE_ROTATE_Z_DEG=0
 #   EXTRA_ROTATE_X_DEG=90
 #   OVERRIDE_FOV_DEG=""       — leave empty to use JSON FOV
+#   PROJECTION_FOV_MODE=vertical
+#   TRANSFORM_ORDER=eval
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -31,9 +33,13 @@ EVAL_SCRIPT="${REPO_ROOT}/reprojection_methods/screen_space_gaussian/eval_meshma
 PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 
 # ---------- required env var checks ----------
+MESHMAMBA_NON_TEXTURE_ROOT="${MESHMAMBA_NON_TEXTURE_ROOT:-${REPROJECT_DATASET_MESHMAMBA_ROOT:-}}"
+OUTPUT_ROOT="${OUTPUT_ROOT:-${REPROJECT_OUTPUT_ROOT:-}}"
 : "${MESHMAMBA_NON_TEXTURE_ROOT:?Set MESHMAMBA_NON_TEXTURE_ROOT (see configs/server_vg_intellect.env)}"
-: "${SIDE_INPUTS_ROOT:?Set SIDE_INPUTS_ROOT}"
 : "${OUTPUT_ROOT:?Set OUTPUT_ROOT}"
+if [ -z "${MESHMAMBA_CSV_ROOT:-}" ] || [ -z "${MESHMAMBA_JSON_ROOT:-}" ]; then
+  : "${SIDE_INPUTS_ROOT:?Set SIDE_INPUTS_ROOT or both MESHMAMBA_CSV_ROOT and MESHMAMBA_JSON_ROOT}"
+fi
 
 # ---------- defaults ----------
 WORKERS="${WORKERS:-4}"
@@ -44,9 +50,11 @@ RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
 BASE_ROTATE_Z_DEG="${BASE_ROTATE_Z_DEG:-0}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-90}"
 OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
+PROJECTION_FOV_MODE="${PROJECTION_FOV_MODE:-vertical}"
+TRANSFORM_ORDER="${TRANSFORM_ORDER:-eval}"
 
-CSV_DIR="${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv"
-JSON_DIR="${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/json"
+CSV_DIR="${MESHMAMBA_CSV_ROOT:-${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv}"
+JSON_DIR="${MESHMAMBA_JSON_ROOT:-${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/json}"
 OUTPUT_DIR="${OUTPUT_ROOT}/MeshMamba_non_texture/baseline_screen_space"
 mkdir -p "${OUTPUT_DIR}"
 
@@ -58,7 +66,7 @@ echo "[run_meshmamba_baseline_screen_space] output_dir=${OUTPUT_DIR}"
 echo "[run_meshmamba_baseline_screen_space] python_bin=${PYTHON_BIN}"
 echo "[run_meshmamba_baseline_screen_space] workers=${WORKERS}  nice=${NICE_LEVEL}"
 echo "[run_meshmamba_baseline_screen_space] sigma_screen=${SIGMA_SCREEN}"
-echo "[run_meshmamba_baseline_screen_space] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG:-<from_json>}"
+echo "[run_meshmamba_baseline_screen_space] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG:-<from_json>}  projection_fov_mode=${PROJECTION_FOV_MODE}  transform_order=${TRANSFORM_ORDER}"
 echo "[run_meshmamba_baseline_screen_space] pilot_model=${PILOT_MODEL}"
 
 if [ "${RECENTER_TO_BBOX_CENTER}" = "true" ]; then
@@ -82,7 +90,9 @@ nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
   "${RECENTER_FLAG}" \
   --base-rotate-z-deg "${BASE_ROTATE_Z_DEG}" \
   --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
-  "${EXTRA_ARGS[@]}" \
+  --projection-fov-mode "${PROJECTION_FOV_MODE}" \
+  --transform-order "${TRANSFORM_ORDER}" \
+  ${EXTRA_ARGS[@]+"${EXTRA_ARGS[@]}"} \
   2>&1 | tee "${OUTPUT_DIR}/${PILOT_MODEL}_run.log"
 
 echo "[run_meshmamba_baseline_screen_space] done. results in ${OUTPUT_DIR}"

@@ -97,7 +97,7 @@ run_model() {
     "$(build_recenter_flag)" \
     --base-rotate-z-deg "${BASE_ROTATE_Z_DEG}" \
     --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
-    "${extra_args[@]}" \
+    ${extra_args[@]+"${extra_args[@]}"} \
     2>&1 | tee "${OUTPUT_DIR}/${model}_run.log"
   echo "[run_3dva_raycast_cone] finished model=${model}"
 }

@@ -1,0 +1,15 @@
+{
+  "dataset": "SAL3D",
+  "model": "igea",
+  "obj_path": "${REPROJECT_DATASET_SAL3D_ROOT}/Meshes/igea.obj",
+  "json_path": "${REPROJECT_GAZE_JSON_SAL3D_ROOT}/Sal3D_igea.json",
+  "video_path": "${REPROJECT_VIDEO_SAL3D_ROOT}/SAL3D_igea.mp4",
+  "output_prefix": "${REPROJECT_OUTPUT_ROOT}/preview_checks/SAL3D/igea_frame000",
+  "frame_index": 0,
+  "resolution_scale": 0.5,
+  "recenter_to_bbox_center": true,
+  "extra_rotate_x_deg": 90.0,
+  "override_fov_deg": null,
+  "forward_axis": "Z",
+  "up_axis": "Y"
+}

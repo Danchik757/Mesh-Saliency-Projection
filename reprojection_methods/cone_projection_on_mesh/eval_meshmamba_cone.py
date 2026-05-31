@@ -27,6 +27,7 @@ import ast
 import json
 import math
 import os
+import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
@@ -59,10 +60,16 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--model", default="Starfruit_L3", help="MeshMamba model name.")
     parser.add_argument(
+        "--texture-type",
+        choices=["non_texture", "rgb_texture"],
+        default="non_texture",
+        help="MeshMamba texture type: 'non_texture' or 'rgb_texture'.",
+    )
+    parser.add_argument(
         "--dataset-root",
         type=Path,
-        default=_env_path("MESHMAMBA_NON_TEXTURE_ROOT", "e.g. /srv/datasets/MeshMamba_non_texture"),
-        help="Dataset root containing MeshFile/non_texture and SaliencyMap/non_texture.",
+        default=_env_path("MESHMAMBA_NON_TEXTURE_ROOT", "e.g. /srv/datasets/MeshMambaSaliency"),
+        help="Dataset root containing MeshFile/{texture_type} and SaliencyMap/{texture_type}.",
     )
     parser.add_argument(
         "--csv-root",
@@ -128,6 +135,26 @@ def parse_args() -> argparse.Namespace:
         help="Override JSON FOV for projection matrix only.",
     )
     parser.add_argument(
+        "--projection-fov-mode",
+        choices=["vertical", "horizontal_to_vertical", "json"],
+        default="vertical",
+        help=(
+            "How to interpret FOV for the projection matrix. "
+            "'vertical' keeps legacy behavior: override FOV is vertical, no override uses JSON matrix. "
+            "'horizontal_to_vertical' treats override/JSON FOV as horizontal and converts it to vertical. "
+            "'json' always uses the JSON projection matrix."
+        ),
+    )
+    parser.add_argument(
+        "--transform-order",
+        choices=["eval", "blender_rig"],
+        default="eval",
+        help=(
+            "Mesh transform order. 'eval' is legacy; 'blender_rig' matches the Blender preview rig "
+            "where local object rotations happen before per-frame parent Z rotation."
+        ),
+    )
+    parser.add_argument(
         "--tag",
         default=None,
         help="Output sub-directory tag. Auto-derived from transform params if omitted.",
@@ -135,53 +162,112 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _candidate_model_names(model: str) -> list[str]:
+    raw = model.strip()
+    variants = [raw, raw.replace("_", "-"), raw.replace("-", "_")]
+    stripped = re.sub(r"([_-])l\d+$", "", raw, flags=re.IGNORECASE)
+    if stripped != raw:
+        variants.extend([stripped, stripped.replace("_", "-"), stripped.replace("-", "_")])
+
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for variant in variants:
+        key = variant.lower()
+        if key not in seen:
+            deduped.append(variant)
+            seen.add(key)
+    return deduped
+
+
+def _casefold_file_lookup(directory: Path, suffix: str) -> dict[str, Path]:
+    return {
+        path.name.lower(): path
+        for path in sorted(directory.glob(f"*{suffix}"))
+        if path.is_file()
+    }
+
+
+def _resolve_casefold_file(directory: Path, candidate_names: list[str], suffix: str) -> Path | None:
+    index = _casefold_file_lookup(directory, suffix)
+    for name in candidate_names:
+        resolved = index.get(f"{name}{suffix}".lower())
+        if resolved is not None:
+            return resolved
+    return None
+
+
 def find_gt_file(gt_dir: Path, model: str) -> Path:
-    candidates = [
-        gt_dir / f"{model}.csv",
-        gt_dir / f"{model.replace('_', '-')}.csv",
-        gt_dir / f"{model.replace('-', '_')}.csv",
-    ]
-    for c in candidates:
-        if c.exists():
-            return c
-    model_norm = model.lower().replace("_", "-").replace(" ", "-")
+    candidate_names = _candidate_model_names(model)
+    resolved = _resolve_casefold_file(gt_dir, candidate_names, ".csv")
+    if resolved is not None:
+        return resolved
+    model_norms = {
+        name.lower().replace("_", "-").replace(" ", "-")
+        for name in candidate_names
+    }
     for f in sorted(gt_dir.glob("*.csv")):
-        if f.stem.lower().replace("_", "-").replace(" ", "-") == model_norm:
+        if f.stem.lower().replace("_", "-",).replace(" ", "-") in model_norms:
             return f
     available = ", ".join(f.name for f in sorted(gt_dir.glob("*.csv")))
     raise FileNotFoundError(
         f"GT file not found for model '{model}' in {gt_dir}.\n"
-        f"Tried: {', '.join(str(c.name) for c in candidates)}\n"
+        f"Tried: {', '.join(f'{name}.csv' for name in candidate_names)}\n"
         f"Available: {available}"
     )
 
 
 def find_obj_file(mesh_dir: Path, model: str) -> Path:
-    model_dir = mesh_dir / model
-    if not model_dir.is_dir():
-        raise FileNotFoundError(f"Model directory not found: {model_dir}")
-    candidates = [
-        model_dir / f"{model}.obj",
-        model_dir / f"{model.replace('_', '-')}.obj",
-        model_dir / f"{model.replace('-', '_')}.obj",
-    ]
-    for c in candidates:
-        if c.exists():
-            return c
-    objs = sorted(model_dir.glob("*.obj"))
-    if objs:
-        return objs[0]
+    dir_index = {
+        path.name.lower(): path
+        for path in sorted(mesh_dir.iterdir())
+        if path.is_dir()
+    }
+    model_dir = None
+    candidate_names = _candidate_model_names(model)
+    for name in candidate_names:
+        model_dir = dir_index.get(name.lower())
+        if model_dir is not None:
+            break
+    if model_dir is None:
+        raise FileNotFoundError(
+            f"Model directory not found for '{model}' in {mesh_dir}. "
+            f"Tried: {', '.join(candidate_names)}"
+        )
+    resolved = _resolve_casefold_file(model_dir, candidate_names, ".obj")
+    if resolved is not None:
+        return resolved
+    obj_candidates = _casefold_file_lookup(model_dir, ".obj")
+    if obj_candidates:
+        return sorted(obj_candidates.values())[0]
     raise FileNotFoundError(f"No OBJ file found in {model_dir}")
 
 
+def find_csv_file(csv_root: Path, model: str) -> Path:
+    candidate_names = _candidate_model_names(model)
+    resolved = _resolve_casefold_file(csv_root, candidate_names, ".csv")
+    if resolved is not None:
+        return resolved
+    raise FileNotFoundError(f"CSV file not found for model '{model}' in {csv_root}")
+
+
+def find_json_file(json_root: Path, model: str, texture_type: str = "non_texture") -> Path:
+    prefix = f"MeshMamba_{texture_type}_"
+    candidate_names = [f"{prefix}{name}" for name in _candidate_model_names(model)]
+    resolved = _resolve_casefold_file(json_root, candidate_names, ".json")
+    if resolved is not None:
+        return resolved
+    raise FileNotFoundError(f"JSON file not found for model '{model}' (prefix={prefix}) in {json_root}")
+
+
 def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
-    mesh_dir = args.dataset_root / "MeshFile" / "non_texture"
-    gt_dir   = args.dataset_root / "SaliencyMap" / "non_texture"
+    texture_type = args.texture_type
+    mesh_dir = args.dataset_root / "MeshFile" / texture_type
+    gt_dir   = args.dataset_root / "SaliencyMap" / texture_type
     obj_path = find_obj_file(mesh_dir, args.model)
     gt_path  = find_gt_file(gt_dir, args.model)
     return {
-        "csv":  args.csv_root  / f"{args.model}.csv",
-        "json": args.json_root / f"MeshMamba_non_texture_{args.model}.json",
+        "csv":  find_csv_file(args.csv_root, args.model),
+        "json": find_json_file(args.json_root, args.model, texture_type),
         "obj":  obj_path,
         "gt":   gt_path,
     }
@@ -244,6 +330,72 @@ def build_projection_matrix_from_fov(
     )
 
 
+def horizontal_to_vertical_fov_deg(horizontal_fov_deg: float, aspect_ratio: float) -> float:
+    return math.degrees(
+        2.0 * math.atan(math.tan(math.radians(horizontal_fov_deg) * 0.5) / float(aspect_ratio))
+    )
+
+
+def resolve_projection_matrix(
+    camera_data: dict,
+    override_fov_deg: float | None,
+    projection_fov_mode: str,
+) -> tuple[np.ndarray, dict[str, float | str | None]]:
+    cam = camera_data["camera_static"]
+    vi = camera_data["video_info"]
+
+    if projection_fov_mode == "json":
+        if override_fov_deg is not None:
+            raise ValueError("--projection-fov-mode json cannot be combined with --override-fov-deg")
+        return np.asarray(cam["projection_matrix"], dtype=np.float64).reshape(4, 4), {
+            "projection_fov_mode": "json",
+            "projection_fov_source": "json_projection_matrix",
+            "input_fov_deg": None,
+            "effective_vertical_fov_deg": None,
+        }
+
+    if projection_fov_mode == "vertical":
+        if override_fov_deg is None:
+            return np.asarray(cam["projection_matrix"], dtype=np.float64).reshape(4, 4), {
+                "projection_fov_mode": "vertical",
+                "projection_fov_source": "json_projection_matrix",
+                "input_fov_deg": None,
+                "effective_vertical_fov_deg": None,
+            }
+        effective_fov = float(override_fov_deg)
+        return build_projection_matrix_from_fov(
+            effective_fov, vi["aspect_ratio"], cam["clip_start"], cam["clip_end"]
+        ), {
+            "projection_fov_mode": "vertical",
+            "projection_fov_source": "override_fov_deg",
+            "input_fov_deg": float(override_fov_deg),
+            "effective_vertical_fov_deg": effective_fov,
+        }
+
+    if projection_fov_mode == "horizontal_to_vertical":
+        if override_fov_deg is None:
+            if "fov_degrees" in cam:
+                input_fov = float(cam["fov_degrees"])
+                source = "json_camera_static.fov_degrees"
+            else:
+                input_fov = math.degrees(float(cam["fov_radians"]))
+                source = "json_camera_static.fov_radians"
+        else:
+            input_fov = float(override_fov_deg)
+            source = "override_fov_deg"
+        effective_fov = horizontal_to_vertical_fov_deg(input_fov, float(vi["aspect_ratio"]))
+        return build_projection_matrix_from_fov(
+            effective_fov, vi["aspect_ratio"], cam["clip_start"], cam["clip_end"]
+        ), {
+            "projection_fov_mode": "horizontal_to_vertical",
+            "projection_fov_source": source,
+            "input_fov_deg": input_fov,
+            "effective_vertical_fov_deg": effective_fov,
+        }
+
+    raise ValueError(f"Unsupported projection_fov_mode: {projection_fov_mode}")
+
+
 def apply_model_transform(
     vertices: np.ndarray,
     camera_data: dict,
@@ -252,41 +404,64 @@ def apply_model_transform(
     base_rotate_z_deg: float,
     extra_rotate_x_deg: float,
     extra_rotate_y_deg: float,
+    transform_order: str,
 ) -> np.ndarray:
     v = np.asarray(vertices, dtype=np.float64).copy()
-    # Canonical order (matches render_preview_from_manifest.py):
-    #   bbox_center computed from ORIGINAL vertices, before any rotation.
     bbox_center = 0.5 * (v.min(axis=0) + v.max(axis=0))
-    rz0 = math.radians(base_rotate_z_deg)
-    if abs(rz0) > 1e-12:
-        cz0, sz0 = math.cos(rz0), math.sin(rz0)
-        x0 = cz0 * v[:, 0] - sz0 * v[:, 1]
-        y0 = sz0 * v[:, 0] + cz0 * v[:, 1]
-        v[:, 0], v[:, 1] = x0, y0
-    if recenter_to_bbox_center:
-        v -= bbox_center
+
+    def rotate_z(points: np.ndarray, angle_rad: float) -> np.ndarray:
+        if abs(angle_rad) <= 1e-12:
+            return points
+        out = points.copy()
+        cz, sz = math.cos(angle_rad), math.sin(angle_rad)
+        x = cz * points[:, 0] - sz * points[:, 1]
+        y = sz * points[:, 0] + cz * points[:, 1]
+        out[:, 0], out[:, 1] = x, y
+        return out
+
+    def rotate_x(points: np.ndarray, angle_deg: float) -> np.ndarray:
+        angle_rad = math.radians(angle_deg)
+        if abs(angle_rad) <= 1e-12:
+            return points
+        out = points.copy()
+        crx, srx = math.cos(angle_rad), math.sin(angle_rad)
+        y = crx * points[:, 1] - srx * points[:, 2]
+        z = srx * points[:, 1] + crx * points[:, 2]
+        out[:, 1], out[:, 2] = y, z
+        return out
+
+    def rotate_y(points: np.ndarray, angle_deg: float) -> np.ndarray:
+        angle_rad = math.radians(angle_deg)
+        if abs(angle_rad) <= 1e-12:
+            return points
+        out = points.copy()
+        cry, sry = math.cos(angle_rad), math.sin(angle_rad)
+        x = cry * points[:, 0] + sry * points[:, 2]
+        z = -sry * points[:, 0] + cry * points[:, 2]
+        out[:, 0], out[:, 2] = x, z
+        return out
 
     scale = np.asarray(camera_data["model_static"]["scale"], dtype=np.float64)
-    v *= scale
+    base_rotate_z_rad = math.radians(base_rotate_z_deg)
 
-    ca, sa = math.cos(rotation_z_rad), math.sin(rotation_z_rad)
-    x2 = ca * v[:, 0] - sa * v[:, 1]
-    y2 = sa * v[:, 0] + ca * v[:, 1]
-    v[:, 0], v[:, 1] = x2, y2
-
-    rx = math.radians(extra_rotate_x_deg)
-    if abs(rx) > 1e-12:
-        crx, srx = math.cos(rx), math.sin(rx)
-        y3 = crx * v[:, 1] - srx * v[:, 2]
-        z3 = srx * v[:, 1] + crx * v[:, 2]
-        v[:, 1], v[:, 2] = y3, z3
-
-    ry = math.radians(extra_rotate_y_deg)
-    if abs(ry) > 1e-12:
-        cry, sry = math.cos(ry), math.sin(ry)
-        x4 = cry * v[:, 0] + sry * v[:, 2]
-        z4 = -sry * v[:, 0] + cry * v[:, 2]
-        v[:, 0], v[:, 2] = x4, z4
+    if transform_order == "eval":
+        v = rotate_z(v, base_rotate_z_rad)
+        if recenter_to_bbox_center:
+            v -= bbox_center
+        v *= scale
+        v = rotate_z(v, rotation_z_rad)
+        v = rotate_x(v, extra_rotate_x_deg)
+        v = rotate_y(v, extra_rotate_y_deg)
+    elif transform_order == "blender_rig":
+        if recenter_to_bbox_center:
+            v -= bbox_center
+        v *= scale
+        v = rotate_x(v, extra_rotate_x_deg)
+        v = rotate_y(v, extra_rotate_y_deg)
+        v = rotate_z(v, base_rotate_z_rad)
+        v = rotate_z(v, rotation_z_rad)
+    else:
+        raise ValueError(f"Unsupported transform order: {transform_order}")
 
     v += np.asarray(camera_data["model_static"]["location"], dtype=np.float64)
     return v
@@ -438,6 +613,8 @@ def run_methods(
     extra_rotate_x_deg: float,
     extra_rotate_y_deg: float,
     override_fov_deg: float | None,
+    projection_fov_mode: str,
+    transform_order: str,
 ) -> tuple[np.ndarray, np.ndarray, dict]:
     n_faces = len(mesh.faces)
     raycast_counts = np.zeros(n_faces, dtype=np.float64)
@@ -447,12 +624,11 @@ def run_methods(
     vi  = camera_data["video_info"]
     frames_list = camera_data["frames"]
 
-    if override_fov_deg is not None:
-        proj_mat = build_projection_matrix_from_fov(
-            override_fov_deg, vi["aspect_ratio"], cam["clip_start"], cam["clip_end"]
-        )
-    else:
-        proj_mat = np.asarray(cam["projection_matrix"], dtype=np.float64).reshape(4, 4)
+    proj_mat, projection_info = resolve_projection_matrix(
+        camera_data,
+        override_fov_deg=override_fov_deg,
+        projection_fov_mode=projection_fov_mode,
+    )
 
     total_points = total_hits = total_cone_f = 0
 
@@ -472,6 +648,7 @@ def run_methods(
             base_rotate_z_deg,
             extra_rotate_x_deg,
             extra_rotate_y_deg,
+            transform_order,
         )
 
         origins, dirs = screen_to_rays(camera_data, batch.x_norm, batch.y_norm, proj_mat)
@@ -511,6 +688,7 @@ def run_methods(
         "hit_rate":            total_hits / total_points if total_points else 0.0,
         "raycast_nonzero_faces": int(np.count_nonzero(raycast_counts)),
         "cone_nonzero_faces":    int(np.count_nonzero(cone_counts)),
+        "projection": projection_info,
     }
     return raycast_counts, cone_counts, stats
 
@@ -543,6 +721,10 @@ def main() -> None:
         tag_parts.append(f"roty{args.extra_rotate_y_deg}".replace(".", "p"))
     if args.override_fov_deg is not None:
         tag_parts.append(f"fov{args.override_fov_deg}".replace(".", "p"))
+    if args.projection_fov_mode != "vertical":
+        tag_parts.append(args.projection_fov_mode.replace("_", ""))
+    if args.transform_order != "eval":
+        tag_parts.append(args.transform_order)
     tag = args.tag or ("default" if not tag_parts else "_".join(tag_parts))
 
     raycast, cone, run_stats = run_methods(
@@ -556,6 +738,8 @@ def main() -> None:
         extra_rotate_x_deg=args.extra_rotate_x_deg,
         extra_rotate_y_deg=args.extra_rotate_y_deg,
         override_fov_deg=args.override_fov_deg,
+        projection_fov_mode=args.projection_fov_mode,
+        transform_order=args.transform_order,
     )
 
     gt = np.loadtxt(paths["gt"])
@@ -577,7 +761,7 @@ def main() -> None:
     report = {
         "model":   args.model,
         "tag":     tag,
-        "dataset": "MeshMamba_non_texture",
+        "dataset": f"MeshMamba_{args.texture_type}",
         "gt_file": str(paths["gt"].name),
         "n_faces": int(len(mesh.faces)),
         "gaze_stats":  gaze_stats,
@@ -590,7 +774,9 @@ def main() -> None:
             "extra_rotate_x_deg":      args.extra_rotate_x_deg,
             "extra_rotate_y_deg":      args.extra_rotate_y_deg,
             "override_fov_deg":        args.override_fov_deg,
-            "transform_order": "base_rotate_z -> recenter -> scale -> rotation_z -> extra_rotate_x -> extra_rotate_y -> translation",
+            "projection_fov_mode":     args.projection_fov_mode,
+            **run_stats["projection"],
+            "transform_order":         args.transform_order,
         },
         "metrics_vs_gt": results,
     }

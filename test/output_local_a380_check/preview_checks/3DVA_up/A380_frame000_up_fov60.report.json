@@ -1,0 +1,36 @@
+{
+  "manifest_path": "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/manifests/preview_3dva_a380_up.json",
+  "dataset": "3DVA",
+  "model": "A380",
+  "obj_path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/A380.obj",
+  "json_path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/3DVA_json/3DVA_A380.json",
+  "csv_path": null,
+  "video_path": "/Users/admin/Documents/LAB/SALIENCY_code/videos/3DVA/3DVA_A380.mp4",
+  "frame_index": 0,
+  "resolution_width": 960,
+  "resolution_height": 540,
+  "recenter_to_bbox_center": true,
+  "base_rotate_z_deg": 0.0,
+  "extra_rotate_x_deg": 0.0,
+  "extra_rotate_y_deg": 0.0,
+  "override_fov_deg": null,
+  "plain_preview": "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/output_local_a380_check/preview_checks/3DVA_up/A380_frame000_up_fov60.png",
+  "overlay_preview": null,
+  "video_frame": "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/output_local_a380_check/preview_checks/3DVA_up/A380_frame000_up_fov60_video_frame.png",
+  "comparison_preview": "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/output_local_a380_check/preview_checks/3DVA_up/A380_frame000_up_fov60_compare.png",
+  "overlay_points": 0,
+  "plain_stats": {
+    "bbox_center_raw_obj": [
+      0.004801000000000499,
+      0.16816350000000213,
+      -0.40056899999999995
+    ],
+    "bbox_min_x": 369,
+    "bbox_min_y": 210,
+    "bbox_max_x": 590,
+    "bbox_max_y": 349,
+    "bbox_width": 222,
+    "bbox_height": 140,
+    "coverage_ratio_bbox": 0.059953703703703703
+  }
+}

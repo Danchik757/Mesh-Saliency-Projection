@@ -28,6 +28,7 @@ import ast
 import json
 import math
 import os
+import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
@@ -139,14 +140,69 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
+def _candidate_model_names(model: str) -> list[str]:
+    raw = model.strip()
+    variants = [raw, raw.lower(), raw.upper()]
+    deduped: list[str] = []
+    seen: set[str] = set()
+    for variant in variants:
+        key = variant.lower()
+        if key not in seen:
+            deduped.append(variant)
+            seen.add(key)
+    return deduped
+
+
+def _casefold_file_lookup(directory: Path, suffix: str) -> dict[str, Path]:
     return {
-        "csv":    args.csv_root  / f"{args.model}.csv",
-        "json":   args.json_root / f"3DVA_{args.model}.json",
-        "obj":    args.dataset_root / "3DModels-Simplif-up" / f"{args.model}.obj",
-        "gt_300": args.dataset_root / "FixationMaps" / f"{args.model}_300norm.txt",
-        "gt_413": args.dataset_root / "FixationMaps" / f"{args.model}_413norm.txt",
-        "gt_599": args.dataset_root / "FixationMaps" / f"{args.model}_599norm.txt",
+        path.name.lower(): path
+        for path in sorted(directory.glob(f"*{suffix}"))
+        if path.is_file()
+    }
+
+
+def _resolve_casefold_file(directory: Path, candidate_names: list[str], suffix: str) -> Path | None:
+    index = _casefold_file_lookup(directory, suffix)
+    for name in candidate_names:
+        resolved = index.get(f"{name}{suffix}".lower())
+        if resolved is not None:
+            return resolved
+    return None
+
+
+def _resolve_3dva_prefixed_json(json_root: Path, model: str) -> Path:
+    candidate_names = [f"3DVA_{name}" for name in _candidate_model_names(model)]
+    resolved = _resolve_casefold_file(json_root, candidate_names, ".json")
+    if resolved is not None:
+        return resolved
+    raise FileNotFoundError(f"JSON file not found for model '{model}' in {json_root}")
+
+
+def _resolve_gt_file(gt_root: Path, model: str, view: str) -> Path:
+    candidate_names = [f"{name}_{view}norm" for name in _candidate_model_names(model)]
+    resolved = _resolve_casefold_file(gt_root, candidate_names, ".txt")
+    if resolved is not None:
+        return resolved
+    raise FileNotFoundError(f"GT file not found for model '{model}', view '{view}' in {gt_root}")
+
+
+def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
+    candidate_names = _candidate_model_names(args.model)
+    csv_path = _resolve_casefold_file(args.csv_root, candidate_names, ".csv")
+    obj_path = _resolve_casefold_file(args.dataset_root / "3DModels-Simplif-up", candidate_names, ".obj")
+    if csv_path is None:
+        raise FileNotFoundError(f"CSV file not found for model '{args.model}' in {args.csv_root}")
+    if obj_path is None:
+        raise FileNotFoundError(
+            f"OBJ file not found for model '{args.model}' in {args.dataset_root / '3DModels-Simplif-up'}"
+        )
+    return {
+        "csv":    csv_path,
+        "json":   _resolve_3dva_prefixed_json(args.json_root, args.model),
+        "obj":    obj_path,
+        "gt_300": _resolve_gt_file(args.dataset_root / "FixationMaps", args.model, "300"),
+        "gt_413": _resolve_gt_file(args.dataset_root / "FixationMaps", args.model, "413"),
+        "gt_599": _resolve_gt_file(args.dataset_root / "FixationMaps", args.model, "599"),
     }
 
 
