@@ -1,0 +1,10 @@
+bunny
+A380
+dog
+flowerpot
+dragon
+lion
+alien2
+building
+cart
+turbine
