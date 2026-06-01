@@ -707,8 +707,12 @@ def main() -> None:
     with paths["json"].open("r", encoding="utf-8") as f:
         camera_data = json.load(f)
     mesh = trimesh.load(str(paths["obj"]), process=False)
+    if isinstance(mesh, trimesh.Scene):
+        mesh = mesh.dump(concatenate=True)
+    if isinstance(mesh, (list, tuple)):
+        mesh = trimesh.util.concatenate([m for m in mesh if isinstance(m, trimesh.Trimesh)])
     if not isinstance(mesh, trimesh.Trimesh):
-        raise SystemExit(f"Expected a single Trimesh, got {type(mesh)}")
+        raise SystemExit(f"Expected a Trimesh-compatible OBJ, got {type(mesh)}")
 
     gaze_batches, gaze_stats = load_gaze_batches(
         paths["csv"],
