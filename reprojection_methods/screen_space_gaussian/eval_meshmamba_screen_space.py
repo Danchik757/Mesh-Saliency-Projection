@@ -265,7 +265,11 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
     mesh_dir = args.dataset_root / "MeshFile" / texture_type
     gt_dir   = args.dataset_root / "SaliencyMap" / texture_type
     obj_path = find_obj_file(mesh_dir, args.model)
-    gt_path  = find_gt_file(gt_dir, args.model, extra_candidate_names=[obj_path.stem])
+    gt_candidates = [obj_path.stem]
+    resolved_stem = obj_path.resolve().stem
+    if resolved_stem not in gt_candidates:
+        gt_candidates.append(resolved_stem)
+    gt_path  = find_gt_file(gt_dir, args.model, extra_candidate_names=gt_candidates)
     return {
         "csv":  find_csv_file(args.csv_root, args.model),
         "json": find_json_file(args.json_root, args.model, texture_type),

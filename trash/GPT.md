@@ -1014,3 +1014,493 @@ Targeted verification:
 Operational note:
 - Local system `python3` in this shell did not have `trimesh`; smoke runs were
   executed with `GAZE_DATA/venv/bin/python3`, which is the intended eval env.
+
+## 2026-06-01 MSK — 3DVA overlay IoU check before pilot contradicts new FOV policy
+
+Goal:
+- Validate the current 3DVA geometry recipe with Blender/video overlay IoU
+  before moving on to pilot metric runs.
+
+Setup:
+- Built dedicated manifests with the current eval-side FOV policy:
+  `override_fov_deg=35.9834`
+- Models checked: `bunny`, `chair107`, `flowerpot`, `A380`
+- Manifests:
+  - `test/manifests/preview_3dva_bunny_up_eval.json`
+  - `test/manifests/preview_3dva_chair107_up_eval.json`
+  - `test/manifests/preview_3dva_flowerpot_up_eval.json`
+  - `test/manifests/preview_3dva_a380_up_eval.json`
+- Batch summary:
+  - `test/output_local/blender_mask_batch_3dva_up_eval359834/summary.json`
+
+Important runtime note:
+- `evaluate_blender_mask_batch.py` crashed with Blender `SIGSEGV` inside the
+  sandbox, but succeeded outside the sandbox with the same command.
+
+Results (old preview recipe `override_fov_deg=null` vs new `35.9834`):
+- `bunny`:  `0.9784 -> 0.3561`
+- `chair107`: `0.9330 -> 0.2132`
+- `flowerpot`: `0.9559 -> 0.3115`
+- `A380`: `0.9065 -> 0.1634`
+- New batch mean IoU: `0.2611`
+
+Interpretation:
+- For the Blender/video overlay pipeline, `35.9834` is clearly wrong.
+- The old preview manifests with `override_fov_deg=null` match the source video
+  dramatically better than the new eval-side FOV override.
+- Therefore we currently have a real split:
+  - preview/overlay geometry says: use JSON/`fov60`
+  - eval-side projection analysis had suggested: use `35.9834`
+
+Consequence:
+- Do **not** start the 3DVA pilot yet.
+- First resolve why preview-space and eval-space disagree on FOV convention.
+- Most likely next debug target is to inspect how Blender preview interprets
+  `camera_static.fov_radians`/`cam_data.angle` versus how the eval scripts
+  interpret `projection_matrix` and `build_projection_matrix_from_fov()`.
+
+### Clarification after Claude.md + code audit
+
+The apparent contradiction is now explained by API semantics:
+
+1. **Blender preview pipeline** (`render_preview_from_manifest_blender.py`)
+   does **not** use `camera_static["projection_matrix"]`.
+   It reconstructs the camera from:
+   - `lens_mm`
+   - `sensor_width_mm`
+   - `sensor_height_mm`
+   - `fov_radians` or `override_fov_deg` via `cam_data.angle`
+
+2. In the 3DVA JSON, these fields are internally consistent for a
+   **horizontal 60° camera**:
+   - `lens_mm = 31.1769`
+   - `sensor_width_mm = 36`
+   - horizontal FOV from lens/sensor = `60.0000°`
+   - Blender preview with `override_fov_deg=null` therefore reproduces the
+     source video correctly.
+
+3. The stored JSON `projection_matrix` is a separate issue.
+   From the real file:
+   - `P[0,0] = 0.9742785`
+   - `P[1,1] = 1.7320507`
+   - interpreted as a standard OpenGL perspective matrix, that means:
+     - vertical FOV = `60°`
+     - horizontal FOV = `91.49°`
+   This is **not** the intended physical camera.
+
+4. Therefore:
+   - for **preview / overlay / Blender canonical IoU**:
+     use `override_fov_deg = null`
+   - for **eval scripts that call `build_projection_matrix_from_fov()`**:
+     `35.9834°` is still the correct **vertical** FOV corresponding to
+     physical horizontal `60°` on `16:9`
+
+5. The failed overlay batch with manifests set to `override_fov_deg=35.9834`
+   was invalid as a geometry recipe because Blender's `cam_data.angle` in this
+   pipeline is acting as the horizontal camera angle under the stored physical
+   camera model. So that batch tested the wrong thing.
+
+Practical consequence:
+- The recent 3DVA eval-side FOV normalization does **not** automatically imply
+  that preview manifests should also switch to `35.9834`.
+- Preview and eval must currently be documented separately:
+  - preview-space recipe: JSON lens/FOV (`override_fov_deg=null`)
+  - eval-space recipe: explicit vertical override (`35.9834`) if using the
+    standard matrix builder instead of the malformed JSON matrix
+
+## 2026-06-01 MSK — 3DVA eval-side FOV debug on real gaze/GT (`bunny`)
+
+Scope:
+- separate **preview-space** correctness from **eval-space** correctness using
+  one real 3DVA object and the in-repo eval math, not Blender IoU.
+
+Files inspected:
+- `trash/Claude.md`
+- `reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py`
+- `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py`
+- `GAZE_DATA/jsons_for_models/3DVA_json/3DVA_bunny.json`
+
+Key Claude note used:
+- session 9 explicitly recorded the same projection-matrix convention bug for
+  `3DVA` eval scripts as for MeshMamba:
+  JSON matrix encodes `P[0,0]=0.974`, `P[1,1]=1.732`, while the physically
+  correct 60° horizontal camera on 16:9 should use
+  `P[0,0]=1.732`, `P[1,1]=3.079`.
+
+What was checked:
+1. Geometry-only ray comparison for representative screen points.
+2. One fast eval-side GT comparison on `bunny` using
+   `eval_3dva_screen_space.py` internals with:
+   - variant A: JSON `projection_matrix`
+   - variant B: rebuilt vertical FOV `35.9834°`
+
+Geometry facts:
+- Center ray is identical for both matrices.
+- Off-center rays differ materially:
+  - top/bottom center point: `10.23°`
+  - left/right center point: `14.60°`
+- This confirms the two matrices are not a mild reparameterization; they send
+  different rays through the same gaze coordinates.
+
+`bunny` screen-space GT results (mean over views 300/413/599):
+- JSON matrix:
+  - `CC = 0.0048`
+  - `SIM = 0.2948`
+  - `KLD = 1.5280`
+  - `MSE = 0.2584`
+  - `Spearman = 0.0450`
+  - `AUC_Judd_gt_top_10pct_proxy = 0.5433`
+- Rebuilt `35.9834°`:
+  - `CC = -0.0106`
+  - `SIM = 0.2871`
+  - `KLD = 1.7580`
+  - `MSE = 0.1437`
+  - `Spearman = 0.0234`
+  - `AUC_Judd_gt_top_10pct_proxy = 0.5260`
+
+Interpretation:
+- On this real eval-side test, `35.9834°` does **not** produce a clear
+  empirical win.
+- It improves `MSE`, but is worse on `CC`, `SIM`, `KLD`, `Spearman`, and AUC.
+- Therefore the current blanket switch to `override_fov_deg=35.9834` for 3DVA
+  is **not yet validated by GT metrics**, even though the matrix is physically
+  more plausible than the stored JSON matrix.
+
+Current status:
+- Preview-space recipe remains validated:
+  `3DModels-Simplif-up`, `recenter=true`, `extra_rotate_x=0`,
+  `override_fov_deg=null`
+- Eval-space recipe is still unresolved:
+  `JSON projection_matrix` vs rebuilt `35.9834°` needs more evidence than the
+  current one-object screen-space test.
+
+Additional spot-check: `A380` with `video_id=2365`, same screen-space A/B.
+
+`A380` screen-space GT results (mean over views 300/413/599):
+- JSON matrix:
+  - `CC = -0.0686`
+  - `SIM = 0.2012`
+  - `KLD = 2.1293`
+  - `MSE = 0.3085`
+  - `Spearman = -0.0425`
+  - `AUC_Judd_gt_top_10pct_proxy = 0.4450`
+- Rebuilt `35.9834°`:
+  - `CC = 0.0097`
+  - `SIM = 0.1958`
+  - `KLD = 2.4870`
+  - `MSE = 0.1648`
+  - `Spearman = -0.0858`
+  - `AUC_Judd_gt_top_10pct_proxy = 0.4855`
+
+Interpretation update:
+- `A380` does show improvement for `35.9834°` on `CC`, `AUC`, and `MSE`.
+- But even here the same override is worse on `SIM`, `KLD`, and `Spearman`.
+- So the current evidence remains mixed:
+  - `bunny`: JSON matrix looks better on most ranking/similarity metrics
+  - `A380`: `35.9834°` looks better on `CC/AUC/MSE`
+- This is still not strong enough to declare one global eval-side 3DVA FOV
+  policy as fully validated.
+
+Next step:
+- run the same A/B check on at least one more 3DVA object beyond `bunny` and
+  `A380`, and ideally also on the raycast/cone path, not only on the
+  screen-space path.
+
+## 2026-06-01 MSK — first server-side MeshMamba smoke after recipe normalization
+
+Scope:
+- push normalized benchmark branch to GitHub
+- update `vg-intellect` checkout to `b991822`
+- run one real server smoke on `MeshMamba non_texture` for
+  `Rubber_Duck_v1_L3`
+
+Server state:
+- server worktree before update was at `2122e72`
+- local benchmark branch had already advanced to `b991822` and was pushed:
+  `reproject-benchmark -> origin/reproject-benchmark`
+- server was then fast-forwarded to `b991822`
+
+Server smoke command family:
+- `test/launch/run_meshmamba_baseline_screen_space.sh`
+- `test/launch/run_meshmamba_baseline_cone.sh`
+
+Server output root:
+- `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs_smoke_20260601`
+
+Model:
+- `Rubber_Duck_v1_L3`
+
+Applied recipe on server:
+- `recenter_to_bbox_center=true`
+- `extra_rotate_x_deg=90`
+- `projection_fov_mode=horizontal_to_vertical`
+- `transform_order=blender_rig`
+- no explicit FOV override; scripts used
+  `json_camera_static.fov_degrees=60.000001669652114` and converted it to
+  `effective_vertical_fov_deg=35.98339890412515`
+
+Results — screen-space baseline:
+- report:
+  `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs_smoke_20260601/MeshMamba_non_texture/baseline_screen_space/Rubber_Duck_v1_L3/sigma0p05_recenter_rotx90p0_horizontaltovertical_blender_rig/Rubber_Duck_v1_L3_report.json`
+- key metrics:
+  - `CC = 0.2614`
+  - `SIM = 0.5456`
+  - `KLD = 2.7818`
+  - `MSE = 0.07536`
+  - `Spearman = 0.2635`
+  - `AUC_Judd_gt_top_10pct_proxy = 0.6948`
+- useful runtime diagnostic:
+  - `culled_back_faces = 9127648`
+  This confirms the new back-face culling path is active in the server run.
+
+Results — cone baseline:
+- report:
+  `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs_smoke_20260601/MeshMamba_non_texture/baseline_cone/Rubber_Duck_v1_L3/recenter_rotx90p0_horizontaltovertical_blender_rig/Rubber_Duck_v1_L3_report.json`
+- `raycast_nearest_face`:
+  - `CC = 0.1022`
+  - `SIM = 0.2515`
+  - `KLD = 12.2078`
+  - `MSE = 0.01909`
+  - `Spearman = 0.0344`
+  - `AUC_Judd_gt_top_10pct_proxy = 0.5399`
+- `cone_gaussian_on_mesh`:
+  - `CC = 0.5963`
+  - `SIM = 0.6169`
+  - `KLD = 0.9350`
+  - `MSE = 0.01455`
+  - `Spearman = 0.4383`
+  - `AUC_Judd_gt_top_10pct_proxy = 0.8848`
+  - `hit_rate = 0.9451`
+
+Interpretation:
+- the normalized MeshMamba recipe now runs correctly on `vg-intellect`
+- the cone baseline is clearly stronger than both:
+  - raw `raycast_nearest_face`
+  - screen-space baseline
+- this reproduces the qualitative pattern already seen in earlier local
+  validation for `Rubber_Duck`
+
+Next step:
+- extend the same server smoke to 1–2 additional MeshMamba models before any
+  larger pilot batch, while leaving the 3DVA FOV question unresolved.
+
+## 2026-06-01 MSK — consolidated next-work plan and ownership split
+
+This is the current execution plan after:
+- 3DVA preview/eval FOV divergence was confirmed
+- first real server-side MeshMamba smoke passed on `Rubber_Duck_v1_L3`
+
+### Priority order
+
+1. **Do not start a full 3DVA pilot yet**
+   `3DVA` still has an unresolved eval-side FOV policy.
+   Preview-space is validated; eval-space is not.
+
+2. **Continue MeshMamba first**
+   `MeshMamba non_texture` is currently the most benchmark-ready track:
+   geometry validated, server recipe validated, first server metrics obtained.
+
+3. **Treat SAL3D as a bounded reconstruction track**
+   The new eval script exists, but metric validity still needs masking of
+   zero-GT/uncovered vertices on high-res OBJ models.
+
+### Work phases
+
+#### Phase A — stabilize logs and scratch state
+
+Goal:
+- keep only intentional planning changes in the worktree
+
+Tasks:
+- decide whether to keep or delete temporary `3DVA` manifests:
+  - `test/manifests/preview_3dva_bunny_up_eval.json`
+  - `test/manifests/preview_3dva_chair107_up_eval.json`
+  - `test/manifests/preview_3dva_flowerpot_up_eval.json`
+  - `test/manifests/preview_3dva_a380_up_eval.json`
+- keep `trash/GPT.md` and `trash/Claude.md` updated
+- no eval-logic changes in this phase
+
+#### Phase B — resolve or explicitly bound the 3DVA eval FOV problem
+
+Goal:
+- stop treating `3DVA` FOV as implicitly solved
+
+Required checks:
+- run the same A/B (`JSON projection_matrix` vs rebuilt `35.9834°`) on at
+  least 1–2 more 3DVA objects
+- include not only `screen_space`, but also `raycast/cone`
+- prefer one additional simple model plus one complex model beyond
+  `bunny` and `A380`
+- if results remain mixed, document `3DVA` as having:
+  - validated preview-space recipe
+  - unresolved eval-space policy
+
+Exit condition:
+- either one recipe wins consistently enough to standardize
+- or we freeze `3DVA` as an explicitly split track and postpone pilot
+
+#### Phase C — expand MeshMamba server smoke into a mini pilot
+
+Goal:
+- confirm server reproducibility on more than one model before scaling out
+
+Required checks:
+- run the same server smoke for 1–2 more `MeshMamba non_texture` models
+- recommended next models:
+  - `Mango_L3`
+  - `Rhinoceros_v1_L3`
+- compare:
+  - `screen_space_gaussian`
+  - `raycast_nearest_face`
+  - `cone_gaussian_on_mesh`
+- verify expected qualitative ordering on server:
+  `cone > screen_space > raw raycast` or note deviations
+
+Exit condition:
+- if metrics look coherent on 3 models, prepare a small non_texture pilot batch
+
+#### Phase D — validate SAL3D metric protocol
+
+Goal:
+- make SAL3D results benchmark-valid instead of merely runnable
+
+Required checks:
+- add or validate masking of uncovered OBJ vertices for high-res models
+- compute metrics only on GT-covered vertex subset where appropriate
+- re-run at least:
+  - one 20K direct-match model
+  - one high-res subset-match model
+- verify whether current low CC on high-res models is mostly a metric-domain
+  artifact
+
+Exit condition:
+- either SAL3D becomes a clearly valid partial benchmark
+- or remains labeled as reconstruction/diagnostic only
+
+#### Phase E — documentation sync and pilot launch gating
+
+Goal:
+- make runbook, launchers, and actual practice say the same thing
+
+Tasks:
+- once `3DVA` and `SAL3D` status is decided, update:
+  - `trash/EVAL_RUNBOOK.md`
+  - `DATA_PATHS.md`
+  - `trash/GPT.md`
+  - `trash/Claude.md`
+- then decide which pilot(s) are unlocked:
+  - `MeshMamba non_texture`: likely first
+  - `3DVA`: only after FOV policy is resolved or explicitly bounded
+  - `SAL3D`: only after masking/metric validity is fixed
+
+### Ownership split
+
+#### GPT owns
+
+1. `3DVA` eval-policy resolution
+   - all A/B comparisons
+   - final decision or explicit deferral
+2. server orchestration
+   - update/pull state on `vg-intellect`
+   - smoke/pilot launches
+   - output collection and interpretation
+3. benchmark gating decisions
+   - when a dataset is ready for pilot
+   - when a track stays blocked
+4. cleanup / commit sequencing
+   - scratch manifests
+   - log commits
+   - pilot-ready commits
+
+#### Claude owns
+
+1. `SAL3D` benchmark-validity repair
+   - GT-covered-vertex masking
+   - re-evaluation of high-res models
+   - explicit note on which metrics remain meaningful
+2. `MeshMamba` extension work that does not change the validated core recipe
+   - rgb_texture spot checks
+   - additional non_texture local comparisons if useful
+   - targeted diagnostics on GT / naming / per-method behavior
+3. documentation support
+   - append-only notes about findings
+   - no silent assumption changes
+
+### Immediate next actions
+
+1. GPT:
+   - run 1–2 more server smokes for `MeshMamba non_texture`
+   - keep `3DVA` pilot blocked
+2. Claude:
+   - focus on `SAL3D` GT-domain masking and re-check
+3. Shared rule:
+   - no one should declare `3DVA` fully normalized until the eval-side FOV
+     conflict is either resolved or explicitly frozen as unresolved.
+
+## 2026-06-01 MSK — GT interpretation from "Visual Attention for Rendered 3D Shapes"
+
+Source:
+- `/Users/admin/Documents/LAB/READ/# [2018.11] Visual Attention for Rendered 3D Shapes.pdf`
+
+Why this matters:
+- this paper is the clearest benchmark-style reference in our workspace for how
+  human fixation GT on 3D meshes should be interpreted and evaluated.
+
+Ground-truth construction, per the paper:
+1. Raw eye-tracker data is a sequence of 2D fixations `(x, y)` with duration.
+2. Each fixation is first mapped to the 3D object by casting the camera ray
+   through the fixation pixel and taking the closest intersection point.
+3. To avoid losing silhouette fixations, the ray is replaced by a cone and a
+   Gaussian is projected onto the mesh.
+4. The Gaussian standard deviation is fixed to `49 px`, corresponding to
+   `1° visual angle`.
+5. Contributions from all observers are summed to obtain the fixation density
+   map on the mesh.
+
+Important benchmark semantics from the paper:
+1. For the actual benchmark, they choose **static** scenes, not dynamic ones,
+   because dynamic fixations depend strongly on camera motion and are not a
+   clean target for geometry-only saliency models.
+2. GT is evaluated on the **mesh**, not in screen-space.
+3. Visibility matters: for evaluation, saliency maps are multiplied by a
+   binary visibility field for the given static viewpoint.
+4. Two main metrics are used:
+   - Pearson linear correlation (`ρ`, same family as `CC/LCC`)
+   - `AUC`
+5. For `AUC`, fixation maps are thresholded so that `20%` of visible vertices
+   are treated as positives.
+6. Human upper-bound is estimated by using fixation maps from half the
+   observers to predict the fixation maps from the other half.
+
+Practical implication for our repo:
+1. GT from this benchmark should be treated as a **smooth per-vertex density
+   map on the mesh**, not as sparse hit locations.
+2. `cone_gaussian_on_mesh` is conceptually closer to the paper GT than
+   `raycast_nearest_vertex/face`.
+3. When comparing methods against benchmark GT, visibility masking and
+   viewpoint specificity are part of the protocol, not optional details.
+
+## 2026-06-01 MSK — MeshMamba GT lookup fix for symlinked OBJ names
+
+Problem:
+- on `vg-intellect`, some MeshMamba model directories expose a convenience OBJ
+  symlink with the model-name stem, e.g.
+  `Ice_Cream_V1_L3.obj -> Ice_Cream_v1_LOD1.obj`
+- GT filenames follow the **real target stem**, not always the symlink stem
+- as a result, `find_gt_file(..., extra_candidate_names=[obj_path.stem])`
+  could miss GT even though the correct file exists
+
+Fix:
+- in both MeshMamba eval scripts, GT lookup now adds:
+  - `obj_path.stem`
+  - `obj_path.resolve().stem`
+
+Affected files:
+- `reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py`
+- `reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py`
+
+Purpose:
+- unblock valid server runs for cases like:
+  - `Ice_Cream_V1_L3 -> Ice_Cream_v1_LOD1.csv`
+  - `barbiegirl_V1_L3 -> barbiedoll_v1_L3.csv`
+  - `WWII_Plane-Germany_Focke-Wulf_Fw_190_v1 -> WWII_Plane-Germany_Focke-Wulf_FW_190_v1_l3.csv`
