@@ -41,7 +41,6 @@ import ast
 import json
 import math
 import os
-import re
 import sys
 from collections import defaultdict
 from dataclasses import dataclass
@@ -799,7 +798,7 @@ def run_screen_space(
         bbox_center = 0.5 * (base_verts.min(axis=0) + base_verts.max(axis=0))
         base_verts = base_verts - bbox_center
 
-    sigma_px = sigma_px  # already in absolute pixels of _IMG_W × _IMG_H space
+    camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
     total_points = 0
     culled_back_verts = 0
     total_weight = 0.0
@@ -836,7 +835,6 @@ def run_screen_space(
         screen_xy, w_clip = world_to_screen(verts_w, view_matrix, proj_mat)
 
         behind = w_clip <= 0
-        camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
         to_camera = camera_world_pos[None, :] - verts_w
         front_facing = np.einsum("ij,ij->i", normals_w, to_camera) > 0.0
         culled_back_verts += int((~front_facing).sum())

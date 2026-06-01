@@ -2595,3 +2595,882 @@ Questions for GPT:
    with a flag, or run separately as a new named method?
 2. For the final benchmark table: use existing v1 results or re-run with v2?
 3. Should we add `--with-videos` to the release (256 MB) now, or wait?
+
+---
+
+## 2026-06-01 MSK (session 15 — SAL3D eval scripts + sigma fix + server run prep)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: Implement SAL3D screen_space eval, parallel batch runner, apply sigma fix,
+audit and fix correctness issues, prepare server run instructions for GPT.
+
+### Files created
+
+1. `reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py`
+   - Screen-space Gaussian method adapted for SAL3D per-vertex GT.
+   - Key differences from eval_meshmamba_screen_space.py:
+     * Projects mesh VERTICES (not face centroids) to screen space
+     * Uses `get_view_matrix()` to reconstruct view matrix from euler angles
+       (SAL3D JSONs don't have `view_matrix` field — only `rotation_euler_radians`)
+     * GT loading via `load_gt_aligned_to_obj()` with KDTree alignment + optional smoothing
+     * Dual metric output: `metrics_vs_gt_full_mesh` + `metrics_vs_gt_covered_only`
+     * `gt_match_type`, `n_gt_covered`, `gt_coverage_pct`, `gt_smoothed` fields in report
+   - Sigma fix applied (same as MeshMamba v2):
+     * `_IMG_W=1920, _IMG_H=1080` (was 256×144)
+     * `--sigma-px 26.3` absolute pixels (was `--sigma-screen 0.05` fraction)
+     * `_deposit_bilinear_batch()` for sub-pixel accurate gaze deposition
+   - Correctness fixes applied after audit:
+     * `camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]` moved BEFORE frame loop
+       (was computed 720× per model unnecessarily — static camera)
+     * `import re` dead import removed
+     * `sigma_px = sigma_px` no-op tautology line removed
+
+2. `test/launch/run_sal3d_reference_batch.py`
+   - Parallel batch runner for SAL3D, analogous to run_meshmamba_reference_batch.py.
+   - Methods: screen_space + cone (raycast excluded from batch — cone subsumes it)
+   - Model inventory: intersection of `Gaze/*.txt` ∩ `csv_root/*.csv`
+   - Always reads from `metrics_vs_gt_covered_only` (the only valid section for ALL models)
+   - Extra columns vs MeshMamba: `gt_match_type`, `n_gt_covered`, `gt_coverage_pct`, `gt_smoothed`
+   - Tags:
+     * SCREEN_TAG = `sigmapx26p3_recenter_rotx90p0_horizontaltovertical_blender_rig`
+     * CONE_TAG   = `recenter_rotx90p0_horizontaltovertical_blender_rig`
+   - Output: `sal3d_reference_long.csv`, `sal3d_reference_wide.csv`, `sal3d_reference_summary.csv`
+   - Summary includes: `n_direct`, `n_subset`, `n_smoothed_gt` breakdown
+
+### Local pilot results (bunny, lion, A380 × 2 methods, smoothed GT, covered_only)
+
+| Model | gt_match | coverage | Method | CC | SIM | KLD | hit_rate |
+|-------|----------|----------|--------|----|-----|-----|---------|
+| bunny | direct | 100% | cone | 0.769 | 0.737 | 0.258 | 0.961 |
+| bunny | direct | 100% | screen_space (v2) | 0.706 | 0.715 | 0.408 | — |
+| lion | subset | 37.2% | cone | 0.469 | 0.594 | 0.572 | 0.880 |
+| lion | subset | 37.2% | screen_space (v2) | 0.295 | 0.641 | 0.895 | — |
+| A380 | subset | 41.8% | cone | 0.438 | 0.611 | 0.513 | 0.782 |
+| A380 | subset | 41.8% | screen_space (v2) | −0.015 | 0.495 | 3.065 | — |
+
+Cone substantially outperforms screen_space on SAL3D, especially on complex shapes.
+A380 screen_space CC≈0 because wings dominate screen area and gaze on fuselage
+projects ambiguously to multiple faces at same screen position.
+
+### SAL3D dataset inventory (local)
+
+| Source | Count | Notes |
+|--------|-------|-------|
+| `Gaze/*.txt` (GT from SAL3D paper) | 58 | Full dataset (not the 23-file partial archive) |
+| Our gaze CSVs | 56 | Our participants watching rotating videos |
+| Camera JSONs `Sal3D_*.json` | 57 | — |
+| `Smooth_Gaze/*_neighbors.txt` | 53 | Used to densify sparse raw GT |
+| OBJ meshes | 57 | — |
+| **Full intersection (all sources)** | **50** | Valid benchmark models |
+| Raw GT only (no Smooth_Gaze) | 4 | dog, flowerpot, MaxPlanck, prot — CC unreliable |
+| No CSV (cannot run) | 4 | AudiRS5, bimba, blade, gorgoile |
+
+Local dataset root for eval scripts: `SAL3D_Dataset/` subdirectory
+(i.e. `--dataset-root` points to dir containing `Gaze/`, `Meshes/`, `Smooth_Gaze/`)
+
+### Known bugs NOT yet fixed (commit before server run)
+
+The following bugs were identified during audit. They are documented here
+so GPT can verify the fix is committed before running on vg-intellect:
+
+BUG-SAL3D-1: `camera_world_pos` inside frame loop (FIXED in this session)
+  File: `reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py`
+  Was: `camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]` inside the
+       per-frame loop → computed 720 times per model, but view_matrix is static.
+  Fix: moved before the loop. View_matrix is constant for SAL3D (static camera,
+       only model rotates via `rotation_z_radians` in frames[]).
+  Status: FIXED (changes uncommitted as of this session).
+
+BUG-SAL3D-2: dead `import re` (FIXED in this session)
+  File: `reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py`
+  `re` module was imported but not referenced anywhere in the file.
+  Status: FIXED (changes uncommitted).
+
+BUG-SAL3D-3: `sigma_px = sigma_px` tautology (FIXED in this session)
+  File: `reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py`
+  Line was a leftover from refactoring. Harmless but misleading.
+  Status: FIXED (changes uncommitted).
+
+Note: eval_sal3d_cone.py has NO analogous bugs — it was written before these
+issues were introduced and was not modified in this session.
+
+Risks:
+1. Server SAL3D dataset path structure unknown. Server may have flat layout
+   `{root}/Gaze/` or nested `{root}/SAL3D_Dataset/Gaze/` — must verify before run.
+2. Smooth_Gaze files may not be present on server — need scp transfer (53 files, ~1 MB).
+3. 4 models (dog, flowerpot, MaxPlanck, prot) have no Smooth_Gaze → will run but
+   gt_smoothed=False, CC/SIM unreliable. Still valid for relative comparison.
+4. Screen_space is ~3× slower at 1920×1080 than old 256×144 — expect ~15–30 min
+   per model on CPU depending on vertex count.
+
+Questions for GPT:
+1. What is the exact SAL3D dataset path structure on vg-intellect?
+   Need to know if `--dataset-root` should be `.../SAL3D` or `.../SAL3D/SAL3D_Dataset`.
+2. Are our SAL3D gaze CSVs and JSONs already on vg-intellect side_inputs?
+3. Is there a Smooth_Gaze directory already on the server?
+
+---
+
+## GPT INSTRUCTION: Run SAL3D reference benchmark on vg-intellect
+## (DETAILED — READ IN FULL BEFORE STARTING)
+
+---
+
+### Overview and context
+
+This instruction describes running a full benchmark of two gaze projection methods
+on the SAL3D dataset on vg-intellect server. The benchmark was designed by Claude
+in session 15. This instruction is for GPT to execute.
+
+**What this run measures:**
+For each SAL3D model, we take our participants' gaze CSV (recorded while they watched
+a rotating-video of the model), project those gaze points onto the 3D mesh using
+two different methods, then compare the resulting per-vertex saliency map against
+the SAL3D paper's ground truth (from Gaze/*.txt + Smooth_Gaze smoothing).
+
+**Two methods:**
+1. `screen_space_gaussian` — accumulates gaze in a 2D image (1920×1080, sigma=26.3px),
+   then projects each mesh vertex to screen space and samples the density.
+   Back-face culling applied. View matrix reconstructed from Euler angles in JSON.
+2. `cone_gaussian_on_mesh` — raycasts each gaze point into the 3D scene, finds the
+   hit triangle, then spreads a 3D Gaussian (sigma_deg=1.0°) to nearby vertices.
+
+**Scripts involved:**
+- `reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py`
+  (single-model eval, called as subprocess)
+- `reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py`
+  (single-model eval, called as subprocess)
+- `test/launch/run_sal3d_reference_batch.py`
+  (parallel orchestrator — this is what you run directly)
+
+**Output files (3 CSVs):**
+- `sal3d_reference_long.csv` — one row per model × method
+- `sal3d_reference_wide.csv` — one row per model, both methods side-by-side
+- `sal3d_reference_summary.csv` — one row per method, aggregated means/medians
+
+**Key metric validity rule:**
+ALL metrics must be read from `metrics_vs_gt_covered_only` section of each JSON report,
+NOT from `metrics_vs_gt_full_mesh`. The batch runner does this automatically.
+For "subset" models (OBJ > 20K verts, GT only covers 20K), the full-mesh section
+is mathematically invalid (CC/SIM diluted by zero-padding). The batch runner
+reads only the covered-only section.
+
+**Expected scale:**
+- ~50–54 runnable models (50 with smoothed GT + 4 with raw GT only)
+- 4 models cannot run at all (no our CSV): AudiRS5, bimba, blade, gorgoile
+- ~108 tasks total (54 models × 2 methods)
+- Estimated time: 4–8 hours with 4 workers on CPU
+
+---
+
+### CRITICAL PRE-CONDITION: Commit verification
+
+**DO NOT START until this check passes.**
+
+Three bugs were fixed in eval_sal3d_screen_space.py in session 15:
+
+BUG-SAL3D-1: `camera_world_pos` computation was inside the 720-frame loop
+  (caused unnecessary 720× matrix inversion per model — correctness fine, but slow)
+BUG-SAL3D-2: dead `import re` (harmless but indicates stale code)
+BUG-SAL3D-3: `sigma_px = sigma_px` tautology line (harmless)
+
+These fixes must be in the commit you pull. Verify as follows on vg-intellect:
+
+```bash
+REPO="/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection"
+cd "${REPO}"
+
+# 1. Pull latest
+git fetch origin reproject-benchmark
+git checkout reproject-benchmark
+git pull origin reproject-benchmark
+
+# 2. Verify both new eval scripts exist
+ls -la reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py
+ls -la test/launch/run_sal3d_reference_batch.py
+# Both must exist. If either is missing → stop, the commit is not pushed yet.
+
+# 3. Verify BUG-SAL3D-1 fix: camera_world_pos must be OUTSIDE the frame loop.
+# The frame loop starts with "for frame, batch in gaze_batches.items():"
+# camera_world_pos must appear at a LOWER line number than that loop.
+grep -n "camera_world_pos\|for frame, batch" \
+  reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py
+```
+
+Expected output of the grep (line numbers may differ slightly):
+```
+801:    camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
+807:    for frame, batch in gaze_batches.items():
+838:        to_camera = camera_world_pos[None, :] - verts_w
+```
+The key requirement: line with `camera_world_pos = ...` must come BEFORE
+`for frame, batch in gaze_batches`. Line 838 (usage) is inside the loop — correct.
+If the assignment line (e.g. 801) is AFTER the `for frame` line → bug not fixed → STOP.
+
+```bash
+# 4. Verify BUG-SAL3D-2 fix: no "import re" should exist
+grep "import re" reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py
+# Expected: no output (empty). If it prints "import re" → bug not fixed.
+
+# 5. Syntax check
+"${REPROJECT_PYTHON}" -m py_compile \
+  reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py && echo "OK"
+"${REPROJECT_PYTHON}" -m py_compile \
+  reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py && echo "OK"
+"${REPROJECT_PYTHON}" -m py_compile \
+  test/launch/run_sal3d_reference_batch.py && echo "OK"
+# All three must print "OK".
+```
+
+If any check fails → report to Claude before proceeding. Do not work around it.
+
+---
+
+### Step 1 — Discover SAL3D dataset structure on server
+
+The local dataset layout is:
+```
+SAL3D_Dataset/
+  Gaze/         ← 58 raw GT .txt files (one per model)
+  Meshes/       ← 57 .obj files
+  Smooth_Gaze/  ← 53 neighbour-list files for GT smoothing
+```
+
+On vg-intellect the layout might differ. Run these discovery commands:
+
+```bash
+SAL3D_BASE="/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/SAL3D"
+
+echo "=== Top-level contents ==="
+ls -la "${SAL3D_BASE}/"
+
+echo "=== Check for SAL3D_Dataset subdirectory ==="
+[ -d "${SAL3D_BASE}/SAL3D_Dataset" ] && echo "EXISTS: SAL3D_Dataset/" || echo "NOT FOUND"
+
+echo "=== Check direct Gaze/ ==="
+[ -d "${SAL3D_BASE}/Gaze" ] && ls "${SAL3D_BASE}/Gaze/" | wc -l || echo "NOT FOUND"
+
+echo "=== Check SAL3D_Dataset/Gaze/ ==="
+[ -d "${SAL3D_BASE}/SAL3D_Dataset/Gaze" ] && \
+  ls "${SAL3D_BASE}/SAL3D_Dataset/Gaze/" | wc -l || echo "NOT FOUND"
+
+echo "=== Check Meshes ==="
+for p in "${SAL3D_BASE}/Meshes" "${SAL3D_BASE}/SAL3D_Dataset/Meshes"; do
+  [ -d "$p" ] && echo "FOUND: $p ($(ls $p | wc -l) files)" || echo "NOT FOUND: $p"
+done
+
+echo "=== Check Smooth_Gaze ==="
+for p in "${SAL3D_BASE}/Smooth_Gaze" "${SAL3D_BASE}/SAL3D_Dataset/Smooth_Gaze" \
+         "${SAL3D_BASE}/Smooth Gaze" "${SAL3D_BASE}/SAL3D_Dataset/Smooth Gaze"; do
+  [ -d "$p" ] && echo "FOUND: $p ($(ls "$p" | wc -l) files)" || echo "NOT FOUND: $p"
+done
+```
+
+Based on this output, determine `SAL3D_DATASET_ROOT`:
+- If `Gaze/` is directly under `SAL3D_BASE` → `SAL3D_DATASET_ROOT="${SAL3D_BASE}"`
+- If `Gaze/` is under `SAL3D_Dataset/` → `SAL3D_DATASET_ROOT="${SAL3D_BASE}/SAL3D_Dataset"`
+
+Also determine `SAL3D_SMOOTH_GAZE_DIR`:
+- Use whichever path above for Smooth_Gaze/Smooth_Gaze that FOUND with the most files.
+- If none found → Smooth_Gaze files not on server → must transfer (see Step 2a).
+
+**Expected counts (from local):**
+| Directory | Expected count |
+|-----------|---------------|
+| Gaze/*.txt | 58 |
+| Meshes/*.obj | 57 |
+| Smooth_Gaze/*_neighbors.txt | 53 |
+
+If counts are lower (e.g. only 23 GT files) → server has partial SAL3D release.
+Still proceed — 23 GT files are still usable. Note the count for the README.
+
+---
+
+### Step 2 — Check side inputs (our gaze CSVs and camera JSONs) on server
+
+The batch runner needs:
+1. Our gaze recordings: one `.csv` per model, 56 files total
+2. Camera/animation JSONs: `Sal3D_<model>.json`, 57 files total
+
+Check if already present:
+
+```bash
+WORK_ROOT="/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING"
+SIDE_INPUTS="${WORK_ROOT}/side_inputs"
+
+echo "=== SAL3D gaze CSVs ==="
+for p in "${SIDE_INPUTS}/SAL3D" "${SIDE_INPUTS}/csv_for_models/SAL3D" \
+         "${SIDE_INPUTS}/gaze_csv/SAL3D"; do
+  [ -d "$p" ] && echo "FOUND: $p ($(ls $p/*.csv 2>/dev/null | wc -l) .csv files)" \
+             || echo "NOT FOUND: $p"
+done
+
+echo "=== SAL3D camera JSONs ==="
+for p in "${SIDE_INPUTS}/SAL3D_json" "${SIDE_INPUTS}/jsons_for_models/SAL3D_json"; do
+  [ -d "$p" ] && echo "FOUND: $p ($(ls $p/Sal3D_*.json 2>/dev/null | wc -l) Sal3D_*.json files)" \
+             || echo "NOT FOUND: $p"
+done
+```
+
+If CSVs or JSONs are found with correct counts (56 CSV, 57 JSON) → skip that transfer.
+If missing or count too low → proceed to Step 2a/2b/2c for transfer.
+
+---
+
+### Step 2a — Transfer Smooth_Gaze files (if absent on server)
+
+Run on LOCAL machine (macOS):
+
+```bash
+SMOOTH_LOCAL="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze"
+
+# Verify local source
+ls "${SMOOTH_LOCAL}" | wc -l   # Must be 53. If 0 → wrong path.
+
+# Pack
+tar czf /tmp/sal3d_smooth_gaze.tar.gz -C "$(dirname "${SMOOTH_LOCAL}")" "Smooth_Gaze"
+ls -lh /tmp/sal3d_smooth_gaze.tar.gz   # Expect ~1–5 MB
+
+# Transfer
+scp /tmp/sal3d_smooth_gaze.tar.gz vg-intellect:/tmp/
+
+# Unpack on server (run via ssh or paste into tmux)
+# Place Smooth_Gaze alongside the dataset's Gaze/ and Meshes/ directories.
+# If SAL3D_DATASET_ROOT = /ssd1_link/datasets/SAL3D:
+ssh vg-intellect "
+  cd /home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/SAL3D
+  tar xzf /tmp/sal3d_smooth_gaze.tar.gz
+  echo 'Files extracted:' && ls Smooth_Gaze/ | wc -l
+"
+# Expected output: Files extracted: 53
+```
+
+**Naming note:** The archive unpacks as `Smooth_Gaze/` (underscore).
+The batch runner env var is `SAL3D_SMOOTH_GAZE_DIR` which we will set to this path.
+Do NOT rename to `Smooth Gaze` (with space) — the server shell handles spaces poorly.
+
+---
+
+### Step 2b — Transfer our gaze CSVs for SAL3D (if absent)
+
+Run on LOCAL machine:
+
+```bash
+CSV_LOCAL="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/SAL3D"
+
+# Verify local source
+ls "${CSV_LOCAL}"/*.csv | wc -l   # Must be 56
+
+# Pack
+tar czf /tmp/sal3d_gaze_csv.tar.gz -C "$(dirname "${CSV_LOCAL}")" "SAL3D"
+ls -lh /tmp/sal3d_gaze_csv.tar.gz   # Expect ~3–10 MB
+
+# Transfer
+SIDE_INPUTS_SERVER="vg-intellect:/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs"
+scp /tmp/sal3d_gaze_csv.tar.gz "${SIDE_INPUTS_SERVER}/"
+
+# Unpack on server
+ssh vg-intellect "
+  cd /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs
+  tar xzf sal3d_gaze_csv.tar.gz
+  echo 'CSV files:' && ls SAL3D/*.csv | wc -l
+"
+# Expected output: CSV files: 56
+```
+
+---
+
+### Step 2c — Transfer camera JSONs for SAL3D (if absent)
+
+Run on LOCAL machine:
+
+```bash
+JSON_LOCAL="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/SAL3D_json"
+
+# Verify local source
+ls "${JSON_LOCAL}"/Sal3D_*.json | wc -l   # Must be 57
+
+# Pack
+tar czf /tmp/sal3d_json.tar.gz -C "$(dirname "${JSON_LOCAL}")" "SAL3D_json"
+ls -lh /tmp/sal3d_json.tar.gz   # Expect ~500 KB – 2 MB
+
+# Transfer
+scp /tmp/sal3d_json.tar.gz "${SIDE_INPUTS_SERVER}/"
+
+# Unpack on server
+ssh vg-intellect "
+  cd /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs
+  tar xzf sal3d_json.tar.gz
+  echo 'JSON files:' && ls SAL3D_json/Sal3D_*.json | wc -l
+"
+# Expected output: JSON files: 57
+```
+
+---
+
+### Step 3 — Set environment variables on vg-intellect
+
+Connect and open a tmux session:
+
+```bash
+ssh vg-intellect
+tmux new -s sal3d_bench
+# If session already exists: tmux attach -t sal3d_bench
+```
+
+Inside tmux, set up the environment:
+
+```bash
+REPO="/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection"
+cd "${REPO}"
+source configs/server_vg_intellect.env
+
+# --- SAL3D dataset root ---
+# Set this based on Step 1 discovery. One of:
+export SAL3D_DATASET_ROOT="/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/SAL3D"
+# or (if SAL3D_Dataset/ subdir exists):
+# export SAL3D_DATASET_ROOT="/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/SAL3D/SAL3D_Dataset"
+
+# --- Our gaze CSVs ---
+# Set to wherever Step 2b placed them:
+export SAL3D_CSV_ROOT="/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/SAL3D"
+
+# --- Camera JSONs ---
+export SAL3D_JSON_ROOT="/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/SAL3D_json"
+
+# --- Smooth_Gaze for GT smoothing ---
+# Set to wherever Step 2a placed them (alongside Gaze/ and Meshes/):
+export SAL3D_SMOOTH_GAZE_DIR="/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/SAL3D/Smooth_Gaze"
+# Adjust if it's inside SAL3D_Dataset/:
+# export SAL3D_SMOOTH_GAZE_DIR="${SAL3D_DATASET_ROOT}/Smooth_Gaze"
+
+# --- Output directory ---
+export BATCH_OUT="${REPROJECT_OUTPUT_ROOT}/SAL3D_reference_batch"
+mkdir -p "${BATCH_OUT}"
+
+# Verify all paths exist and have expected content:
+echo "=== Verification ==="
+echo "DATASET: $(ls ${SAL3D_DATASET_ROOT}/Gaze/*.txt 2>/dev/null | wc -l) GT files, \
+$(ls ${SAL3D_DATASET_ROOT}/Meshes/*.obj 2>/dev/null | wc -l) OBJ files"
+echo "SMOOTH:  $(ls ${SAL3D_SMOOTH_GAZE_DIR}/*_neighbors.txt 2>/dev/null | wc -l) smooth files"
+echo "CSV:     $(ls ${SAL3D_CSV_ROOT}/*.csv 2>/dev/null | wc -l) CSV files"
+echo "JSON:    $(ls ${SAL3D_JSON_ROOT}/Sal3D_*.json 2>/dev/null | wc -l) JSON files"
+echo "OUTPUT:  ${BATCH_OUT}"
+```
+
+Expected verification output:
+```
+DATASET: 58 GT files, 57 OBJ files   (or 23/23 if partial release)
+SMOOTH:  53 smooth files              (or 0 if not transferred yet)
+CSV:     56 CSV files
+JSON:    57 JSON files
+OUTPUT:  /path/to/outputs/SAL3D_reference_batch
+```
+
+If any count is 0 → the corresponding transfer step was not done correctly. Fix before continuing.
+If SMOOTH is 0 → smoothing will be disabled. All models will run with raw GT.
+  CC/SIM results will be unreliable but the run won't crash.
+
+---
+
+### Step 4 — Single-model smoke test (before pilot)
+
+Test one model manually to confirm the full pipeline works end-to-end before
+launching the parallel batch. This catches env var mistakes early.
+
+```bash
+# Test screen_space on bunny (direct-match 20K model, should be fast ~5 min):
+nice -n 10 "${REPROJECT_PYTHON}" \
+  reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py \
+  --model bunny \
+  --dataset-root "${SAL3D_DATASET_ROOT}" \
+  --csv-root     "${SAL3D_CSV_ROOT}" \
+  --json-root    "${SAL3D_JSON_ROOT}" \
+  --smooth-gaze-dir "${SAL3D_SMOOTH_GAZE_DIR}" \
+  --output-dir   /tmp/sal3d_smoke_test \
+  2>&1 | tail -30
+```
+
+What to look for in the output:
+```json
+{
+  "model": "bunny",
+  "gt_smoothed": true,        ← Must be true if Smooth_Gaze transferred correctly
+  "gt_match_type": "direct",  ← bunny is a direct 20K match
+  "n_vertices": 20000,
+  "n_gt_covered": 20000,
+  "metrics_vs_gt_covered_only": {
+    "screen_space_gaussian": {
+      "CC": <value between 0.5 and 0.8>,   ← expect ~0.70
+      "SIM": <value between 0.5 and 0.8>,  ← expect ~0.71
+      "KLD": <value between 0.2 and 1.0>   ← expect ~0.41
+    }
+  }
+}
+```
+
+If `gt_smoothed` is `false` → Smooth_Gaze path is wrong or files missing.
+If CC is negative or near 0 → something is wrong with the projection pipeline.
+If you get a traceback → identify the error type:
+  - `FileNotFoundError: OBJ not found` → SAL3D_DATASET_ROOT path wrong
+  - `FileNotFoundError: CSV not found` → SAL3D_CSV_ROOT path wrong
+  - `FileNotFoundError: JSON not found` → SAL3D_JSON_ROOT path wrong
+  - `GT vertex mismatch: max dist = ...` → Wrong dataset (OBJ and GT are from different versions)
+  - `Expected a single Trimesh` → Multi-mesh OBJ — report to Claude (known issue for some models)
+
+If smoke test passes → run cone smoke test too:
+
+```bash
+nice -n 10 "${REPROJECT_PYTHON}" \
+  reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py \
+  --model bunny \
+  --dataset-root "${SAL3D_DATASET_ROOT}" \
+  --csv-root     "${SAL3D_CSV_ROOT}" \
+  --json-root    "${SAL3D_JSON_ROOT}" \
+  --smooth-gaze-dir "${SAL3D_SMOOTH_GAZE_DIR}" \
+  --output-dir   /tmp/sal3d_smoke_test \
+  2>&1 | tail -15
+```
+
+Expected cone bunny: CC ≈ 0.769, hit_rate ≈ 0.961, gt_smoothed = true.
+
+DO NOT proceed to pilot if either smoke test fails.
+
+---
+
+### Step 5 — Pilot run (3 models, both methods)
+
+```bash
+cd "${REPO}"
+nice -n 10 "${REPROJECT_PYTHON}" test/launch/run_sal3d_reference_batch.py \
+    --models bunny lion A380 \
+    --methods screen_space cone \
+    --workers 2 \
+    --batch-output-dir "${BATCH_OUT}_pilot" \
+    2>&1 | tee /tmp/sal3d_pilot.log
+```
+
+The batch runner prints one line per completed task:
+```
+[done] screen_space bunny -> ok
+[done] cone bunny -> ok
+...
+[run_sal3d_reference_batch] long_csv=...
+```
+
+**Verify pilot results:**
+
+```bash
+"${REPROJECT_PYTHON}" -c "
+import csv
+print('=== Summary ===')
+with open('${BATCH_OUT}_pilot/sal3d_reference_summary.csv') as f:
+    for r in csv.DictReader(f):
+        print(f'{r[\"method\"]:14} n_ok={r[\"n_ok\"]} CC_mean={r[\"CC_mean\"][:6]} SIM_mean={r[\"SIM_mean\"][:6]} hit_rate={r.get(\"hit_rate_mean\",\"N/A\")[:6]}')
+print()
+print('=== Per model ===')
+with open('${BATCH_OUT}_pilot/sal3d_reference_long.csv') as f:
+    for r in csv.DictReader(f):
+        print(f'{r[\"model\"]:10} {r[\"method\"]:12} {r[\"status\"]:14} gt={r[\"gt_match_type\"]:8} cov={r[\"gt_coverage_pct\"]}%  CC={r[\"CC\"][:6]}  smoothed={r[\"gt_smoothed\"]}')
+"
+```
+
+Expected pilot output (approximate, smoothed GT):
+```
+=== Summary ===
+cone           n_ok=3 CC_mean=0.558  SIM_mean=0.647  hit_rate=0.874
+screen_space   n_ok=3 CC_mean=0.329  SIM_mean=0.617  hit_rate=N/A
+
+=== Per model ===
+A380       cone         ok             subset    cov=41.76%  CC=0.437  smoothed=True
+A380       screen_space ok             subset    cov=41.76%  CC=-0.01  smoothed=True
+bunny      cone         ok             direct    cov=100.0%  CC=0.769  smoothed=True
+bunny      screen_space ok             direct    cov=100.0%  CC=0.706  smoothed=True
+lion       cone         ok             subset    cov=37.24%  CC=0.469  smoothed=True
+lion       screen_space ok             subset    cov=37.24%  CC=0.295  smoothed=True
+```
+
+**Accept criteria for pilot:**
+- n_ok = 3 for both methods (all 3 × 2 = 6 tasks succeeded)
+- cone CC for bunny > 0.5 (if < 0.5 → projection issue)
+- screen_space CC for bunny > 0.4 (if < 0 → back-face culling or sigma issue)
+- gt_smoothed = True for all 3 (if False → Smooth_Gaze path wrong)
+
+If any criterion fails → STOP. Report full output to Claude.
+
+Note: A380 screen_space CC ≈ −0.015 is EXPECTED (airplane geometry causes degeneracy
+in screen-space method — not a bug). This was confirmed in local testing.
+
+---
+
+### Step 6 — Full run (all models, both methods)
+
+Only proceed here after pilot passes all criteria.
+
+```bash
+cd "${REPO}"
+
+# Start in tmux, detach after launching
+nice -n 10 "${REPROJECT_PYTHON}" test/launch/run_sal3d_reference_batch.py \
+    --methods screen_space cone \
+    --workers 4 \
+    --batch-output-dir "${BATCH_OUT}" \
+    --smooth-gaze-dir "${SAL3D_SMOOTH_GAZE_DIR}" \
+    2>&1 | tee /tmp/sal3d_full.log
+```
+
+Detach from tmux: press `Ctrl-b` then `d`.
+Reattach: `tmux attach -t sal3d_bench`.
+
+**Worker count rationale:**
+- `screen_space` at 1920×1080 processes 720 frames × ~20K vertices each.
+  Expect ~5–20 min per model depending on server CPU speed.
+- `cone` uses raycasting via trimesh which is slower: ~10–40 min per model.
+- With 4 workers and ~108 tasks averaging 15 min each → ~6–7 hours total.
+- Do not use more than 6 workers (memory: each trimesh load of high-res OBJ ~200–500 MB).
+
+**Monitor progress while detached:**
+
+```bash
+# Number of completed reports (should grow over time):
+watch -n 60 "find ${BATCH_OUT} -name '*_report.json' | wc -l"
+# Target: 108 reports total (54 models × 2 methods)
+
+# Live log tail:
+tail -f /tmp/sal3d_full.log
+
+# Count by status:
+"${REPROJECT_PYTHON}" -c "
+import csv
+from collections import Counter
+try:
+    with open('${BATCH_OUT}/sal3d_reference_long.csv') as f:
+        rows = list(csv.DictReader(f))
+    c = Counter(r['status'] for r in rows)
+    print(f'Total rows: {len(rows)}  |  ', dict(c))
+except: print('CSV not written yet')
+"
+```
+
+The batch runner writes the CSVs only after ALL tasks complete.
+The `_report.json` count is the realtime progress indicator.
+
+**If you need to restart after interruption:**
+The batch runner has `--resume True` by default. Simply rerun the exact same command —
+it will skip models that already have a report JSON and only run the missing ones.
+
+```bash
+# Resume after interruption (same command, resume is default):
+nice -n 10 "${REPROJECT_PYTHON}" test/launch/run_sal3d_reference_batch.py \
+    --methods screen_space cone \
+    --workers 4 \
+    --batch-output-dir "${BATCH_OUT}" \
+    --smooth-gaze-dir "${SAL3D_SMOOTH_GAZE_DIR}" \
+    2>&1 | tee -a /tmp/sal3d_full.log
+```
+
+---
+
+### Step 7 — Verify completed run on server
+
+Before downloading, confirm the run completed successfully:
+
+```bash
+# Total reports
+find "${BATCH_OUT}" -name "*_report.json" | wc -l
+# Expect: 100–108. Less than 90 means many failures.
+
+# Check summary CSV (written only after all tasks done):
+"${REPROJECT_PYTHON}" -c "
+import csv
+with open('${BATCH_OUT}/sal3d_reference_summary.csv') as f:
+    for r in csv.DictReader(f):
+        print(r)
+"
+# Both rows (cone + screen_space) should show n_ok ≥ 50.
+
+# Check for failures:
+"${REPROJECT_PYTHON}" -c "
+import csv
+with open('${BATCH_OUT}/sal3d_reference_long.csv') as f:
+    rows = [r for r in csv.DictReader(f) if r['status'] != 'ok']
+for r in rows:
+    print(r['method'], r['model'], r['status'], r['error_message'][:80])
+"
+# 0 failures is ideal. A few runtime_error rows are acceptable if they are
+# known-bad models (multi-mesh OBJ, missing file).
+# Unacceptable: failures on bunny, camel, cow, dragon (well-known 20K models).
+```
+
+---
+
+### Step 8 — Download results to local machine and archive
+
+Run on LOCAL machine:
+
+```bash
+cd /Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection
+
+# Set the actual server batch output path (confirm with Step 3's BATCH_OUT):
+SERVER_OUT="vg-intellect:/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/SAL3D_reference_batch"
+
+# Create local archive folder with today's date:
+DATE=$(date +%Y-%m-%d)
+LOCAL_ARCHIVE="results/benchmark_runs/sal3d/${DATE}_sal3d_reference"
+mkdir -p "${LOCAL_ARCHIVE}"
+
+# Download the 3 CSVs:
+scp "${SERVER_OUT}/sal3d_reference_long.csv"    "${LOCAL_ARCHIVE}/"
+scp "${SERVER_OUT}/sal3d_reference_wide.csv"    "${LOCAL_ARCHIVE}/"
+scp "${SERVER_OUT}/sal3d_reference_summary.csv" "${LOCAL_ARCHIVE}/"
+
+# Verify downloads:
+ls -lh "${LOCAL_ARCHIVE}/"
+wc -l "${LOCAL_ARCHIVE}"/*.csv
+```
+
+**Create README.md in the archive:**
+Read the summary CSV and fill in the actual values:
+
+```bash
+"${REPROJECT_PYTHON:-python3}" -c "
+import csv
+rows = {}
+with open('${LOCAL_ARCHIVE}/sal3d_reference_summary.csv') as f:
+    for r in csv.DictReader(f):
+        rows[r['method']] = r
+for method, r in rows.items():
+    print(f'{method}: n_ok={r[\"n_ok\"]} CC_mean={r[\"CC_mean\"][:6]} SIM={r[\"SIM_mean\"][:5]} KLD={r[\"KLD_mean\"][:5]} hit_rate={r.get(\"hit_rate_mean\",\"N/A\")[:5]}')
+    print(f'  n_direct={r[\"n_direct\"]} n_subset={r[\"n_subset\"]} n_smoothed={r[\"n_smoothed_gt\"]}')
+"
+```
+
+Then create `${LOCAL_ARCHIVE}/README.md` with content like:
+```markdown
+# SAL3D / reference methods — <DATE>
+
+## Track
+- dataset: SAL3D
+- methods: screen_space_gaussian, cone_gaussian_on_mesh
+- gt_mode: smoothed (50 models) + raw (4 models: dog, flowerpot, MaxPlanck, prot)
+- metrics_section: metrics_vs_gt_covered_only (always valid for all models)
+
+## Recipe
+- screen_space: sigma_px=26.3, img=1920×1080, bilinear deposition, back-face culling
+- cone: sigma_deg=1.0, radius_sigma_mult=3.0
+- Both: recenter=true, extra_rotate_x=90°, fov_mode=horizontal_to_vertical, transform=blender_rig
+
+## Server output
+<fill in actual server path>
+
+## Key means (<n_ok> ok models)
+
+| Method | CC | SIM | KLD | Spearman | hit_rate |
+|--------|----|-----|-----|---------|---------|
+| cone | <fill> | <fill> | <fill> | <fill> | <fill> |
+| screen_space | <fill> | <fill> | <fill> | <fill> | N/A |
+
+## GT breakdown
+- n_direct (OBJ = 20K = GT coverage): <fill>
+- n_subset (OBJ > 20K, GT covers 20K only): <fill>
+- n_smoothed_gt: <fill> (of <n_ok> ok models)
+```
+
+---
+
+### Step 9 — Sanity checks on downloaded results
+
+Run on LOCAL machine after download:
+
+```bash
+cd /Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection
+
+python3 -c "
+import csv
+
+print('=== SUMMARY ===')
+with open('${LOCAL_ARCHIVE}/sal3d_reference_summary.csv') as f:
+    for r in csv.DictReader(f):
+        print(f'{r[\"method\"]:14} n_ok={r[\"n_ok\"]:3} n_failed={r[\"n_failed\"]:3}',
+              f'CC={r[\"CC_mean\"][:6]}  SIM={r[\"SIM_mean\"][:5]}',
+              f'n_direct={r[\"n_direct\"]}  n_subset={r[\"n_subset\"]}  n_smoothed={r[\"n_smoothed_gt\"]}')
+
+print()
+print('=== FAILURES ===')
+with open('${LOCAL_ARCHIVE}/sal3d_reference_long.csv') as f:
+    fails = [r for r in csv.DictReader(f) if r['status'] != 'ok']
+if fails:
+    for r in fails:
+        print(f'{r[\"model\"]:15} {r[\"method\"]:14} {r[\"status\"]}  {r[\"error_message\"][:60]}')
+else:
+    print('No failures.')
+
+print()
+print('=== SPOT CHECK: bunny, lion, A380 ===')
+with open('${LOCAL_ARCHIVE}/sal3d_reference_long.csv') as f:
+    rows = {(r['model'], r['method']): r for r in csv.DictReader(f)}
+for model in ['bunny', 'lion', 'A380']:
+    for method in ['cone', 'screen_space']:
+        r = rows.get((model, method), {})
+        if r:
+            print(f'{model:8} {method:12} CC={r[\"CC\"][:6]} SIM={r[\"SIM\"][:5]} '
+                  f'gt_match={r[\"gt_match_type\"]:8} smoothed={r[\"gt_smoothed\"]}')
+"
+```
+
+**Acceptance criteria for final results:**
+
+| Check | Pass condition |
+|-------|---------------|
+| cone n_ok | ≥ 50 |
+| screen_space n_ok | ≥ 50 |
+| n_failed (either method) | ≤ 8 (acceptable: 4 no-CSV + few open-mesh errors) |
+| bunny cone CC | > 0.50 |
+| bunny screen_space CC | > 0.40 |
+| lion cone CC | > 0.30 |
+| gt_smoothed for bunny | True |
+| n_direct + n_subset == n_ok | True |
+
+If any check fails → report to Claude with full output before proceeding.
+
+---
+
+### Known expected failures (do NOT treat as bugs)
+
+These specific models are expected to fail or have unusual results:
+
+1. `AudiRS5`, `bimba`, `blade`, `gorgoile` — no CSV → `missing_csv` status → normal
+2. `dog`, `flowerpot`, `MaxPlanck`, `prot` — no Smooth_Gaze → `gt_smoothed=False` → normal,
+   but their CC/SIM will be lower than smoothed models (raw GT is very sparse)
+3. `A380` screen_space CC ≈ −0.015 → EXPECTED (airplane geometry degeneracy in screen-space)
+4. Any high-res model (lion 53K, cat 60K, skull 51K verts) cone may be slow (~30 min)
+   and hit_rate slightly lower than 20K models — both expected
+
+If `Expected a single Trimesh` error appears for any model → multi-mesh OBJ issue.
+This happened with MeshMamba `stuffed_animal_v1_L2`. If it happens for SAL3D models,
+note which ones and report to Claude. Do not try to fix the eval script.
+
+---
+
+### DO NOTs — read carefully
+
+1. **DO NOT** use `metrics_vs_gt_full_mesh` for ANY comparison table. This section
+   exists only for diagnostic purposes. For subset-match models it is mathematically
+   invalid. The batch runner reads covered_only automatically — just use the CSVs.
+
+2. **DO NOT** mix smoothed-GT and raw-GT models in the same mean calculation.
+   The summary CSV's n_smoothed_gt field shows how many used smoothing.
+   If all 4 raw-GT models are in the run, note them separately.
+
+3. **DO NOT** start the full run (Step 6) without passing the pilot (Step 5).
+   The pilot tests all infrastructure end-to-end and takes only ~30 min.
+
+4. **DO NOT** run without verifying BUG-SAL3D-1 fix (Step 0, camera_world_pos check).
+   Running with the bug means 720× unnecessary matrix inversions per model,
+   making screen_space ~10× slower than it should be.
+
+5. **DO NOT** overwrite or delete `results/benchmark_runs/` folders that already exist.
+   Always create a new dated subfolder.
+
+6. **DO NOT** set `--no-resume` on the full run unless you intentionally want to re-run
+   all models from scratch (e.g., after a recipe change).
