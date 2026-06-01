@@ -120,6 +120,20 @@ cd /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-
 bash test/kld_parameter_sweep/server/run_nightly_vg_intellect.sh
 ```
 
+By default, this script starts a new tmux session but waits inside that session
+until these current full-run sessions are gone:
+
+```text
+sal3d_full_20260601
+meshmamba_full_20260601
+```
+
+Override this behavior only if you explicitly want overlap:
+
+```bash
+WAIT_FOR_SESSIONS="" bash test/kld_parameter_sweep/server/run_nightly_vg_intellect.sh
+```
+
 Schedule for 01:00 server time:
 
 ```bash
