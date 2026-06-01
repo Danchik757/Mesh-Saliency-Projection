@@ -105,7 +105,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--recenter-to-bbox-center",
         action=argparse.BooleanOptionalAction,
-        default=False,
+        default=True,
         help="Recenter OBJ vertices to bounding-box center before scale/rotation.",
     )
     parser.add_argument(
@@ -129,8 +129,14 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--override-fov-deg",
         type=float,
+        default=35.9834,
+        help="Override projection vertical FOV in degrees. Default 35.9834 corresponds to 60° horizontal on 16:9.",
+    )
+    parser.add_argument(
+        "--video-id",
+        type=int,
         default=None,
-        help="Override JSON FOV for projection matrix only.",
+        help="Optional filter for mixed-session CSVs such as 3DVA A380.",
     )
     parser.add_argument(
         "--tag",
@@ -213,9 +219,14 @@ def ensure_exists(paths: dict[str, Path]) -> None:
 
 
 def load_gaze_batches(
-    csv_path: Path, fps: int, total_frames: int
+    csv_path: Path, fps: int, total_frames: int, video_id: int | None = None
 ) -> tuple[dict[int, FrameGazeBatch], dict[str, int]]:
     df = pd.read_csv(csv_path)
+    unique_video_ids = sorted(int(v) for v in df["video_id"].dropna().unique()) if "video_id" in df.columns else []
+    if video_id is not None:
+        if "video_id" not in df.columns:
+            raise ValueError(f"--video-id={video_id} was provided, but CSV has no video_id column: {csv_path}")
+        df = df[df["video_id"] == video_id].copy()
     per_frame_x: dict[int, list[float]] = defaultdict(list)
     per_frame_y: dict[int, list[float]] = defaultdict(list)
     total_points = 0
@@ -243,6 +254,9 @@ def load_gaze_batches(
         "num_participants": int(df["participation_id"].nunique()),
         "num_points": int(total_points),
         "num_frames_with_points": int(len(batches)),
+        "video_id_filter": int(video_id) if video_id is not None else None,
+        "video_ids_present": unique_video_ids,
+        "video_ids_mixed": len(unique_video_ids) > 1,
     }
     return batches, stats
 
@@ -559,6 +573,7 @@ def main() -> None:
         paths["csv"],
         fps=int(camera_data["video_info"]["fps"]),
         total_frames=int(camera_data["video_info"]["total_frames"]),
+        video_id=args.video_id,
     )
 
     tag_parts = []
@@ -615,6 +630,7 @@ def main() -> None:
             "extra_rotate_x_deg":     args.extra_rotate_x_deg,
             "extra_rotate_y_deg":     args.extra_rotate_y_deg,
             "override_fov_deg":       args.override_fov_deg,
+            "video_id":               args.video_id,
             "transform_order": "base_rotate_z -> recenter -> scale -> rotation_z -> extra_rotate_x -> extra_rotate_y -> translation",
         },
         "metrics_vs_gt": results,

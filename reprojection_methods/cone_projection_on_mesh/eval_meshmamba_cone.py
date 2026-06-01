@@ -107,7 +107,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--recenter-to-bbox-center",
         action=argparse.BooleanOptionalAction,
-        default=False,
+        default=True,
         help="Recenter OBJ vertices to bounding-box center before scale/rotation.",
     )
     parser.add_argument(
@@ -119,7 +119,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--extra-rotate-x-deg",
         type=float,
-        default=0.0,
+        default=90.0,
         help="Extra runtime X rotation in degrees (applied after Z rotation).",
     )
     parser.add_argument(
@@ -137,7 +137,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--projection-fov-mode",
         choices=["vertical", "horizontal_to_vertical", "json"],
-        default="vertical",
+        default="horizontal_to_vertical",
         help=(
             "How to interpret FOV for the projection matrix. "
             "'vertical' keeps legacy behavior: override FOV is vertical, no override uses JSON matrix. "
@@ -148,7 +148,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--transform-order",
         choices=["eval", "blender_rig"],
-        default="eval",
+        default="blender_rig",
         help=(
             "Mesh transform order. 'eval' is legacy; 'blender_rig' matches the Blender preview rig "
             "where local object rotations happen before per-frame parent Z rotation."
@@ -196,8 +196,10 @@ def _resolve_casefold_file(directory: Path, candidate_names: list[str], suffix: 
     return None
 
 
-def find_gt_file(gt_dir: Path, model: str) -> Path:
+def find_gt_file(gt_dir: Path, model: str, extra_candidate_names: list[str] | None = None) -> Path:
     candidate_names = _candidate_model_names(model)
+    if extra_candidate_names:
+        candidate_names.extend(extra_candidate_names)
     resolved = _resolve_casefold_file(gt_dir, candidate_names, ".csv")
     if resolved is not None:
         return resolved
@@ -264,7 +266,7 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
     mesh_dir = args.dataset_root / "MeshFile" / texture_type
     gt_dir   = args.dataset_root / "SaliencyMap" / texture_type
     obj_path = find_obj_file(mesh_dir, args.model)
-    gt_path  = find_gt_file(gt_dir, args.model)
+    gt_path  = find_gt_file(gt_dir, args.model, extra_candidate_names=[obj_path.stem])
     return {
         "csv":  find_csv_file(args.csv_root, args.model),
         "json": find_json_file(args.json_root, args.model, texture_type),

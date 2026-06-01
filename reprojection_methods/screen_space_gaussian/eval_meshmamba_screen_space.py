@@ -106,7 +106,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--recenter-to-bbox-center",
         action=argparse.BooleanOptionalAction,
-        default=False,
+        default=True,
         help="Recenter OBJ vertices to bounding-box center before scale/rotation.",
     )
     parser.add_argument(
@@ -118,7 +118,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--extra-rotate-x-deg",
         type=float,
-        default=0.0,
+        default=90.0,
         help="Extra runtime X rotation in degrees (applied after Z rotation).",
     )
     parser.add_argument(
@@ -136,7 +136,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--projection-fov-mode",
         choices=["vertical", "horizontal_to_vertical", "json"],
-        default="vertical",
+        default="horizontal_to_vertical",
         help=(
             "How to interpret FOV for the projection matrix. "
             "'vertical' keeps legacy behavior: override FOV is vertical, no override uses JSON matrix. "
@@ -147,7 +147,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--transform-order",
         choices=["eval", "blender_rig"],
-        default="eval",
+        default="blender_rig",
         help=(
             "Mesh transform order. 'eval' is legacy; 'blender_rig' matches the Blender preview rig "
             "where local object rotations happen before per-frame parent Z rotation."
@@ -195,8 +195,10 @@ def _resolve_casefold_file(directory: Path, candidate_names: list[str], suffix: 
     return None
 
 
-def find_gt_file(gt_dir: Path, model: str) -> Path:
+def find_gt_file(gt_dir: Path, model: str, extra_candidate_names: list[str] | None = None) -> Path:
     candidate_names = _candidate_model_names(model)
+    if extra_candidate_names:
+        candidate_names.extend(extra_candidate_names)
     resolved = _resolve_casefold_file(gt_dir, candidate_names, ".csv")
     if resolved is not None:
         return resolved
@@ -263,7 +265,7 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
     mesh_dir = args.dataset_root / "MeshFile" / texture_type
     gt_dir   = args.dataset_root / "SaliencyMap" / texture_type
     obj_path = find_obj_file(mesh_dir, args.model)
-    gt_path  = find_gt_file(gt_dir, args.model)
+    gt_path  = find_gt_file(gt_dir, args.model, extra_candidate_names=[obj_path.stem])
     return {
         "csv":  find_csv_file(args.csv_root, args.model),
         "json": find_json_file(args.json_root, args.model, texture_type),
@@ -693,6 +695,68 @@ def _apply_transform_no_recenter(
     return v
 
 
+def _apply_normal_transform(
+    normals: np.ndarray,
+    rotation_z_rad: float,
+    base_rotate_z_deg: float,
+    extra_rotate_x_deg: float,
+    extra_rotate_y_deg: float,
+    transform_order: str,
+) -> np.ndarray:
+    """Rotate face normals with the same orientation chain as the mesh."""
+    v = np.asarray(normals, dtype=np.float64).copy()
+
+    def rotate_z(points: np.ndarray, angle_rad: float) -> np.ndarray:
+        if abs(angle_rad) <= 1e-12:
+            return points
+        out = points.copy()
+        cz, sz = math.cos(angle_rad), math.sin(angle_rad)
+        x = cz * points[:, 0] - sz * points[:, 1]
+        y = sz * points[:, 0] + cz * points[:, 1]
+        out[:, 0], out[:, 1] = x, y
+        return out
+
+    def rotate_x(points: np.ndarray, angle_deg: float) -> np.ndarray:
+        angle_rad = math.radians(angle_deg)
+        if abs(angle_rad) <= 1e-12:
+            return points
+        out = points.copy()
+        crx, srx = math.cos(angle_rad), math.sin(angle_rad)
+        y = crx * points[:, 1] - srx * points[:, 2]
+        z = srx * points[:, 1] + crx * points[:, 2]
+        out[:, 1], out[:, 2] = y, z
+        return out
+
+    def rotate_y(points: np.ndarray, angle_deg: float) -> np.ndarray:
+        angle_rad = math.radians(angle_deg)
+        if abs(angle_rad) <= 1e-12:
+            return points
+        out = points.copy()
+        cry, sry = math.cos(angle_rad), math.sin(angle_rad)
+        x = cry * points[:, 0] + sry * points[:, 2]
+        z = -sry * points[:, 0] + cry * points[:, 2]
+        out[:, 0], out[:, 2] = x, z
+        return out
+
+    base_rotate_z_rad = math.radians(base_rotate_z_deg)
+
+    if transform_order == "eval":
+        v = rotate_z(v, base_rotate_z_rad)
+        v = rotate_z(v, rotation_z_rad)
+        v = rotate_x(v, extra_rotate_x_deg)
+        v = rotate_y(v, extra_rotate_y_deg)
+    elif transform_order == "blender_rig":
+        v = rotate_x(v, extra_rotate_x_deg)
+        v = rotate_y(v, extra_rotate_y_deg)
+        v = rotate_z(v, base_rotate_z_rad)
+        v = rotate_z(v, rotation_z_rad)
+    else:
+        raise ValueError(f"Unsupported transform order: {transform_order}")
+
+    norm = np.linalg.norm(v, axis=1, keepdims=True)
+    return v / np.where(norm > 1e-12, norm, 1.0)
+
+
 def run_screen_space(
     mesh: trimesh.Trimesh,
     camera_data: dict,
@@ -724,6 +788,7 @@ def run_screen_space(
     # Precompute face centroids once — applying vertex-bbox recenter if requested.
     # We do NOT copy the full mesh per frame; only the centroid array is transformed.
     base_centroids = np.asarray(mesh.triangles_center, dtype=np.float64)
+    base_normals = np.asarray(mesh.face_normals, dtype=np.float64)
     if recenter_to_bbox_center:
         verts = np.asarray(mesh.vertices, dtype=np.float64)
         vert_bbox_center = 0.5 * (verts.min(axis=0) + verts.max(axis=0))
@@ -731,6 +796,7 @@ def run_screen_space(
 
     sigma_px = sigma_screen * _IMG_W
     total_points = 0
+    culled_back_faces = 0
 
     # Step 1 — per frame: build that frame's 2D density, then sample it on the
     # projected face centroids. Using one global density across all frames would
@@ -765,11 +831,23 @@ def run_screen_space(
             extra_rotate_y_deg,
             transform_order,
         )
+        normals_w = _apply_normal_transform(
+            base_normals,
+            rot_z,
+            base_rotate_z_deg,
+            extra_rotate_x_deg,
+            extra_rotate_y_deg,
+            transform_order,
+        )
 
         screen_xy, w_clip = world_to_screen(centroids_w, view_matrix, proj_mat)
         # Mask faces behind the camera (w_clip <= 0 ↔ camera-space z ≥ 0)
         behind = w_clip <= 0
-        screen_xy[behind] = -1.0  # force out-of-bounds so bilinear_sample returns 0
+        camera_world = np.linalg.inv(view_matrix)[:3, 3]
+        to_camera = camera_world[None, :] - centroids_w
+        front_facing = np.einsum("ij,ij->i", normals_w, to_camera) > 0.0
+        culled_back_faces += int((~front_facing).sum())
+        screen_xy[behind | (~front_facing)] = -1.0  # force out-of-bounds so bilinear_sample returns 0
 
         sample = bilinear_sample(density, screen_xy)
         face_sal += n * sample
@@ -785,6 +863,7 @@ def run_screen_space(
         "density_img_shape":    [_IMG_H, _IMG_W],
         "sigma_px":             sigma_px,
         "nonzero_faces":        int(np.count_nonzero(face_sal)),
+        "culled_back_faces":    culled_back_faces,
         "projection":           projection_info,
     }
     return face_sal, stats

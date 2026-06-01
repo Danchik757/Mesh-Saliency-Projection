@@ -14,7 +14,8 @@
 #   SIGMA_SCREEN           — Gaussian sigma as fraction of image width (default: 0.05)
 #   RECENTER_TO_BBOX_CENTER— true/false (default: true)
 #   EXTRA_ROTATE_X_DEG     — extra X rotation in degrees (default: 0)
-#   OVERRIDE_FOV_DEG       — override JSON FOV; empty = use JSON (default: empty)
+#   OVERRIDE_FOV_DEG       — authoritative vertical FOV; default 35.9834
+#   VIDEO_ID               — optional CSV session filter, e.g. A380
 #   WORKERS                — parallel workers (default: 4)
 #   NICE_LEVEL             — nice priority (default: 10)
 
@@ -34,7 +35,8 @@ PILOT_OBJECTS="${PILOT_OBJECTS:-A380 bunny car-vasa casting chair107 dragon fand
 SIGMA_SCREEN="${SIGMA_SCREEN:-0.05}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-0}"
-OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
+OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-35.9834}"
+VIDEO_ID="${VIDEO_ID:-}"
 WORKERS="${WORKERS:-4}"
 NICE_LEVEL="${NICE_LEVEL:-10}"
 
@@ -48,10 +50,14 @@ else
     RECENTER_FLAG="--no-recenter-to-bbox-center"
 fi
 
-# Build override-fov flag
+# Build override-fov/video-id flags
 FOV_FLAG=""
 if [ -n "${OVERRIDE_FOV_DEG}" ]; then
     FOV_FLAG="--override-fov-deg ${OVERRIDE_FOV_DEG}"
+fi
+VIDEO_ID_FLAG=""
+if [ -n "${VIDEO_ID}" ]; then
+    VIDEO_ID_FLAG="--video-id ${VIDEO_ID}"
 fi
 
 echo "=== 3DVA screen_space_gaussian ==="
@@ -63,7 +69,8 @@ echo "  python_bin   : ${PYTHON_BIN}"
 echo "  sigma_screen : ${SIGMA_SCREEN}"
 echo "  recenter     : ${RECENTER_TO_BBOX_CENTER}"
 echo "  extra_rot_x  : ${EXTRA_ROTATE_X_DEG}"
-echo "  override_fov : ${OVERRIDE_FOV_DEG:-<from JSON>}"
+echo "  override_fov : ${OVERRIDE_FOV_DEG}"
+echo "  video_id     : ${VIDEO_ID:-<all>}"
 echo "  workers      : ${WORKERS}  nice : ${NICE_LEVEL}"
 echo "  models       : ${PILOT_OBJECTS}"
 echo ""
@@ -82,13 +89,14 @@ run_one() {
         ${RECENTER_FLAG} \
         --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
         ${FOV_FLAG} \
+        ${VIDEO_ID_FLAG} \
         >> "${log}" 2>&1
     echo "[$(date +%H:%M:%S)] DONE  ${model}" | tee -a "${log}"
 }
 
 export -f run_one
 export OUT_DIR EVAL_SCRIPT PYTHON_BIN VISUAL_ATTENTION_3D_SHAPES_ROOT THREE_DVA_CSV_ROOT \
-       THREE_DVA_JSON_ROOT SIGMA_SCREEN RECENTER_FLAG FOV_FLAG EXTRA_ROTATE_X_DEG NICE_LEVEL
+       THREE_DVA_JSON_ROOT SIGMA_SCREEN RECENTER_FLAG FOV_FLAG VIDEO_ID_FLAG EXTRA_ROTATE_X_DEG NICE_LEVEL
 
 # Parallel pool
 active=0

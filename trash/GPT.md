@@ -950,3 +950,67 @@ Interpretation rules:
   between our gaze CSV and MeshMamba GT.
 - If face-index compatibility fails, build a face remapping or use the exact GT
   mesh source expected by `SaliencyMap`.
+
+## 2026-06-01 MSK — authoritative recipes synced, 3DVA FOV resolved, exceptions implemented
+
+Context:
+- Continued the post-cleanup eval normalization pass.
+- Goal was to execute the first five stabilization items:
+  1. lock authoritative recipes,
+  2. sync launcher defaults,
+  3. resolve 3DVA FOV policy,
+  4. confirm/fix MeshMamba screen-space back-face issue,
+  5. add explicit exception handling.
+
+What was changed:
+- `MeshMamba` eval defaults now match the validated recipe:
+  - `recenter_to_bbox_center=True`
+  - `extra_rotate_x_deg=90`
+  - `projection_fov_mode=horizontal_to_vertical`
+  - `transform_order=blender_rig`
+- `MeshMamba` launchers were updated to the same defaults:
+  - `test/launch/run_meshmamba_baseline_cone.sh`
+  - `test/launch/run_meshmamba_baseline_screen_space.sh`
+- `MeshMamba` GT lookup now falls back through the resolved OBJ stem.
+  This removes the explicit `Penguin_V2_L3 -> Penguin_v1_iterations-2.csv`
+  failure mode and also covers similar OBJ/GT stem mismatches.
+- `MeshMamba screen_space` now performs actual back-face culling:
+  - rotates `mesh.face_normals` per frame,
+  - computes camera-facing test from `camera_world - face_centroid`,
+  - suppresses non-front-facing faces before bilinear density sampling,
+  - reports `culled_back_faces` in `run_stats`.
+- `3DVA` authoritative FOV policy is now fixed to `override_fov_deg=35.9834`.
+  Rationale was confirmed from the real JSON exports:
+  - `fov_degrees ≈ 60`
+  - `projection_matrix[1,1] ≈ 1.732`
+  - therefore the stored matrix is vertical 60°, which implies horizontal
+    `122.55°` at `16:9`, so it cannot be the intended render geometry.
+  - Correct eval policy is `horizontal 60° -> vertical 35.9834°`.
+- `3DVA` eval scripts now expose `--video-id` and record:
+  - `video_id_filter`
+  - `video_ids_present`
+  - `video_ids_mixed`
+- `3DVA` launchers now default to `OVERRIDE_FOV_DEG=35.9834` and accept
+  optional `VIDEO_ID`.
+- Docs updated:
+  - `trash/EVAL_RUNBOOK.md`
+  - `DATA_PATHS.md` (reduced authority, corrected server label, SAL3D note)
+
+Targeted verification:
+- `python3 -m py_compile` passed for all modified eval scripts.
+- `Penguin_V2_L3` smoke (`eval_meshmamba_screen_space.py`) completed successfully.
+  Report:
+  - `/private/tmp/meshmamba_penguin_smoke/Penguin_V2_L3/smoke/Penguin_V2_L3_report.json`
+  - GT resolved as `Penguin_v1_iterations-2.csv`
+  - report includes `culled_back_faces`
+  - projection metadata shows effective vertical FOV `35.98339890412515`
+- `A380` smoke (`eval_3dva_screen_space.py --video-id 2365`) completed successfully.
+  Report:
+  - `/private/tmp/3dva_a380_smoke/A380/smoke/A380_report.json`
+  - report includes `video_id=2365`
+  - `gaze_stats.video_ids_present=[1970,2365]`
+  - `gaze_stats.video_ids_mixed=true`
+
+Operational note:
+- Local system `python3` in this shell did not have `trimesh`; smoke runs were
+  executed with `GAZE_DATA/venv/bin/python3`, which is the intended eval env.

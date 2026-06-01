@@ -10,9 +10,9 @@ for all three datasets. Read this before running any eval on the server.
 
 | Dataset | Script | Key flags | GT type |
 |---|---|---|---|
-| MeshMamba non_texture | `eval_meshmamba_cone.py` | `--texture-type non_texture --projection-fov-mode horizontal_to_vertical --transform-order blender_rig --extra-rotate-x-deg 90` | per-face CSV |
+| MeshMamba non_texture | `eval_meshmamba_cone.py` | `--texture-type non_texture --recenter-to-bbox-center --projection-fov-mode horizontal_to_vertical --transform-order blender_rig --extra-rotate-x-deg 90` | per-face CSV |
 | MeshMamba rgb_texture | same | `--texture-type rgb_texture` + different `--csv-root --json-root` | per-face CSV |
-| 3DVA | `eval_3dva_raycast_cone.py` | `--recenter-to-bbox-center --override-fov-deg 35.9834` | per-vertex TXT (3 views) |
+| 3DVA | `eval_3dva_raycast_cone.py` | `--recenter-to-bbox-center --override-fov-deg 35.9834` + optional `--video-id` | per-vertex TXT (3 views) |
 | SAL3D | `eval_sal3d_cone.py` | defaults already correct | per-vertex from Gaze/*.txt col.6 |
 
 ---
@@ -57,16 +57,20 @@ REPO="/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-
 
 ### Screen-space variant
 Same flags, use `eval_meshmamba_screen_space.py` with `--sigma-screen 0.05`.
-Note: screen_space has a back-face contamination bug (52.5% of faces project to screen
-incorrectly). CC for screen_space is typically lower and sometimes negative.
+Screen-space now uses the same authoritative transform/FOV defaults and performs
+back-face culling against the camera direction. It is still a weaker method than
+cone-on-mesh on many models, but no longer mixes obvious reverse-facing faces.
 
 ### Pilot models with validated geometry (IoU ≥ 0.987)
 Starfruit_L3, Mango_L3, Pear_L3, Rubber_Duck_v1_L3,
 Penguin_V2_L3, Moai_v3_L3, SeaHorse_v2_L3, Rhinoceros_v1_L3
 
-### GT name mismatches to be aware of
-- Penguin_V2_L3 → GT file = Penguin_v1_iterations-2.csv (name mismatch, script fails)
-- Moai_v3_L3 → GT file = Moai_L3.csv (handled by fuzzy match)
+### GT / OBJ naming mismatches
+- Resolver now falls back through the actual OBJ stem when matching GT.
+- This explicitly covers cases such as:
+  - Penguin_V2_L3 → Penguin_v1_iterations-2.csv
+  - Moai_v3_L3 → Moai_L3.csv
+  - SeaHorse_v2_L3 → SeaHorse_v1_iterations-2.csv
 - 4 models have NO GT: Eagle_wood, PoloTeamShirt, White-TailedDeer, barbiegirl
 
 ---
@@ -144,14 +148,24 @@ OUR data: from rotating videos → view-integrated gaze.
 GT: from static images → view-specific gaze.
 This mismatch is expected and all three GT variants should be reported.
 
-### Validated geometry
-All 32 3DVA models: mean IoU = 0.946 (min = 0.875 for octopus/igea/dinosaur-40K).
-Recipe: recenter=True, extra_rotate_x=0°, override_fov_deg=null (use JSON 60°).
+### Authoritative geometry policy
+Use:
+- `recenter=True`
+- `extra_rotate_x=0°`
+- `override_fov_deg=35.9834`
+
+Reason:
+- JSON exports contain `fov_degrees ≈ 60` and `projection_matrix[1,1] ≈ 1.732`, which means
+  the stored matrix is using **vertical 60°**.
+- On 16:9, that implies **horizontal ≈ 122.55°**, which is not the intended render setup.
+- Therefore eval must override to the correct vertical FOV for `horizontal 60°`, namely `35.9834°`.
+
 NOTE: 3DVA render script uses forward='X', up='Z' → no extra rotation needed with -up OBJ.
 
 ### A380 special case
-A380 CSV has TWO video_ids [1970, 2365] — data from two different sessions mixed.
-Current script processes all rows together. For clean eval, filter by one video_id.
+A380 CSV has TWO video_ids `[1970, 2365]` — data from two different sessions mixed.
+The eval scripts now support `--video-id` for clean session filtering. If omitted,
+they still process all rows, but the report records the mixed `video_ids_present`.
 
 ---
 
