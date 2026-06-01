@@ -620,6 +620,22 @@ def compute_metrics(
         "PredictionSum": float(pred.sum()),
         "GroundTruthSum": float(gt.sum()),
     }
+    for threshold, label in ((0.0, "zero"), (1e-8, "le_1e_8"), (1e-6, "le_1e_6")):
+        low_pred = pred_prob <= threshold
+        metrics[f"gt_mass_on_pred_{label}"] = float(gt_prob[low_pred].sum())
+        metrics[f"pred_mass_on_pred_{label}"] = float(pred_prob[low_pred].sum())
+        metrics[f"pred_count_{label}"] = float(low_pred.sum())
+    kld_terms = gt_prob_safe * np.log(gt_prob_safe / pred_prob_safe)
+    top_k = min(100, kld_terms.size)
+    if top_k > 0:
+        idx = np.argpartition(kld_terms, -top_k)[-top_k:]
+        metrics["top100_kld_contrib_sum"] = float(kld_terms[idx].sum())
+        metrics["top100_kld_gt_mass"] = float(gt_prob[idx].sum())
+        metrics["top100_kld_pred_mass"] = float(pred_prob[idx].sum())
+    else:
+        metrics["top100_kld_contrib_sum"] = 0.0
+        metrics["top100_kld_gt_mass"] = 0.0
+        metrics["top100_kld_pred_mass"] = 0.0
 
     for percentile in proxy_fixation_percentiles:
         threshold = float(np.quantile(gt_unit, percentile / 100.0))

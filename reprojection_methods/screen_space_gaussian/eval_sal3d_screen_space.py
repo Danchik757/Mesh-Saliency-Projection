@@ -750,6 +750,22 @@ def compute_metrics(
         "PredictionSum":  float(pred.sum()),
         "GroundTruthSum": float(gt.sum()),
     }
+    for thr, label in ((0.0, "zero"), (1e-8, "le_1e_8"), (1e-6, "le_1e_6")):
+        low_pred = pred_prob <= thr
+        m[f"gt_mass_on_pred_{label}"] = float(gt_prob[low_pred].sum())
+        m[f"pred_mass_on_pred_{label}"] = float(pred_prob[low_pred].sum())
+        m[f"pred_count_{label}"] = float(low_pred.sum())
+    kld_terms = (gt_prob + eps) * np.log((gt_prob + eps) / (pred_prob + eps))
+    top_k = min(100, kld_terms.size)
+    if top_k > 0:
+        idx = np.argpartition(kld_terms, -top_k)[-top_k:]
+        m["top100_kld_contrib_sum"] = float(kld_terms[idx].sum())
+        m["top100_kld_gt_mass"] = float(gt_prob[idx].sum())
+        m["top100_kld_pred_mass"] = float(pred_prob[idx].sum())
+    else:
+        m["top100_kld_contrib_sum"] = 0.0
+        m["top100_kld_gt_mass"] = 0.0
+        m["top100_kld_pred_mass"] = 0.0
     for pct in proxy_percentiles:
         thr  = float(np.quantile(gt_unit, pct / 100.0))
         mask = gt_unit >= thr
