@@ -47,8 +47,9 @@ PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 # ---------- defaults ----------
 WORKERS="${WORKERS:-4}"
 NICE_LEVEL="${NICE_LEVEL:-10}"
-# Keep the default to a single validated model.
-PILOT_OBJECTS="${PILOT_OBJECTS:-bunny}"
+# All 32 3DVA models (set PILOT_OBJECTS to override with a subset)
+ALL_MODELS="A380 Harley Max-Planck bimba blade-200K bunny camel car-vasa carter casting chair107 cow dinosaur-40K dragon fandisk flowerpot gorgoile hand-35K horse-110k house igea-100K james jessi meca-15k michael3 michael8 octopus prot rockerarm torso turbine vase-15k"
+PILOT_OBJECTS="${PILOT_OBJECTS:-${ALL_MODELS}}"
 SIGMA_DEG="${SIGMA_DEG:-1.0}"
 RADIUS_SIGMA_MULT="${RADIUS_SIGMA_MULT:-3.0}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"

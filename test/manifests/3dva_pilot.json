@@ -14,7 +14,8 @@
   "server_paths_note": "All paths below are resolved from env vars at runtime. No absolute local paths.",
   "server_layout": {
     "dataset_root": "${VISUAL_ATTENTION_3D_SHAPES_ROOT}",
-    "models_subdir": "3DModels-Simplif",
+    "models_subdir": "3DModels-Simplif-up",
+    "models_subdir_note": "MUST use 3DModels-Simplif-up (corrected orientation). Never 3DModels-Simplif — wrong axis alignment confirmed by IoU checks.",
     "fixation_maps_subdir": "FixationMaps",
     "per_subject_fixations_subdir": "PerSubjectFixations",
     "visibility_maps_subdir": "CentricityAndVisibilityMaps",

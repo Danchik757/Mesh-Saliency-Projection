@@ -192,7 +192,13 @@ def _resolve_gt_file(gt_root: Path, model: str, view: str) -> Path:
     raise FileNotFoundError(f"GT file not found for model '{model}', view '{view}' in {gt_root}")
 
 
-def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
+def _resolve_visibility_file(vis_root: Path, model: str, view: str) -> Path | None:
+    """Return the visibility file for (model, view) or None if not present."""
+    candidate_names = [f"{name}_{view}_visibility" for name in _candidate_model_names(model)]
+    return _resolve_casefold_file(vis_root, candidate_names, ".txt")
+
+
+def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path | None]:
     candidate_names = _candidate_model_names(args.model)
     csv_path = _resolve_casefold_file(args.csv_root, candidate_names, ".csv")
     obj_path = _resolve_casefold_file(args.dataset_root / "3DModels-Simplif-up", candidate_names, ".obj")
@@ -202,6 +208,7 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
         raise FileNotFoundError(
             f"OBJ file not found for model '{args.model}' in {args.dataset_root / '3DModels-Simplif-up'}"
         )
+    vis_root = args.dataset_root / "CentricityAndVisibilityMaps"
     return {
         "csv":    csv_path,
         "json":   _resolve_3dva_prefixed_json(args.json_root, args.model),
@@ -209,11 +216,16 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
         "gt_300": _resolve_gt_file(args.dataset_root / "FixationMaps", args.model, "300"),
         "gt_413": _resolve_gt_file(args.dataset_root / "FixationMaps", args.model, "413"),
         "gt_599": _resolve_gt_file(args.dataset_root / "FixationMaps", args.model, "599"),
+        "vis_300": _resolve_visibility_file(vis_root, args.model, "300"),
+        "vis_413": _resolve_visibility_file(vis_root, args.model, "413"),
+        "vis_599": _resolve_visibility_file(vis_root, args.model, "599"),
     }
 
 
-def ensure_exists(paths: dict[str, Path]) -> None:
-    missing = [f"{name}: {path}" for name, path in paths.items() if not path.exists()]
+def ensure_exists(paths: dict[str, Path | None]) -> None:
+    required_keys = ["csv", "json", "obj", "gt_300", "gt_413", "gt_599"]
+    missing = [f"{name}: {paths[name]}" for name in required_keys
+               if paths[name] is None or not paths[name].exists()]
     if missing:
         raise SystemExit("Missing inputs:\n" + "\n".join(missing))
 
@@ -610,18 +622,45 @@ def main() -> None:
     np.savetxt(out_dir / f"{args.model}_raycast_norm.txt", raycast_fix, fmt="%.10f")
     np.savetxt(out_dir / f"{args.model}_cone_norm.txt",    cone_fix,    fmt="%.10f")
 
-    gt_maps = {v: np.loadtxt(paths[f"gt_{v}"]) for v in ("300", "413", "599")}
-    results = {
-        "raycast_nearest_vertex": {v: compute_metrics(raycast_fix, gt) for v, gt in gt_maps.items()},
-        "cone_gaussian_on_mesh":  {v: compute_metrics(cone_fix,    gt) for v, gt in gt_maps.items()},
+    # Build metrics with and without visibility masking for each view.
+    results: dict[str, dict] = {
+        "raycast_nearest_vertex": {},
+        "cone_gaussian_on_mesh": {},
     }
+    vis_stats: dict[str, dict] = {}
+    for view in ("300", "413", "599"):
+        gt = np.loadtxt(paths[f"gt_{view}"])
+        # full-mesh metrics
+        results["raycast_nearest_vertex"][view] = {
+            "metrics_vs_gt_full": compute_metrics(raycast_fix, gt),
+            "metrics_vs_gt_visible_only": None,
+        }
+        results["cone_gaussian_on_mesh"][view] = {
+            "metrics_vs_gt_full": compute_metrics(cone_fix, gt),
+            "metrics_vs_gt_visible_only": None,
+        }
+        # visibility-masked metrics
+        vis_path = paths.get(f"vis_{view}")
+        if vis_path is not None and vis_path.exists():
+            vis = np.loadtxt(vis_path).astype(bool)
+            if len(vis) == len(mesh.vertices):
+                results["raycast_nearest_vertex"][view]["metrics_vs_gt_visible_only"] = \
+                    compute_metrics(raycast_fix[vis], gt[vis])
+                results["cone_gaussian_on_mesh"][view]["metrics_vs_gt_visible_only"] = \
+                    compute_metrics(cone_fix[vis], gt[vis])
+                vis_stats[view] = {"n_visible": int(vis.sum()), "n_total": int(len(vis))}
+            else:
+                print(f"[warn] visibility length mismatch for view {view}, skipping", flush=True)
+        else:
+            print(f"[warn] no visibility file for view {view}", flush=True)
 
     report = {
         "model":   args.model,
         "tag":     tag,
         "dataset": "3DVA",
-        "gaze_stats":  gaze_stats,
-        "run_stats":   run_stats,
+        "gaze_stats":      gaze_stats,
+        "run_stats":       run_stats,
+        "visibility_stats": vis_stats,
         "method_params": {
             "sigma_deg":              args.sigma_deg,
             "radius_sigma_mult":      args.radius_sigma_mult,
@@ -633,6 +672,11 @@ def main() -> None:
             "video_id":               args.video_id,
             "transform_order": "base_rotate_z -> recenter -> scale -> rotation_z -> extra_rotate_x -> extra_rotate_y -> translation",
         },
+        "metrics_note": (
+            "metrics_vs_gt_full: all mesh vertices. "
+            "metrics_vs_gt_visible_only: restricted to vertices visible from each GT static view "
+            "(CentricityAndVisibilityMaps/*.visibility.txt); matches 3DVA paper protocol (Section 5.2)."
+        ),
         "metrics_vs_gt": results,
     }
 
