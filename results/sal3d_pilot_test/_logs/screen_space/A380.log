@@ -1,0 +1,106 @@
+$ /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/venv/bin/python '/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py' --model A380 --dataset-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset --csv-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/SAL3D --json-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/SAL3D_json --output-dir results/sal3d_pilot_test/baseline_screen_space --recenter-to-bbox-center --extra-rotate-x-deg 90 --projection-fov-mode horizontal_to_vertical --transform-order blender_rig --smooth-ratio 500 --sigma-screen 0.05 --tag sigma0p05_recenter_rotx90p0_horizontaltovertical_blender_rig --smooth-gaze-dir /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze
+
+[exit_code] 0
+[elapsed_sec] 25.65
+
+{
+  "model": "A380",
+  "tag": "sigma0p05_recenter_rotx90p0_horizontaltovertical_blender_rig",
+  "dataset": "SAL3D",
+  "gt_file": "A380.txt",
+  "gt_column": 6,
+  "gt_type": "fixation_density_smoothed",
+  "gt_smoothed": true,
+  "gt_smooth_gaze_dir": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze",
+  "gt_smooth_ratio": 500,
+  "gt_smooth_fixated_verts": 1467,
+  "n_vertices": 47756,
+  "n_gt_covered": 19945,
+  "gt_coverage_pct": 41.76,
+  "gt_match_type": "subset",
+  "gaze_stats": {
+    "num_rows": 36,
+    "num_participants": 36,
+    "num_points": 33869,
+    "num_frames_with_points": 720
+  },
+  "run_stats": {
+    "total_gaze_points": 33869,
+    "frames_used": 720,
+    "density_img_shape": [
+      144,
+      256
+    ],
+    "sigma_px": 12.8,
+    "nonzero_vertices": 38124,
+    "culled_back_verts": 17558493,
+    "projection": {
+      "projection_fov_mode": "horizontal_to_vertical",
+      "input_fov_deg": 60.0,
+      "effective_vertical_fov_deg": 35.98339356333543,
+      "fov_source": "json_fov_degrees"
+    }
+  },
+  "method_params": {
+    "sigma_screen": 0.05,
+    "recenter_to_bbox_center": true,
+    "base_rotate_z_deg": 0.0,
+    "extra_rotate_x_deg": 90.0,
+    "extra_rotate_y_deg": 0.0,
+    "override_fov_deg": null,
+    "projection_fov_mode": "horizontal_to_vertical",
+    "input_fov_deg": 60.0,
+    "effective_vertical_fov_deg": 35.98339356333543,
+    "fov_source": "json_fov_degrees",
+    "transform_order": "blender_rig",
+    "density_image": "256x144"
+  },
+  "metrics_vs_gt_full_mesh": {
+    "screen_space_gaussian": {
+      "CC": -0.007932781607332622,
+      "LCC": -0.007932781607332622,
+      "SIM": 0.3037612906728398,
+      "KLD": 3.816837333798879,
+      "MSE": 0.15845922397175607,
+      "MAE": 0.3164930534018676,
+      "Spearman": -0.004349799712679804,
+      "Cosine": 0.258292665744083,
+      "PredictionSum": 5.703358744308406,
+      "GroundTruthSum": 53487.31624838333,
+      "NSS_gt_top_10pct_proxy": -0.061927800831885656,
+      "AUC_Judd_gt_top_10pct_proxy": 0.4839599687206001,
+      "GTMaskCount_top_10pct_proxy": 4776.0,
+      "NSS_gt_top_5pct_proxy": 0.03237955151452623,
+      "AUC_Judd_gt_top_5pct_proxy": 0.5172547349248446,
+      "GTMaskCount_top_5pct_proxy": 2388.0,
+      "NSS_gt_top_1pct_proxy": 0.02523886876396471,
+      "AUC_Judd_gt_top_1pct_proxy": 0.5233436527219663,
+      "GTMaskCount_top_1pct_proxy": 478.0
+    }
+  },
+  "metrics_vs_gt_covered_only": {
+    "screen_space_gaussian": {
+      "CC": -0.015959454150237307,
+      "LCC": -0.015959454150237307,
+      "SIM": 0.4959239246103933,
+      "KLD": 3.0659530141540436,
+      "MSE": 0.1444803367225661,
+      "MAE": 0.30014932900400776,
+      "Spearman": -0.040631646387260925,
+      "Cosine": 0.3989973400616102,
+      "PredictionSum": 2.3894863296296345,
+      "GroundTruthSum": 53487.31624838333,
+      "NSS_gt_top_10pct_proxy": 0.04112281799407983,
+      "AUC_Judd_gt_top_10pct_proxy": 0.5204788573104069,
+      "GTMaskCount_top_10pct_proxy": 1995.0,
+      "NSS_gt_top_5pct_proxy": -0.011834546763140105,
+      "AUC_Judd_gt_top_5pct_proxy": 0.5116058633337821,
+      "GTMaskCount_top_5pct_proxy": 998.0,
+      "NSS_gt_top_1pct_proxy": -0.07244528176537636,
+      "AUC_Judd_gt_top_1pct_proxy": 0.4915638136237022,
+      "GTMaskCount_top_1pct_proxy": 200.0
+    }
+  }
+}
+
+Saved: results/sal3d_pilot_test/baseline_screen_space/A380/sigma0p05_recenter_rotx90p0_horizontaltovertical_blender_rig/A380_report.json

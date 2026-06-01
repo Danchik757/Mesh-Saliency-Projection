@@ -11,3 +11,7 @@ results/**/*.npy
 
 # Local preview outputs (generated artifacts, may contain local absolute paths)
 test/output_local/
+test/output_local_*/
+
+# Dataset ZIPs (large binary assets — distributed via GitHub Releases, not committed)
+release_assets/

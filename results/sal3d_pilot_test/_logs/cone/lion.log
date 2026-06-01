@@ -1,0 +1,144 @@
+$ /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/venv/bin/python '/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py' --model lion --dataset-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset --csv-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/SAL3D --json-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/SAL3D_json --output-dir results/sal3d_pilot_test/baseline_cone --recenter-to-bbox-center --extra-rotate-x-deg 90 --projection-fov-mode horizontal_to_vertical --transform-order blender_rig --smooth-ratio 500 --sigma-deg 1.0 --radius-sigma-mult 3.0 --tag recenter_rotx90p0_horizontaltovertical_blender_rig --smooth-gaze-dir /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze
+
+[exit_code] 0
+[elapsed_sec] 651.48
+
+{
+  "model": "lion",
+  "tag": "recenter_rotx90p0_horizontaltovertical_blender_rig",
+  "dataset": "SAL3D",
+  "gt_file": "lion.txt",
+  "gt_column": 6,
+  "gt_type": "fixation_density_smoothed",
+  "gt_smoothed": true,
+  "gt_smooth_gaze_dir": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze",
+  "gt_smooth_ratio": 500,
+  "gt_smooth_fixated_verts": 2705,
+  "n_vertices": 53709,
+  "n_gt_covered": 20000,
+  "gt_coverage_pct": 37.24,
+  "gt_match_type": "subset",
+  "gaze_stats": {
+    "num_rows": 36,
+    "num_participants": 36,
+    "num_points": 31113,
+    "num_frames_with_points": 720
+  },
+  "run_stats": {
+    "total_gaze_points": 31113,
+    "successful_hits": 27395,
+    "hit_rate": 0.8805001124931701,
+    "raycast_nonzero_vertices": 12174,
+    "cone_nonzero_vertices": 53699,
+    "projection": {
+      "projection_fov_mode": "horizontal_to_vertical",
+      "input_fov_deg": 60.0,
+      "effective_vertical_fov_deg": 35.98339356333543,
+      "fov_source": "json_fov_degrees"
+    }
+  },
+  "method_params": {
+    "sigma_deg": 1.0,
+    "radius_sigma_mult": 3.0,
+    "recenter_to_bbox_center": true,
+    "base_rotate_z_deg": 0.0,
+    "extra_rotate_x_deg": 90.0,
+    "extra_rotate_y_deg": 0.0,
+    "override_fov_deg": null,
+    "projection_fov_mode": "horizontal_to_vertical",
+    "input_fov_deg": 60.0,
+    "effective_vertical_fov_deg": 35.98339356333543,
+    "fov_source": "json_fov_degrees",
+    "transform_order": "blender_rig"
+  },
+  "metrics_vs_gt_full_mesh": {
+    "raycast_nearest_vertex": {
+      "CC": 0.127814805809579,
+      "LCC": 0.127814805809579,
+      "SIM": 0.22086569675371845,
+      "KLD": 12.371159256253796,
+      "MSE": 0.023299021583109557,
+      "MAE": 0.07670319149406768,
+      "Spearman": 0.040448733670191465,
+      "Cosine": 0.24369535002262407,
+      "PredictionSum": 27395.0,
+      "GroundTruthSum": 49873.655233068275,
+      "NSS_gt_top_10pct_proxy": 0.36082381081389975,
+      "AUC_Judd_gt_top_10pct_proxy": 0.5815300649443006,
+      "GTMaskCount_top_10pct_proxy": 5371.0,
+      "NSS_gt_top_5pct_proxy": 0.6562481585175296,
+      "AUC_Judd_gt_top_5pct_proxy": 0.6211252290423854,
+      "GTMaskCount_top_5pct_proxy": 2686.0,
+      "NSS_gt_top_1pct_proxy": 1.1442246162769283,
+      "AUC_Judd_gt_top_1pct_proxy": 0.6521597148961557,
+      "GTMaskCount_top_1pct_proxy": 538.0
+    },
+    "cone_gaussian_on_mesh": {
+      "CC": 0.21091904080743257,
+      "LCC": 0.21091904080743257,
+      "SIM": 0.3376301608208458,
+      "KLD": 1.5591127338689557,
+      "MSE": 0.025341016551541425,
+      "MAE": 0.09649977282676632,
+      "Spearman": 0.07150975918599291,
+      "Cosine": 0.40935791344935746,
+      "PredictionSum": 8848841.016701318,
+      "GroundTruthSum": 49873.655233068275,
+      "NSS_gt_top_10pct_proxy": 0.6785765967988785,
+      "AUC_Judd_gt_top_10pct_proxy": 0.6883195943687634,
+      "GTMaskCount_top_10pct_proxy": 5371.0,
+      "NSS_gt_top_5pct_proxy": 0.9487596670396609,
+      "AUC_Judd_gt_top_5pct_proxy": 0.7113975135007297,
+      "GTMaskCount_top_5pct_proxy": 2686.0,
+      "NSS_gt_top_1pct_proxy": 1.3903241677327653,
+      "AUC_Judd_gt_top_1pct_proxy": 0.7850474924874146,
+      "GTMaskCount_top_1pct_proxy": 538.0
+    }
+  },
+  "metrics_vs_gt_covered_only": {
+    "raycast_nearest_vertex": {
+      "CC": 0.2872788600452696,
+      "LCC": 0.2872788600452696,
+      "SIM": 0.2992939370006523,
+      "KLD": 12.058634970862752,
+      "MSE": 0.059349138760361554,
+      "MAE": 0.18442383559774403,
+      "Spearman": 0.25966855926155497,
+      "Cosine": 0.3985974786172854,
+      "PredictionSum": 10148.0,
+      "GroundTruthSum": 49873.655233068275,
+      "NSS_gt_top_10pct_proxy": 0.7698377716847412,
+      "AUC_Judd_gt_top_10pct_proxy": 0.6460122361111111,
+      "GTMaskCount_top_10pct_proxy": 2000.0,
+      "NSS_gt_top_5pct_proxy": 1.0567171827722754,
+      "AUC_Judd_gt_top_5pct_proxy": 0.669002,
+      "GTMaskCount_top_5pct_proxy": 1000.0,
+      "NSS_gt_top_1pct_proxy": 1.0263312015355897,
+      "AUC_Judd_gt_top_1pct_proxy": 0.6174535353535353,
+      "GTMaskCount_top_1pct_proxy": 200.0
+    },
+    "cone_gaussian_on_mesh": {
+      "CC": 0.46931778340179753,
+      "LCC": 0.46931778340179753,
+      "SIM": 0.5942125042459601,
+      "KLD": 0.5720299941680612,
+      "MSE": 0.03823062133054934,
+      "MAE": 0.13705878311124825,
+      "Spearman": 0.46131122334450575,
+      "Cosine": 0.6683513265545471,
+      "PredictionSum": 3297466.764772293,
+      "GroundTruthSum": 49873.655233068275,
+      "NSS_gt_top_10pct_proxy": 0.9862716144824069,
+      "AUC_Judd_gt_top_10pct_proxy": 0.7306544305555556,
+      "GTMaskCount_top_10pct_proxy": 2000.0,
+      "NSS_gt_top_5pct_proxy": 1.2709720431585165,
+      "AUC_Judd_gt_top_5pct_proxy": 0.7534345789473683,
+      "GTMaskCount_top_5pct_proxy": 1000.0,
+      "NSS_gt_top_1pct_proxy": 1.906373997941611,
+      "AUC_Judd_gt_top_1pct_proxy": 0.8818959595959596,
+      "GTMaskCount_top_1pct_proxy": 200.0
+    }
+  }
+}
+
+Saved: results/sal3d_pilot_test/baseline_cone/lion/recenter_rotx90p0_horizontaltovertical_blender_rig/lion_report.json

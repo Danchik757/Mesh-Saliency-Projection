@@ -1,0 +1,144 @@
+$ /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/venv/bin/python '/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py' --model A380 --dataset-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset --csv-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/SAL3D --json-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/SAL3D_json --output-dir results/sal3d_pilot_test/baseline_cone --recenter-to-bbox-center --extra-rotate-x-deg 90 --projection-fov-mode horizontal_to_vertical --transform-order blender_rig --smooth-ratio 500 --sigma-deg 1.0 --radius-sigma-mult 3.0 --tag recenter_rotx90p0_horizontaltovertical_blender_rig --smooth-gaze-dir /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze
+
+[exit_code] 0
+[elapsed_sec] 597.76
+
+{
+  "model": "A380",
+  "tag": "recenter_rotx90p0_horizontaltovertical_blender_rig",
+  "dataset": "SAL3D",
+  "gt_file": "A380.txt",
+  "gt_column": 6,
+  "gt_type": "fixation_density_smoothed",
+  "gt_smoothed": true,
+  "gt_smooth_gaze_dir": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze",
+  "gt_smooth_ratio": 500,
+  "gt_smooth_fixated_verts": 1467,
+  "n_vertices": 47756,
+  "n_gt_covered": 19945,
+  "gt_coverage_pct": 41.76,
+  "gt_match_type": "subset",
+  "gaze_stats": {
+    "num_rows": 36,
+    "num_participants": 36,
+    "num_points": 33869,
+    "num_frames_with_points": 720
+  },
+  "run_stats": {
+    "total_gaze_points": 33869,
+    "successful_hits": 26475,
+    "hit_rate": 0.7816882695089905,
+    "raycast_nonzero_vertices": 12683,
+    "cone_nonzero_vertices": 47756,
+    "projection": {
+      "projection_fov_mode": "horizontal_to_vertical",
+      "input_fov_deg": 60.0,
+      "effective_vertical_fov_deg": 35.98339356333543,
+      "fov_source": "json_fov_degrees"
+    }
+  },
+  "method_params": {
+    "sigma_deg": 1.0,
+    "radius_sigma_mult": 3.0,
+    "recenter_to_bbox_center": true,
+    "base_rotate_z_deg": 0.0,
+    "extra_rotate_x_deg": 90.0,
+    "extra_rotate_y_deg": 0.0,
+    "override_fov_deg": null,
+    "projection_fov_mode": "horizontal_to_vertical",
+    "input_fov_deg": 60.0,
+    "effective_vertical_fov_deg": 35.98339356333543,
+    "fov_source": "json_fov_degrees",
+    "transform_order": "blender_rig"
+  },
+  "metrics_vs_gt_full_mesh": {
+    "raycast_nearest_vertex": {
+      "CC": 0.1986568237575661,
+      "LCC": 0.1986568237575661,
+      "SIM": 0.24045377965630776,
+      "KLD": 11.245803691233466,
+      "MSE": 0.0066104086350687145,
+      "MAE": 0.03647466239758196,
+      "Spearman": 0.04109927876815266,
+      "Cosine": 0.3035995498001605,
+      "PredictionSum": 26475.0,
+      "GroundTruthSum": 53487.31624838333,
+      "NSS_gt_top_10pct_proxy": 0.32761000036471016,
+      "AUC_Judd_gt_top_10pct_proxy": 0.562623884117345,
+      "GTMaskCount_top_10pct_proxy": 4776.0,
+      "NSS_gt_top_5pct_proxy": 0.5866833205668608,
+      "AUC_Judd_gt_top_5pct_proxy": 0.5939211529270996,
+      "GTMaskCount_top_5pct_proxy": 2388.0,
+      "NSS_gt_top_1pct_proxy": 1.826551910707161,
+      "AUC_Judd_gt_top_1pct_proxy": 0.7062499856187588,
+      "GTMaskCount_top_1pct_proxy": 478.0
+    },
+    "cone_gaussian_on_mesh": {
+      "CC": 0.26436317656630887,
+      "LCC": 0.26436317656630887,
+      "SIM": 0.35434644788754877,
+      "KLD": 1.3808192529634438,
+      "MSE": 0.05468199251713522,
+      "MAE": 0.1987751767890483,
+      "Spearman": 0.04663011218052352,
+      "Cosine": 0.40887161541397965,
+      "PredictionSum": 13400943.256744986,
+      "GroundTruthSum": 53487.31624838333,
+      "NSS_gt_top_10pct_proxy": 0.38459766014162144,
+      "AUC_Judd_gt_top_10pct_proxy": 0.5722301718184531,
+      "GTMaskCount_top_10pct_proxy": 4776.0,
+      "NSS_gt_top_5pct_proxy": 0.7351184564440737,
+      "AUC_Judd_gt_top_5pct_proxy": 0.6329183323674742,
+      "GTMaskCount_top_5pct_proxy": 2388.0,
+      "NSS_gt_top_1pct_proxy": 2.519306195421834,
+      "AUC_Judd_gt_top_1pct_proxy": 0.9115753238080252,
+      "GTMaskCount_top_1pct_proxy": 478.0
+    }
+  },
+  "metrics_vs_gt_covered_only": {
+    "raycast_nearest_vertex": {
+      "CC": 0.32637698215956057,
+      "LCC": 0.32637698215956057,
+      "SIM": 0.3227406696416404,
+      "KLD": 10.913952630557095,
+      "MSE": 0.011677246165772951,
+      "MAE": 0.05685053785203933,
+      "Spearman": 0.18457078576536404,
+      "Cosine": 0.46164096104646407,
+      "PredictionSum": 11275.0,
+      "GroundTruthSum": 53487.31624838333,
+      "NSS_gt_top_10pct_proxy": 0.6541742954090838,
+      "AUC_Judd_gt_top_10pct_proxy": 0.6084374166614307,
+      "GTMaskCount_top_10pct_proxy": 1995.0,
+      "NSS_gt_top_5pct_proxy": 1.2217768541147869,
+      "AUC_Judd_gt_top_5pct_proxy": 0.6794554962037868,
+      "GTMaskCount_top_5pct_proxy": 998.0,
+      "NSS_gt_top_1pct_proxy": 2.2911213045148875,
+      "AUC_Judd_gt_top_1pct_proxy": 0.7610633071663713,
+      "GTMaskCount_top_1pct_proxy": 200.0
+    },
+    "cone_gaussian_on_mesh": {
+      "CC": 0.4375767397014185,
+      "LCC": 0.4375767397014185,
+      "SIM": 0.6113264380839277,
+      "KLD": 0.5135364297116773,
+      "MSE": 0.04140899425458487,
+      "MAE": 0.17068651264191373,
+      "Spearman": 0.19809868225958704,
+      "Cosine": 0.6281569260299943,
+      "PredictionSum": 5629619.153478978,
+      "GroundTruthSum": 53487.31624838333,
+      "NSS_gt_top_10pct_proxy": 0.8596642764098332,
+      "AUC_Judd_gt_top_10pct_proxy": 0.6671463477635594,
+      "GTMaskCount_top_10pct_proxy": 1995.0,
+      "NSS_gt_top_5pct_proxy": 1.8261602043677414,
+      "AUC_Judd_gt_top_5pct_proxy": 0.8710304707160665,
+      "GTMaskCount_top_5pct_proxy": 998.0,
+      "NSS_gt_top_1pct_proxy": 3.027481596298008,
+      "AUC_Judd_gt_top_1pct_proxy": 0.963806786528235,
+      "GTMaskCount_top_1pct_proxy": 200.0
+    }
+  }
+}
+
+Saved: results/sal3d_pilot_test/baseline_cone/A380/recenter_rotx90p0_horizontaltovertical_blender_rig/A380_report.json

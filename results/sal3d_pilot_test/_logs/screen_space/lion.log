@@ -1,0 +1,106 @@
+$ /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/venv/bin/python '/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py' --model lion --dataset-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset --csv-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/SAL3D --json-root /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/SAL3D_json --output-dir results/sal3d_pilot_test/baseline_screen_space --recenter-to-bbox-center --extra-rotate-x-deg 90 --projection-fov-mode horizontal_to_vertical --transform-order blender_rig --smooth-ratio 500 --sigma-screen 0.05 --tag sigma0p05_recenter_rotx90p0_horizontaltovertical_blender_rig --smooth-gaze-dir /Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze
+
+[exit_code] 0
+[elapsed_sec] 39.92
+
+{
+  "model": "lion",
+  "tag": "sigma0p05_recenter_rotx90p0_horizontaltovertical_blender_rig",
+  "dataset": "SAL3D",
+  "gt_file": "lion.txt",
+  "gt_column": 6,
+  "gt_type": "fixation_density_smoothed",
+  "gt_smoothed": true,
+  "gt_smooth_gaze_dir": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Smooth_Gaze",
+  "gt_smooth_ratio": 500,
+  "gt_smooth_fixated_verts": 2705,
+  "n_vertices": 53709,
+  "n_gt_covered": 20000,
+  "gt_coverage_pct": 37.24,
+  "gt_match_type": "subset",
+  "gaze_stats": {
+    "num_rows": 36,
+    "num_participants": 36,
+    "num_points": 31113,
+    "num_frames_with_points": 720
+  },
+  "run_stats": {
+    "total_gaze_points": 31113,
+    "frames_used": 720,
+    "density_img_shape": [
+      144,
+      256
+    ],
+    "sigma_px": 12.8,
+    "nonzero_vertices": 49785,
+    "culled_back_verts": 21126648,
+    "projection": {
+      "projection_fov_mode": "horizontal_to_vertical",
+      "input_fov_deg": 60.0,
+      "effective_vertical_fov_deg": 35.98339356333543,
+      "fov_source": "json_fov_degrees"
+    }
+  },
+  "method_params": {
+    "sigma_screen": 0.05,
+    "recenter_to_bbox_center": true,
+    "base_rotate_z_deg": 0.0,
+    "extra_rotate_x_deg": 90.0,
+    "extra_rotate_y_deg": 0.0,
+    "override_fov_deg": null,
+    "projection_fov_mode": "horizontal_to_vertical",
+    "input_fov_deg": 60.0,
+    "effective_vertical_fov_deg": 35.98339356333543,
+    "fov_source": "json_fov_degrees",
+    "transform_order": "blender_rig",
+    "density_image": "256x144"
+  },
+  "metrics_vs_gt_full_mesh": {
+    "screen_space_gaussian": {
+      "CC": 0.13224508753548408,
+      "LCC": 0.13224508753548408,
+      "SIM": 0.3198102408058061,
+      "KLD": 1.8528998320747985,
+      "MSE": 0.06814019128666836,
+      "MAE": 0.1982005192063182,
+      "Spearman": 0.052392949812576375,
+      "Cosine": 0.43614054954577763,
+      "PredictionSum": 4.594671363048692,
+      "GroundTruthSum": 49873.655233068275,
+      "NSS_gt_top_10pct_proxy": 0.43474317315304895,
+      "AUC_Judd_gt_top_10pct_proxy": 0.6447364270303557,
+      "GTMaskCount_top_10pct_proxy": 5371.0,
+      "NSS_gt_top_5pct_proxy": 0.5141343536680371,
+      "AUC_Judd_gt_top_5pct_proxy": 0.6610059777838937,
+      "GTMaskCount_top_5pct_proxy": 2686.0,
+      "NSS_gt_top_1pct_proxy": 0.7484514720742529,
+      "AUC_Judd_gt_top_1pct_proxy": 0.7139374231935555,
+      "GTMaskCount_top_1pct_proxy": 538.0
+    }
+  },
+  "metrics_vs_gt_covered_only": {
+    "screen_space_gaussian": {
+      "CC": 0.29503309749292916,
+      "LCC": 0.29503309749292916,
+      "SIM": 0.6413738641467593,
+      "KLD": 0.8953972491444143,
+      "MSE": 0.044897803157403965,
+      "MAE": 0.1559422270167244,
+      "Spearman": 0.3280747988667461,
+      "Cosine": 0.7141898046994265,
+      "PredictionSum": 1.7117427467699597,
+      "GroundTruthSum": 49873.655233068275,
+      "NSS_gt_top_10pct_proxy": 0.5092816300124656,
+      "AUC_Judd_gt_top_10pct_proxy": 0.6707631944444444,
+      "GTMaskCount_top_10pct_proxy": 2000.0,
+      "NSS_gt_top_5pct_proxy": 0.6084896996459419,
+      "AUC_Judd_gt_top_5pct_proxy": 0.6849980263157894,
+      "GTMaskCount_top_5pct_proxy": 1000.0,
+      "NSS_gt_top_1pct_proxy": 0.9952234337799117,
+      "AUC_Judd_gt_top_1pct_proxy": 0.7604338383838383,
+      "GTMaskCount_top_1pct_proxy": 200.0
+    }
+  }
+}
+
+Saved: results/sal3d_pilot_test/baseline_screen_space/lion/sigma0p05_recenter_rotx90p0_horizontaltovertical_blender_rig/lion_report.json

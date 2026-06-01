@@ -1,27 +1,37 @@
 #!/usr/bin/env python3
 """
-Evaluate raycast_nearest_vertex and cone_gaussian_on_mesh on one SAL3D model.
+Evaluate screen_space_gaussian on one SAL3D model.
 
-GT format:
-  SAL3D_Dataset/Gaze/<model>.txt  —  20000×8 text file
-  columns: x y z  nx ny nz  smooth_saliency  binary_saliency
-  The rows correspond to vertices in a DIFFERENT order than the OBJ file.
-  We match Gaze rows to OBJ vertices by nearest-neighbor (exact, dist=0).
+Method (screen_space_gaussian):
+  1. Accumulate all gaze points into a per-frame 2D density image (Gaussian-blurred).
+  2. For each animation frame that has gaze data, transform mesh VERTICES to world
+     space and project them to screen coordinates.
+  3. Back-face cull vertices whose normal points away from the camera.
+  4. Sample the per-frame gaze density image at each visible vertex's screen position.
+  5. Accumulate contributions weighted by the number of gaze points in that frame.
+  6. Compare the resulting per-vertex saliency map against per-vertex GT from Gaze/*.txt.
 
-Transform recipe (validated with Blender canonical preview, IoU≥0.977):
-  forward_axis='Z', up_axis='Y' in Blender OBJ import → implicit Rx(90°)
-  → use: --recenter-to-bbox-center --extra-rotate-x-deg 90.0
-          --projection-fov-mode horizontal_to_vertical
-          --transform-order blender_rig
+GT granularity: per-vertex (Gaze/<model>.txt, 20K rows × 8 cols, col 6 = fixation_density).
+Two metric sections are reported:
+  metrics_vs_gt_full_mesh    — all OBJ vertices (valid only for direct-match 20K models)
+  metrics_vs_gt_covered_only — only vertices covered by GT (valid for ALL models)
+
+Transform recipe (validated, Blender IoU ≥ 0.977 across all 57 SAL3D models):
+  forward_axis='Z', up_axis='Y' → implicit Rx(90°)
+  --recenter-to-bbox-center  --extra-rotate-x-deg 90.0
+  --projection-fov-mode horizontal_to_vertical
+  --transform-order blender_rig
 
 JSON prefix:  Sal3D_<model>.json
-OBJ path:     SAL3D_Dataset/Meshes/<model>.obj
+OBJ path:     {dataset_root}/Meshes/<model>.obj
+GT path:      {dataset_root}/Gaze/<model>.txt
 
 Env vars:
   SAL3D_DATASET_ROOT   — root containing Gaze/, Meshes/, Smooth_Gaze/
   SAL3D_CSV_ROOT       — directory with per-model CSV gaze files (our participants)
   SAL3D_JSON_ROOT      — directory with per-model Sal3D_<model>.json files
   SAL3D_OUTPUT_DIR     — output directory
+  SAL3D_SMOOTH_GAZE_DIR — directory with <model>_neighbors.txt for GT smoothing
 """
 
 from __future__ import annotations
@@ -40,12 +50,16 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 import trimesh
+from scipy.ndimage import gaussian_filter
 from scipy.spatial import cKDTree
 from scipy.stats import pearsonr, spearmanr
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
+
+_IMG_W = 1920
+_IMG_H = 1080
 
 
 @dataclass
@@ -60,7 +74,7 @@ def _env_path(var: str, fallback: str) -> Path:
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Evaluate raycast_nearest_vertex and cone_gaussian_on_mesh on one SAL3D model."
+        description="Evaluate screen_space_gaussian on one SAL3D model."
     )
     parser.add_argument("--model", default="bunny", help="SAL3D model name (e.g. bunny, dragon, A380).")
     parser.add_argument(
@@ -86,7 +100,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=_env_path(
             "SAL3D_OUTPUT_DIR",
-            str(REPO_ROOT / "results" / "sal3d" / "cone_raycast"),
+            str(REPO_ROOT / "results" / "sal3d" / "screen_space_gaussian"),
         ),
         help="Output directory for saliency maps and the evaluation report.",
     )
@@ -102,7 +116,7 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=_env_path("SAL3D_SMOOTH_GAZE_DIR", ""),
         help=(
-            "Directory with <model>_neighbors.txt files (SAL3D_final/Smooth\\ Gaze/). "
+            "Directory with <model>_neighbors.txt files (SAL3D_final/Smooth Gaze/). "
             "When provided, the raw fixation density is propagated to neighbours "
             "using the algorithm from the original paper before metric computation."
         ),
@@ -114,16 +128,10 @@ def parse_args() -> argparse.Namespace:
         help="Max number of neighbours to propagate to per fixated vertex (paper default: 500).",
     )
     parser.add_argument(
-        "--sigma-deg",
+        "--sigma-px",
         type=float,
-        default=1.0,
-        help="Angular sigma in degrees for the cone-style Gaussian.",
-    )
-    parser.add_argument(
-        "--radius-sigma-mult",
-        type=float,
-        default=3.0,
-        help="Query-radius multiplier for the cone Gaussian kernel.",
+        default=26.3,
+        help="Gaussian sigma in absolute pixels of the density image (default 26.3 px at 1920×1080).",
     )
     parser.add_argument(
         "--recenter-to-bbox-center",
@@ -254,17 +262,7 @@ def ensure_exists(paths: dict[str, Path]) -> None:
 # ── Smooth Gaze loading and GT smoothing ─────────────────────────────────────
 
 def load_smooth_gaze(smooth_gaze_dir: Path, model: str) -> dict[int, list[int]] | None:
-    """Load <model>_neighbors.txt from SAL3D_final/Smooth Gaze/.
-
-    Returns dict mapping fixated-vertex-index → list[neighbour-vertex-indices],
-    or None if the file does not exist for this model.
-
-    File format (one record per fixated vertex):
-      Line 0:   "<vertex_id> neighbors"
-      Line 1–N: "<nb1>;<nb2>;...;<nb_k>;<next_vertex_id> neighbors"
-      Line N+1: "<nb1>;<nb2>;...;<nb_k>"   (last vertex, no trailing marker)
-    All indices are row-indices in the 20K Gaze file, not OBJ indices.
-    """
+    """Load <model>_neighbors.txt from SAL3D_final/Smooth Gaze/."""
     if not smooth_gaze_dir or not Path(smooth_gaze_dir).is_dir():
         return None
 
@@ -300,20 +298,7 @@ def apply_gt_smoothing(
     smooth_gaze: dict[int, list[int]],
     ratio: int = 500,
 ) -> np.ndarray:
-    """Propagate raw fixation density to neighbouring vertices.
-
-    Replicates the algorithm from the original SAL3D paper (dataset_snippet.py):
-    For each fixated vertex i, spread its value to up to `ratio` nearest
-    neighbours with a linearly decaying gradient from 0.9*v to 0.
-
-    Args:
-        raw_gt:      (N_gaze,) raw fixation density array (col 6 from Gaze file).
-        smooth_gaze: dict from load_smooth_gaze().
-        ratio:       Max neighbours per fixated vertex (paper default 500).
-
-    Returns:
-        smoothed: (N_gaze,) smoothed saliency array.
-    """
+    """Propagate raw fixation density to neighbouring vertices (SAL3D paper algorithm)."""
     smoothed = raw_gt.copy()
     for vid, nbrs in smooth_gaze.items():
         v = float(raw_gt[vid])
@@ -328,8 +313,6 @@ def apply_gt_smoothing(
     return smoothed
 
 
-# ── GT loading with vertex re-ordering ───────────────────────────────────────
-
 def load_gt_aligned_to_obj(
     gaze_txt: Path,
     mesh_vertices: np.ndarray,
@@ -337,25 +320,16 @@ def load_gt_aligned_to_obj(
     smooth_gaze: dict[int, list[int]] | None = None,
     smooth_ratio: int = 500,
 ) -> tuple[np.ndarray, np.ndarray, bool]:
-    """Load GT saliency from Gaze/*.txt, optionally smooth, then align to OBJ.
-
-    Pipeline:
-      1. Load raw Gaze file → (N_gaze, 8) array.
-      2. Extract col gt_column as raw saliency.
-      3. If smooth_gaze provided: apply neighbourhood propagation in Gaze space.
-      4. Align to OBJ vertex order via KD-tree (dist=0 for valid data).
+    """Load GT saliency from Gaze/*.txt, optionally smooth, then align to OBJ vertices.
 
     Returns:
-        gt:        (N_vertices,) float array aligned to OBJ vertex indices.
-                   Vertices not covered by the Gaze file receive GT = 0.
-        gt_mask:   (N_vertices,) bool — True for vertices that have GT coverage.
-                   For 20K direct-match OBJs this is all-True.
-                   For high-res OBJs with 20K Gaze subset, only ~20K/N are True.
-        smoothed:  True if GT smoothing was applied, False if raw col6 was used.
+        gt:       (N_vertices,) aligned to OBJ vertex order; uncovered → 0.
+        gt_mask:  (N_vertices,) bool — True for vertices with GT coverage.
+        smoothed: True if GT smoothing was applied.
     """
-    data = np.loadtxt(gaze_txt)       # (N_gaze, 8)
-    gaze_xyz = data[:, :3]            # XYZ positions
-    raw_sal = data[:, gt_column].astype(np.float64)
+    data = np.loadtxt(gaze_txt)
+    gaze_xyz = data[:, :3]
+    raw_sal  = data[:, gt_column].astype(np.float64)
 
     n_verts = len(mesh_vertices)
     n_gaze  = len(gaze_xyz)
@@ -366,7 +340,6 @@ def load_gt_aligned_to_obj(
             "Cannot align GT to mesh."
         )
 
-    # Optionally apply smoothing in Gaze-file row space (0..N_gaze-1)
     if smooth_gaze is not None and gt_column != 7:
         gaze_sal = apply_gt_smoothing(raw_sal, smooth_gaze, ratio=smooth_ratio)
         smoothed = True
@@ -374,7 +347,6 @@ def load_gt_aligned_to_obj(
         gaze_sal = raw_sal
         smoothed = False
 
-    # Align Gaze rows to OBJ vertices by nearest-neighbour (dist=0)
     tree = cKDTree(mesh_vertices)
     dists, idxs = tree.query(gaze_xyz, k=1)
     if dists.max() > 1e-4:
@@ -390,7 +362,7 @@ def load_gt_aligned_to_obj(
     return gt, gt_mask, smoothed
 
 
-# ── gaze loading (same format as 3DVA / MeshMamba) ───────────────────────────
+# ── gaze loading ──────────────────────────────────────────────────────────────
 
 def load_gaze_batches(
     csv_path: Path, fps: int, total_frames: int
@@ -427,7 +399,35 @@ def load_gaze_batches(
     return batches, stats
 
 
-# ── projection matrix ─────────────────────────────────────────────────────────
+# ── view / projection ─────────────────────────────────────────────────────────
+
+def get_view_matrix(camera_data: dict) -> np.ndarray:
+    """Return 4×4 view matrix.
+
+    SAL3D JSONs store rotation_euler_radians + location instead of view_matrix.
+    """
+    cam = camera_data["camera_static"]
+    if "view_matrix" in cam:
+        return np.asarray(cam["view_matrix"], dtype=np.float64).reshape(4, 4)
+
+    rx_a, ry_a, rz_a = [float(a) for a in cam["rotation_euler_radians"]]
+
+    def Rx(a: float) -> np.ndarray:
+        return np.array([[1, 0, 0], [0, math.cos(a), -math.sin(a)], [0, math.sin(a), math.cos(a)]])
+
+    def Ry(a: float) -> np.ndarray:
+        return np.array([[math.cos(a), 0, math.sin(a)], [0, 1, 0], [-math.sin(a), 0, math.cos(a)]])
+
+    def Rz(a: float) -> np.ndarray:
+        return np.array([[math.cos(a), -math.sin(a), 0], [math.sin(a), math.cos(a), 0], [0, 0, 1]])
+
+    R = Rz(rz_a) @ Ry(ry_a) @ Rx(rx_a)
+    loc = np.array([float(x) for x in cam["location"]])
+    cam_world = np.eye(4)
+    cam_world[:3, :3] = R
+    cam_world[:3, 3] = loc
+    return np.linalg.inv(cam_world)
+
 
 def build_projection_matrix_from_fov(
     fov_deg: float, aspect_ratio: float, clip_start: float, clip_end: float
@@ -480,14 +480,11 @@ def resolve_projection_matrix(
 
     if mode == "horizontal_to_vertical":
         if override_fov_deg is not None:
-            h_fov = float(override_fov_deg)
-            src = "override_fov_deg"
+            h_fov, src = float(override_fov_deg), "override_fov_deg"
         elif "fov_degrees" in cam:
-            h_fov = float(cam["fov_degrees"])
-            src = "json_fov_degrees"
+            h_fov, src = float(cam["fov_degrees"]), "json_fov_degrees"
         else:
-            h_fov = math.degrees(float(cam["fov_radians"]))
-            src = "json_fov_radians"
+            h_fov, src = math.degrees(float(cam["fov_radians"])), "json_fov_radians"
         eff = horizontal_to_vertical_fov_deg(h_fov, float(vi["aspect_ratio"]))
         return build_projection_matrix_from_fov(eff, vi["aspect_ratio"], cam["clip_start"], cam["clip_end"]), {
             "projection_fov_mode": "horizontal_to_vertical",
@@ -501,18 +498,17 @@ def resolve_projection_matrix(
 
 # ── mesh transform ─────────────────────────────────────────────────────────────
 
-def apply_model_transform(
-    vertices: np.ndarray,
+def _apply_transform_no_recenter(
+    points: np.ndarray,
     camera_data: dict,
     rotation_z_rad: float,
-    recenter_to_bbox_center: bool,
     base_rotate_z_deg: float,
     extra_rotate_x_deg: float,
     extra_rotate_y_deg: float,
     transform_order: str,
 ) -> np.ndarray:
-    v = np.asarray(vertices, dtype=np.float64).copy()
-    bbox_center = 0.5 * (v.min(axis=0) + v.max(axis=0))
+    """Apply per-frame transform to points that were already recentered."""
+    v = np.asarray(points, dtype=np.float64).copy()
 
     def rz(pts: np.ndarray, rad: float) -> np.ndarray:
         if abs(rad) <= 1e-12:
@@ -547,8 +543,6 @@ def apply_model_transform(
     base_z_rad = math.radians(base_rotate_z_deg)
 
     if transform_order == "blender_rig":
-        if recenter_to_bbox_center:
-            v -= bbox_center
         v *= scale
         v = rx(v, extra_rotate_x_deg)
         v = ry(v, extra_rotate_y_deg)
@@ -556,8 +550,6 @@ def apply_model_transform(
         v = rz(v, rotation_z_rad)
     elif transform_order == "eval":
         v = rz(v, base_z_rad)
-        if recenter_to_bbox_center:
-            v -= bbox_center
         v *= scale
         v = rz(v, rotation_z_rad)
         v = rx(v, extra_rotate_x_deg)
@@ -569,65 +561,123 @@ def apply_model_transform(
     return v
 
 
-# ── ray casting ───────────────────────────────────────────────────────────────
+def _apply_normal_transform(
+    normals: np.ndarray,
+    rotation_z_rad: float,
+    base_rotate_z_deg: float,
+    extra_rotate_x_deg: float,
+    extra_rotate_y_deg: float,
+    transform_order: str,
+) -> np.ndarray:
+    """Rotate normals with the same orientation chain as the mesh (no scale/translate)."""
+    v = np.asarray(normals, dtype=np.float64).copy()
 
-def get_view_matrix(camera_data: dict) -> np.ndarray:
-    """Return 4×4 view matrix.
+    def rz(pts: np.ndarray, rad: float) -> np.ndarray:
+        if abs(rad) <= 1e-12:
+            return pts
+        out = pts.copy()
+        c, s = math.cos(rad), math.sin(rad)
+        out[:, 0] = c * pts[:, 0] - s * pts[:, 1]
+        out[:, 1] = s * pts[:, 0] + c * pts[:, 1]
+        return out
 
-    If the JSON contains 'view_matrix' (MeshMamba/3DVA style), use it directly.
-    Otherwise reconstruct from 'rotation_euler_radians' + 'location' (SAL3D style).
-    """
-    cam = camera_data["camera_static"]
-    if "view_matrix" in cam:
-        return np.asarray(cam["view_matrix"], dtype=np.float64).reshape(4, 4)
+    def rx(pts: np.ndarray, deg: float) -> np.ndarray:
+        rad = math.radians(deg)
+        if abs(rad) <= 1e-12:
+            return pts
+        out = pts.copy()
+        c, s = math.cos(rad), math.sin(rad)
+        out[:, 1] = c * pts[:, 1] - s * pts[:, 2]
+        out[:, 2] = s * pts[:, 1] + c * pts[:, 2]
+        return out
 
-    # Reconstruct from Blender XYZ Euler rotation + location
-    rx, ry, rz = [float(a) for a in cam["rotation_euler_radians"]]
+    def ry(pts: np.ndarray, deg: float) -> np.ndarray:
+        rad = math.radians(deg)
+        if abs(rad) <= 1e-12:
+            return pts
+        out = pts.copy()
+        c, s = math.cos(rad), math.sin(rad)
+        out[:, 0] =  c * pts[:, 0] + s * pts[:, 2]
+        out[:, 2] = -s * pts[:, 0] + c * pts[:, 2]
+        return out
 
-    def Rx(a: float) -> np.ndarray:
-        return np.array([[1, 0, 0], [0, math.cos(a), -math.sin(a)], [0, math.sin(a), math.cos(a)]])
+    base_z_rad = math.radians(base_rotate_z_deg)
 
-    def Ry(a: float) -> np.ndarray:
-        return np.array([[math.cos(a), 0, math.sin(a)], [0, 1, 0], [-math.sin(a), 0, math.cos(a)]])
+    if transform_order == "blender_rig":
+        v = rx(v, extra_rotate_x_deg)
+        v = ry(v, extra_rotate_y_deg)
+        v = rz(v, base_z_rad)
+        v = rz(v, rotation_z_rad)
+    elif transform_order == "eval":
+        v = rz(v, base_z_rad)
+        v = rz(v, rotation_z_rad)
+        v = rx(v, extra_rotate_x_deg)
+        v = ry(v, extra_rotate_y_deg)
+    else:
+        raise ValueError(f"Unknown transform_order: {transform_order}")
 
-    def Rz(a: float) -> np.ndarray:
-        return np.array([[math.cos(a), -math.sin(a), 0], [math.sin(a), math.cos(a), 0], [0, 0, 1]])
-
-    R = Rz(rz) @ Ry(ry) @ Rx(rx)  # Blender XYZ Euler order
-    loc = np.array([float(x) for x in cam["location"]])
-
-    cam_world = np.eye(4)
-    cam_world[:3, :3] = R
-    cam_world[:3, 3] = loc
-    return np.linalg.inv(cam_world)
+    norm = np.linalg.norm(v, axis=1, keepdims=True)
+    return v / np.where(norm > 1e-12, norm, 1.0)
 
 
-def screen_to_rays(
-    camera_data: dict, x_norm: np.ndarray, y_norm: np.ndarray, proj_mat: np.ndarray
+# ── screen projection ─────────────────────────────────────────────────────────
+
+def world_to_screen(
+    points_w: np.ndarray,
+    view_matrix: np.ndarray,
+    proj_mat: np.ndarray,
 ) -> tuple[np.ndarray, np.ndarray]:
-    ndc_x = x_norm * 2.0 - 1.0
-    ndc_y = -(y_norm * 2.0 - 1.0)
-    ones  = np.ones_like(ndc_x)
-    ndc_near = np.stack([ndc_x, ndc_y, -ones, ones], axis=1)
-    ndc_far  = np.stack([ndc_x, ndc_y,  ones, ones], axis=1)
+    ones  = np.ones((len(points_w), 1), dtype=np.float64)
+    pts_h = np.hstack([points_w, ones])
+    cam   = (view_matrix @ pts_h.T).T
+    clip  = (proj_mat @ cam.T).T
+    w = clip[:, 3]
+    safe_w = np.where(np.abs(w) > 1e-12, w, 1e-12)
+    ndc_x = clip[:, 0] / safe_w
+    ndc_y = clip[:, 1] / safe_w
+    screen_x = (ndc_x + 1.0) * 0.5
+    screen_y = (1.0 - ndc_y) * 0.5
+    return np.stack([screen_x, screen_y], axis=1), w
 
-    view_matrix = get_view_matrix(camera_data)
-    inv_proj = np.linalg.inv(proj_mat)
-    inv_view = np.linalg.inv(view_matrix)
 
-    cam_near = (inv_proj @ ndc_near.T).T;  cam_near /= cam_near[:, 3:4]
-    cam_far  = (inv_proj @ ndc_far.T).T;   cam_far  /= cam_far[:, 3:4]
-
-    world_near = (inv_view @ cam_near.T).T
-    world_far  = (inv_view @ cam_far.T).T
-
-    origins    = world_near[:, :3]
-    directions = world_far[:, :3] - world_near[:, :3]
-    directions /= np.linalg.norm(directions, axis=1, keepdims=True)
-    return origins, directions
+def bilinear_sample(density: np.ndarray, screen_xy: np.ndarray) -> np.ndarray:
+    H, W = density.shape
+    gx = screen_xy[:, 0] * (W - 1)
+    gy = screen_xy[:, 1] * (H - 1)
+    x0 = np.clip(np.floor(gx).astype(int), 0, W - 2)
+    y0 = np.clip(np.floor(gy).astype(int), 0, H - 2)
+    x1, y1 = x0 + 1, y0 + 1
+    dx, dy = gx - x0, gy - y0
+    val = (
+        density[y0, x0] * (1 - dx) * (1 - dy)
+        + density[y0, x1] * dx       * (1 - dy)
+        + density[y1, x0] * (1 - dx) * dy
+        + density[y1, x1] * dx       * dy
+    )
+    oob = (screen_xy[:, 0] < 0) | (screen_xy[:, 0] > 1) | \
+          (screen_xy[:, 1] < 0) | (screen_xy[:, 1] > 1)
+    val[oob] = 0.0
+    return val
 
 
 # ── metrics ───────────────────────────────────────────────────────────────────
+
+def _deposit_bilinear_batch(hist: np.ndarray, x: np.ndarray, y: np.ndarray) -> None:
+    """Vectorised bilinear deposition of gaze points (weight=1 each) into hist."""
+    H, W = hist.shape
+    x = np.clip(x.astype(np.float64), 0.0, W - 1.0)
+    y = np.clip(y.astype(np.float64), 0.0, H - 1.0)
+    x0 = np.floor(x).astype(int)
+    y0 = np.floor(y).astype(int)
+    x1 = np.minimum(x0 + 1, W - 1)
+    y1 = np.minimum(y0 + 1, H - 1)
+    dx = x - x0
+    dy = y - y0
+    np.add.at(hist, (y0, x0), (1.0 - dx) * (1.0 - dy))
+    np.add.at(hist, (y0, x1), dx * (1.0 - dy))
+    np.add.at(hist, (y1, x0), (1.0 - dx) * dy)
+    np.add.at(hist, (y1, x1), dx * dy)
+
 
 def _normalize_sum(v: np.ndarray) -> np.ndarray:
     v = np.asarray(v, dtype=np.float64).reshape(-1)
@@ -682,16 +732,13 @@ def compute_metrics(
 ) -> dict[str, float]:
     pred = np.asarray(pred, dtype=np.float64).reshape(-1)
     gt   = np.asarray(gt,   dtype=np.float64).reshape(-1)
-
-    lcc, _  = pearsonr(pred, gt)
-    spr, _  = spearmanr(pred, gt)
-
+    lcc, _ = pearsonr(pred, gt)
+    spr, _ = spearmanr(pred, gt)
     pred_prob = _normalize_sum(np.clip(pred, 0, None))
     gt_prob   = _normalize_sum(np.clip(gt,   0, None))
     pred_unit = _normalize_minmax(pred)
     gt_unit   = _normalize_minmax(gt)
     eps = 1e-12
-
     m = {
         "CC":      float(lcc),
         "LCC":     float(lcc),
@@ -709,20 +756,19 @@ def compute_metrics(
         mask = gt_unit >= thr
         top  = 100.0 - pct
         lbl  = str(int(round(top))) if math.isclose(top, round(top)) else str(top).replace(".", "p")
-        m[f"NSS_gt_top_{lbl}pct_proxy"]       = _nss(pred_unit, mask)
-        m[f"AUC_Judd_gt_top_{lbl}pct_proxy"]  = _auc_judd(pred_unit, mask)
-        m[f"GTMaskCount_top_{lbl}pct_proxy"]  = float(mask.sum())
+        m[f"NSS_gt_top_{lbl}pct_proxy"]      = _nss(pred_unit, mask)
+        m[f"AUC_Judd_gt_top_{lbl}pct_proxy"] = _auc_judd(pred_unit, mask)
+        m[f"GTMaskCount_top_{lbl}pct_proxy"] = float(mask.sum())
     return m
 
 
-# ── main evaluation loop ──────────────────────────────────────────────────────
+# ── screen-space evaluation ───────────────────────────────────────────────────
 
-def run_methods(
+def run_screen_space(
     mesh: trimesh.Trimesh,
     camera_data: dict,
     gaze_batches: dict[int, FrameGazeBatch],
-    sigma_deg: float,
-    radius_sigma_mult: float,
+    sigma_px: float,
     recenter_to_bbox_center: bool,
     base_rotate_z_deg: float,
     extra_rotate_x_deg: float,
@@ -730,77 +776,91 @@ def run_methods(
     override_fov_deg: float | None,
     projection_fov_mode: str,
     transform_order: str,
-) -> tuple[np.ndarray, np.ndarray, dict]:
+) -> tuple[np.ndarray, dict]:
+    """Accumulate per-frame screen-space gaze density onto mesh vertices.
+
+    Returns:
+        vert_sal: (N_vertices,) per-vertex saliency accumulation.
+        stats:    run statistics dict.
+    """
     n_verts = len(mesh.vertices)
-    raycast_counts = np.zeros(n_verts, dtype=np.float64)
-    cone_counts    = np.zeros(n_verts, dtype=np.float64)
+    vert_sal = np.zeros(n_verts, dtype=np.float64)
 
-    cam = camera_data["camera_static"]
-    vi  = camera_data["video_info"]
     frames_list = camera_data["frames"]
-
     proj_mat, proj_info = resolve_projection_matrix(
         camera_data, override_fov_deg, projection_fov_mode
     )
+    view_matrix = get_view_matrix(camera_data)
 
-    total_points = total_hits = total_cone_v = 0
+    # Pre-compute recentered vertices and vertex normals once.
+    base_verts = np.asarray(mesh.vertices, dtype=np.float64).copy()
+    base_normals = np.asarray(mesh.vertex_normals, dtype=np.float64).copy()
+    if recenter_to_bbox_center:
+        bbox_center = 0.5 * (base_verts.min(axis=0) + base_verts.max(axis=0))
+        base_verts = base_verts - bbox_center
+
+    sigma_px = sigma_px  # already in absolute pixels of _IMG_W × _IMG_H space
+    total_points = 0
+    culled_back_verts = 0
+    total_weight = 0.0
+    frames_used = 0
 
     for frame, batch in gaze_batches.items():
-        if batch.x_norm.size == 0:
+        n = int(batch.x_norm.size)
+        if n == 0:
             continue
         if frame >= len(frames_list):
             continue
+
+        hist = np.zeros((_IMG_H, _IMG_W), dtype=np.float64)
+        _deposit_bilinear_batch(hist, batch.x_norm * (_IMG_W - 1), batch.y_norm * (_IMG_H - 1))
+        density = gaussian_filter(hist, sigma=sigma_px, mode="constant")
+        density_sum = float(density.sum())
+        if density_sum > 0.0:
+            density /= density_sum
+
+        total_points += n
         rot_z = float(frames_list[frame]["rotation_z_radians"])
 
-        xmesh = mesh.copy()
-        xmesh.vertices = apply_model_transform(
-            mesh.vertices, camera_data, rot_z,
-            recenter_to_bbox_center, base_rotate_z_deg,
-            extra_rotate_x_deg, extra_rotate_y_deg, transform_order,
+        verts_w = _apply_transform_no_recenter(
+            base_verts, camera_data, rot_z,
+            base_rotate_z_deg, extra_rotate_x_deg, extra_rotate_y_deg,
+            transform_order,
+        )
+        normals_w = _apply_normal_transform(
+            base_normals, rot_z,
+            base_rotate_z_deg, extra_rotate_x_deg, extra_rotate_y_deg,
+            transform_order,
         )
 
-        origins, dirs = screen_to_rays(camera_data, batch.x_norm, batch.y_norm, proj_mat)
-        locs, idx_ray, idx_tri = xmesh.ray.intersects_location(
-            ray_origins=origins, ray_directions=dirs, multiple_hits=False
-        )
+        screen_xy, w_clip = world_to_screen(verts_w, view_matrix, proj_mat)
 
-        total_points += int(batch.x_norm.size)
-        if len(locs) == 0:
-            continue
+        behind = w_clip <= 0
+        camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
+        to_camera = camera_world_pos[None, :] - verts_w
+        front_facing = np.einsum("ij,ij->i", normals_w, to_camera) > 0.0
+        culled_back_verts += int((~front_facing).sum())
 
-        hit_pts = np.asarray(locs, dtype=np.float64)
-        tri_idx  = np.asarray(idx_tri, dtype=np.int64)
-        ray_idx  = np.asarray(idx_ray, dtype=np.int64)
+        screen_xy[behind | (~front_facing)] = -1.0
 
-        # raycast_nearest_vertex
-        tri_verts  = xmesh.faces[tri_idx]
-        tri_coords = xmesh.vertices[tri_verts]
-        dists_lv   = np.linalg.norm(tri_coords - hit_pts[:, None, :], axis=2)
-        nearest_v  = tri_verts[np.arange(len(tri_verts)), np.argmin(dists_lv, axis=1)]
-        np.add.at(raycast_counts, nearest_v, 1.0)
+        sample = bilinear_sample(density, screen_xy)
+        vert_sal += n * sample
+        total_weight += n
+        frames_used += 1
 
-        # cone_gaussian_on_mesh
-        vtree = cKDTree(xmesh.vertices)
-        depth = np.linalg.norm(hit_pts - origins[ray_idx], axis=1)
-        sigma_world = np.maximum(depth * math.tan(math.radians(sigma_deg)), 1e-6)
-        for pt, sigma in zip(hit_pts, sigma_world):
-            idxs = vtree.query_ball_point(pt, r=radius_sigma_mult * sigma) or [int(vtree.query(pt)[1])]
-            lv   = xmesh.vertices[np.asarray(idxs, dtype=np.int64)]
-            w    = np.exp(-0.5 * np.sum((lv - pt) ** 2, axis=1) / sigma ** 2)
-            cone_counts[np.asarray(idxs, dtype=np.int64)] += w
-            total_cone_v += len(idxs)
-
-        total_hits += len(hit_pts)
+    if total_weight > 0.0:
+        vert_sal /= total_weight
 
     stats = {
-        "total_gaze_points":        total_points,
-        "successful_hits":          total_hits,
-        "hit_rate":                 total_hits / total_points if total_points else 0.0,
-        "raycast_nonzero_vertices": int(np.count_nonzero(raycast_counts)),
-        "cone_nonzero_vertices":    int(np.count_nonzero(cone_counts)),
-        "projection":               proj_info,
+        "total_gaze_points":  total_points,
+        "frames_used":        frames_used,
+        "density_img_shape":  [_IMG_H, _IMG_W],
+        "sigma_px":           sigma_px,
+        "nonzero_vertices":   int(np.count_nonzero(vert_sal)),
+        "culled_back_verts":  culled_back_verts,
+        "projection":         proj_info,
     }
-    return raycast_counts, cone_counts, stats
+    return vert_sal, stats
 
 
 # ── entry point ───────────────────────────────────────────────────────────────
@@ -823,7 +883,6 @@ def main() -> None:
         total_frames=int(camera_data["video_info"]["total_frames"]),
     )
 
-    # Load Smooth Gaze neighbour lists if directory is provided
     smooth_gaze_data = None
     smooth_gaze_path_used = None
     smooth_gaze_dir = args.smooth_gaze_dir
@@ -832,7 +891,6 @@ def main() -> None:
         if smooth_gaze_data is not None:
             smooth_gaze_path_used = str(smooth_gaze_dir)
 
-    # GT: load, optionally smooth, then align to OBJ vertex order
     gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
         paths["gt"],
         np.asarray(mesh.vertices),
@@ -849,10 +907,12 @@ def main() -> None:
     gt_coverage  = n_gt_covered / n_verts if n_verts > 0 else 0.0
     match_type   = "direct" if n_gt_covered == n_verts else "subset"
 
-    # Tag
-    tag_parts = [f"rotx{args.extra_rotate_x_deg}".replace(".", "p")] if abs(args.extra_rotate_x_deg) > 1e-12 else []
+    tag_parts = []
+    tag_parts.append(f"sigmapx{args.sigma_px}".replace(".", "p"))
     if args.recenter_to_bbox_center:
         tag_parts.append("recenter")
+    if abs(args.extra_rotate_x_deg) > 1e-12:
+        tag_parts.append(f"rotx{args.extra_rotate_x_deg}".replace(".", "p"))
     if args.projection_fov_mode != "vertical":
         tag_parts.append(args.projection_fov_mode.replace("_", ""))
     if args.transform_order != "eval":
@@ -861,14 +921,13 @@ def main() -> None:
         tag_parts.append(f"fov{args.override_fov_deg}".replace(".", "p"))
     if gt_was_smoothed:
         tag_parts.append("gt_smoothed")
-    tag = args.tag or ("default" if not tag_parts else "_".join(tag_parts))
+    tag = args.tag or "_".join(tag_parts)
 
-    raycast, cone, run_stats = run_methods(
+    vert_sal, run_stats = run_screen_space(
         mesh=mesh,
         camera_data=camera_data,
         gaze_batches=gaze_batches,
-        sigma_deg=args.sigma_deg,
-        radius_sigma_mult=args.radius_sigma_mult,
+        sigma_px=args.sigma_px,
         recenter_to_bbox_center=bool(args.recenter_to_bbox_center),
         base_rotate_z_deg=args.base_rotate_z_deg,
         extra_rotate_x_deg=args.extra_rotate_x_deg,
@@ -880,22 +939,10 @@ def main() -> None:
 
     out_dir = args.output_dir / args.model / tag
     out_dir.mkdir(parents=True, exist_ok=True)
-    np.savetxt(out_dir / f"{args.model}_raycast_vertices.txt", raycast, fmt="%.10f")
-    np.savetxt(out_dir / f"{args.model}_cone_vertices.txt",    cone,    fmt="%.10f")
+    np.savetxt(out_dir / f"{args.model}_screen_space_vertices.txt", vert_sal, fmt="%.10f")
 
-    # Full-mesh metrics (includes zeros for uncovered vertices in high-res OBJs)
-    results_full = {
-        "raycast_nearest_vertex": compute_metrics(raycast, gt),
-        "cone_gaussian_on_mesh":  compute_metrics(cone,    gt),
-    }
-
-    # GT-covered-vertex metrics (mask out unmatched OBJ vertices)
-    # For direct-match 20K models this is identical to results_full.
-    # For high-res OBJs this is the valid benchmark domain.
-    results_masked = {
-        "raycast_nearest_vertex": compute_metrics(raycast[gt_mask], gt[gt_mask]),
-        "cone_gaussian_on_mesh":  compute_metrics(cone[gt_mask],    gt[gt_mask]),
-    }
+    results_full   = {"screen_space_gaussian": compute_metrics(vert_sal, gt)}
+    results_masked = {"screen_space_gaussian": compute_metrics(vert_sal[gt_mask], gt[gt_mask])}
 
     report = {
         "model":      args.model,
@@ -904,19 +951,18 @@ def main() -> None:
         "gt_file":    str(paths["gt"].name),
         "gt_column":  args.gt_column,
         "gt_type":    gt_col_name,
-        "gt_smoothed":          gt_was_smoothed,
-        "gt_smooth_gaze_dir":   smooth_gaze_path_used,
-        "gt_smooth_ratio":      args.smooth_ratio if gt_was_smoothed else None,
+        "gt_smoothed":           gt_was_smoothed,
+        "gt_smooth_gaze_dir":    smooth_gaze_path_used,
+        "gt_smooth_ratio":       args.smooth_ratio if gt_was_smoothed else None,
         "gt_smooth_fixated_verts": len(smooth_gaze_data) if smooth_gaze_data else None,
         "n_vertices":      n_verts,
         "n_gt_covered":    n_gt_covered,
         "gt_coverage_pct": round(gt_coverage * 100.0, 2),
         "gt_match_type":   match_type,
-        "gaze_stats": gaze_stats,
-        "run_stats":  run_stats,
+        "gaze_stats":  gaze_stats,
+        "run_stats":   run_stats,
         "method_params": {
-            "sigma_deg":               args.sigma_deg,
-            "radius_sigma_mult":       args.radius_sigma_mult,
+            "sigma_px":                args.sigma_px,
             "recenter_to_bbox_center": bool(args.recenter_to_bbox_center),
             "base_rotate_z_deg":       args.base_rotate_z_deg,
             "extra_rotate_x_deg":      args.extra_rotate_x_deg,
@@ -925,6 +971,7 @@ def main() -> None:
             "projection_fov_mode":     args.projection_fov_mode,
             **run_stats["projection"],
             "transform_order":         args.transform_order,
+            "density_image":           f"{_IMG_W}x{_IMG_H}",
         },
         "metrics_vs_gt_full_mesh":    results_full,
         "metrics_vs_gt_covered_only": results_masked,
