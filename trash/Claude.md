@@ -3474,3 +3474,390 @@ note which ones and report to Claude. Do not try to fix the eval script.
 
 6. **DO NOT** set `--no-resume` on the full run unless you intentionally want to re-run
    all models from scratch (e.g., after a recipe change).
+
+---
+
+## 2026-06-02 MSK (session 16 — geodesic diffusion as additional method for MeshMamba + SAL3D)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: Implement geodesic_diffusion_on_mesh as a third reference method for both
+MeshMamba and SAL3D datasets. Based on the heat diffusion algorithm from
+`GazeToGT/Visual Attention for Rendered 3D Shapes/eval_geodesic_diffusion.py`.
+
+### Algorithm (from reference paper)
+
+  1. Raycast gaze → cone Gaussian at VERTEX level (not face level).
+  2. Build inverse-edge-length weighted Laplacian L on mesh graph.
+  3. Heat diffusion: diffused = expm_multiply(-t * L, signal)
+     where t = (σ_mesh)² / 2 and σ_mesh = σ_steps × mean_edge_length
+     and σ_steps = sigma_visual_deg / vertex_angle_deg (default 1.0° / 0.1° = 10 steps).
+  4. For MeshMamba: convert diffused per-vertex → per-face (average 3 vertices per face).
+     For SAL3D: stay at per-vertex level, compare to per-vertex GT.
+
+  Key difference from eval_meshmamba_cone.py:
+  - Cone in cone.py: spreads to nearby FACE CENTROIDS via cKDTree on triangles_center.
+  - Cone in geodesic.py: spreads to nearby VERTICES via cKDTree on vertices.
+    This enables downstream geodesic diffusion on the vertex graph.
+    The result is converted to face level AFTER diffusion.
+
+### Files created
+
+1. `reprojection_methods/cone_projection_on_mesh/eval_meshmamba_geodesic.py`
+   - Pipeline: gaze CSV → vertex-level cone → Laplacian → heat diffusion →
+     vertex→face average (faces.mean(axis=1)) → metrics vs per-face GT.
+   - Report contains two methods for comparison:
+     `geodesic_diffusion_on_mesh` — after diffusion
+     `cone_vertex_avg_baseline` — same vertex cone WITHOUT diffusion (for Δ measurement)
+   - Same CLI interface as eval_meshmamba_cone.py + `--sigma-visual-deg`, `--vertex-angle-deg`
+   - Tag auto-appended with `geodiff_sigma{X}` suffix.
+
+2. `reprojection_methods/cone_projection_on_mesh/eval_sal3d_geodesic.py`
+   - Pipeline: gaze CSV → vertex-level cone → Laplacian → heat diffusion →
+     metrics vs per-vertex GT (with covered_only masking and optional smoothing).
+   - Same GT loading as eval_sal3d_cone.py (Smooth Gaze + KDTree alignment + masking).
+   - Report contains: `geodesic_diffusion_on_mesh` + `cone_vertex_baseline` in both
+     `metrics_vs_gt_full_mesh` and `metrics_vs_gt_covered_only` sections.
+   - Same CLI interface as eval_sal3d_cone.py + `--sigma-visual-deg`, `--vertex-angle-deg`
+
+### Bug audit vs previously fixed bugs
+
+  The following bugs were found in other scripts and checked in the new geodesic scripts:
+
+  BUG-SAL3D-1 (camera_world_pos inside frame loop):
+    NOT present. Geodesic scripts have no back-face culling → no camera_world_pos.
+    The `screen_to_rays` function computes inv_proj and inv_view inside the frame loop
+    (same pattern as eval_meshmamba_cone.py line 676 which was not flagged).
+    This is a performance sub-optimality, not a correctness bug.
+    Acceptable: raycasting is the dominant cost, not matrix ops.
+
+  BUG-SAL3D-2 (dead import re):
+    NOT present. In eval_meshmamba_geodesic.py, `re` is used in `_candidate_model_names`
+    (re.sub for stripping _L2/_L3 suffix). In eval_sal3d_geodesic.py, `re` is not
+    imported at all (SAL3D path resolution doesn't need suffix stripping).
+
+  BUG-SAL3D-3 (sigma_px = sigma_px tautology):
+    NOT present. No analogous tautology.
+
+### New bug found and fixed: Laplacian on unscaled OBJ vertices
+
+  FIXED in this session.
+
+  Problem: `build_weighted_laplacian` was called with `mesh.vertices` (raw OBJ-space
+  coordinates). The OBJ may be in arbitrary units (e.g., millimetres, arbitrary 3D
+  coordinates), while the Blender rig scales it to fit in a ~0.8m × 0.8m bounding box.
+
+  Effect: `mean_edge_length` was in OBJ units, making `sigma_mesh = sigma_steps * mean_edge`
+  physically meaningless. Two models with the same visual-angle sigma but different OBJ
+  scales would get different diffusion extents.
+
+  Fix applied identically in both scripts:
+    ```python
+    scale = np.asarray(camera_data["model_static"]["scale"], dtype=np.float64)
+    scaled_verts = np.asarray(mesh.vertices, dtype=np.float64) * scale
+    laplacian, mean_edge = build_weighted_laplacian(scaled_verts, np.asarray(mesh.faces, ...))
+    ```
+  Rotation is NOT applied (Laplacian is rotation-invariant).
+  Translation is NOT applied (edge lengths are translation-invariant).
+  Only scale is applied, giving world-space (metre) edge lengths.
+
+  With this fix: for a MeshMamba model fitting in ~0.8m × 0.8m with ~16K vertices,
+  typical mean_edge ≈ 0.006m. sigma_steps=10 → sigma_mesh=0.06m → t=0.0018 m².
+  This is physically interpretable and consistent across models.
+
+### Sigma parameter guidance
+
+  Default params: `--sigma-visual-deg 1.0` `--vertex-angle-deg 0.1`
+  → sigma_steps = 10 vertex spacings
+
+  For MeshMamba (~16K verts, ~0.8m × 0.8m bbox):
+    mean_edge ≈ 0.006m → sigma_mesh ≈ 0.06m ≈ 7.5% of bbox width.
+    This corresponds to ~1° visual angle at ~0.8m viewing distance — reasonable.
+
+  For SAL3D (20K verts, similar bbox):
+    Similar numbers. Direct-match models (20K) will match paper defaults.
+    High-res subset-match (53K+) will have smaller mean_edge → finer diffusion.
+
+  If diffusion spreads too far or too little: adjust `--vertex-angle-deg`.
+  Smaller vertex_angle_deg → more vertex steps → wider diffusion.
+
+### How to run (after batch runners are updated)
+
+  Single model (local test):
+  ```bash
+  PYTHON="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/venv/bin/python"
+
+  # MeshMamba geodesic
+  "$PYTHON" reprojection_methods/cone_projection_on_mesh/eval_meshmamba_geodesic.py \
+    --model Rubber_Duck_v1_L3 \
+    --texture-type non_texture \
+    --dataset-root "$REPROJECT_DATASET_MESHMAMBA_ROOT" \
+    --csv-root "$REPROJECT_GAZE_CSV_MESHMAMBA_NON_TEXTURE_ROOT" \
+    --json-root "$REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT" \
+    --output-dir results/meshmamba_geodesic_test \
+    --recenter-to-bbox-center \
+    --extra-rotate-x-deg 90 \
+    --projection-fov-mode horizontal_to_vertical \
+    --transform-order blender_rig
+
+  # SAL3D geodesic
+  "$PYTHON" reprojection_methods/cone_projection_on_mesh/eval_sal3d_geodesic.py \
+    --model bunny \
+    --dataset-root "$REPROJECT_DATASET_SAL3D_ROOT" \
+    --csv-root "$REPROJECT_GAZE_CSV_SAL3D_ROOT" \
+    --json-root "$REPROJECT_GAZE_JSON_SAL3D_ROOT" \
+    --smooth-gaze-dir "$REPROJECT_SAL3D_SMOOTH_GAZE_ROOT" \
+    --output-dir results/sal3d_geodesic_test
+  ```
+
+  Expected output structure (report JSON):
+  ```json
+  {
+    "metrics_vs_gt": {
+      "geodesic_diffusion_on_mesh": { "CC": ..., "SIM": ..., "KLD": ... },
+      "cone_vertex_avg_baseline":   { "CC": ..., "SIM": ..., "KLD": ... }
+    }
+  }
+  ```
+  Compare geodesic vs baseline to measure the Δ from diffusion.
+
+### Pending: batch runner integration
+
+  Neither `run_meshmamba_reference_batch.py` nor `run_sal3d_reference_batch.py`
+  includes `geodesic` as a method option yet. Options:
+  a) Add `geodesic` as a third method to existing batch runners.
+  b) Create separate `run_meshmamba_geodesic_batch.py` / `run_sal3d_geodesic_batch.py`.
+  Option (b) is cleaner — geodesic has different output key names and sigma params.
+
+Risks:
+1. expm_multiply on high-res SAL3D meshes (53K–88K vertices) may be slow or
+   require large memory. The sparse Laplacian is O(N_verts × N_edges) but
+   expm_multiply uses Krylov approximation — may need many iterations for large t.
+   Test on lion (53K) before full batch run.
+2. vertex_angle_deg default 0.1° is inherited from the 3DVA paper context.
+   For MeshMamba/SAL3D it may need tuning. The scale fix makes this more consistent
+   across models, but the absolute value may not match the original paper assumption.
+3. The report's `cone_vertex_avg_baseline` (vertex cone averaged to faces) is NOT
+   the same as `cone_gaussian_on_mesh` in eval_meshmamba_cone.py (which spreads
+   directly to face centroids). They should be similar but not identical.
+   Do not compare them as if they are the same method.
+
+Questions for GPT:
+1. Should geodesic be added to existing batch runners or as separate scripts?
+2. What sigma parameters to use for the full run?
+
+---
+
+## 2026-06-03 MSK (session 17 — 3DVA dataset deep-dive + screen_space sigma fix + visibility masking)
+Role: Claude
+Commit: fe68a3d
+Scope: Thorough analysis of the 3DVA dataset structure and GT meaning.
+Fixed screen_space v1 sigma bug for 3DVA. Added visibility masking to both 3DVA
+eval scripts. Created comprehensive dataset README.
+
+### What the 3DVA GT actually is (confirmed from paper + data)
+
+The 3 GT files per model (300, 413, 599) = **3 different static viewpoints**,
+NOT 3 types of annotation or 3 distances.
+
+Each file `{model}_{view}norm.txt` contains N lines (= N vertices in simplified mesh,
+usually 20K). Each value = per-vertex fixation density accumulated across 19 subjects
+watching a static render from that specific camera position for 7 seconds.
+Values range 0.0 to ~15.6. All non-zero GT values lie on VISIBLE vertices
+(confirmed: `gt[~vis] == 0` is always True for every model/view tested).
+
+The 300/413/599 numbers are camera positions in 3D Studio Max. Each view points
+to a DIFFERENT side of the model (chosen manually to cover the shape).
+
+Verified cross-view overlap:
+- bunny:   all-3 overlap = 261/20000 = 1.3% → fundamentally different sides
+- dragon:  all-3 overlap = 225/20000 = 1.1%
+- chair107: all-3 overlap = 2391/20000 = 12.0%
+
+GT cross-view CC (bunny): 300↔413=+0.02, 300↔599=−0.21, 413↔599=−0.12
+→ near-zero or negative → each file is an independent measurement of a different region.
+
+Paper Section 5.2.1 explicitly chose static GT because:
+"fixations resulting from a dynamic scene are significantly different" and
+dynamic fixations "are really hard to predict... not directly related to 3D geometry,
+but rather to changes in shadowing/reflection during camera movements."
+
+### What each of the 5 download packages contains
+
+| Package | What it is | Use |
+|---------|-----------|-----|
+| `FixationMaps/` | **THE GT** — 96 files (32×3), per-vertex density | Primary GT (cross-condition) |
+| `CentricityAndVisibilityMaps/` | Visibility (0/1, 96 files) + centricity (13 σ, 1248 files) | Visibility masking |
+| `PerSubjectData/` | Per-subject raw fixations on ORIGINAL high-res mesh (30K verts) | Inter-observer agreement only |
+| `SaliencyAlgorithmMaps/` | **NOT GT** — Lee/Leifman/Song/Tasse predictions, 3 blur levels | Baseline comparison |
+| `3DModels-Simplif/` | 32 OBJ, wrong axis | ❌ DO NOT USE — use `3DModels-Simplif-up/` |
+
+PerSubjectData: 32 models × 3 views × ~19 subjects ≈ 1824 files, each on the original
+high-res mesh (30K verts for bunny). These do NOT align with the simplified 20K mesh.
+
+### Can we use 3DVA GT for our task?
+
+**Not as primary GT. Use as weak cross-condition reference only.**
+
+Our data = dynamic rotating video (360°, 17s) — gaze integrates over all angles.
+GT data = static images (7s each, 3 specific angles) — gaze concentrates on one side.
+
+Paper Tables 1 & 2 show p < 0.0001 for shape effect in both static and dynamic,
+but also p < 0.0001 for camera movement in dynamic (camera dominates over geometry).
+This is the fundamental mismatch.
+
+Valid use cases:
+1. Compare our method against Lee/Leifman/Song/Tasse on same averaged GT
+   (all methods produce view-independent maps, same cross-condition limitation applies to all)
+2. Averaged GT (visibility-weighted across 3 views) as weak reference for our accumulated map
+3. External validity check: "our method identifies geometrically interesting regions"
+
+Invalid use cases:
+- Claiming CC vs 3DVA GT validates our projection method
+- Comparing absolute CC values to paper's human upper bound (~0.81)
+
+**GT hierarchy for our project:**
+1. SAL3D — primary (same conditions: rotating video, eye-tracking)
+2. MeshMamba — secondary (also video, per-face GT)
+3. 3DVA — external cross-condition reference only
+
+### Sigma fix for screen_space on 3DVA
+
+Paper setup: σ=49px at 1920×1080 = 1° visual angle (Tobii TX-120, ~90cm, 30" Eizo).
+Formula: `900mm × tan(1°) × 3.0 px/mm ≈ 47–49 px`
+
+v1 bug: `_IMG_W=256, sigma_screen=0.05` → `sigma_px = 12.8 px @ 256px = 96 px @ 1920px` (3.6× too wide)
+v2 fix: `_IMG_W=1920, --sigma-px=49.0` (absolute pixels)
+
+IMPORTANT: SAL3D uses σ=26.3px (different paper/setup). Do NOT apply 26.3 to 3DVA.
+
+### Files changed
+
+**`eval_3dva_screen_space.py` → v2:**
+- Resolution: 256×144 → 1920×1080
+- `--sigma-screen` (fraction) → `--sigma-px` (absolute px, default 49.0)
+- Bilinear deposition + bilinear sampling (was nearest-neighbour)
+- Added `_resolve_visibility_file()`, `resolve_model_paths()` returns `vis_300/413/599`
+- `main()` loads visibility, computes `metrics_vs_gt_full` AND `metrics_vs_gt_visible_only`
+- Report fields: `visibility_stats`, `metrics_note`, `script_version: "v2"`
+
+**`eval_3dva_raycast_cone.py`:**
+- Added `_resolve_visibility_file()` helper
+- `resolve_model_paths()` now returns `vis_300/413/599`
+- Both methods (raycast + cone) now report `metrics_vs_gt_full` + `metrics_vs_gt_visible_only`
+
+**`test/launch/run_3dva_screen_space.sh`:**
+- `SIGMA_SCREEN` → `SIGMA_PX` (default 49.0); v2 header comment added
+- Default `PILOT_OBJECTS` = all 32 models (was top-10 set)
+
+**`test/launch/run_3dva_raycast_cone.sh`:**
+- Default `PILOT_OBJECTS` = all 32 models (was single 'bunny')
+
+**`test/manifests/3dva_pilot.json`:**
+- `models_subdir`: `"3DModels-Simplif"` → `"3DModels-Simplif-up"` (CRITICAL fix)
+
+**`datasets/3DVA_DATASET.md` (NEW):**
+Comprehensive reference: experimental setup, the 3 views, all 5 download packages,
+GT format, visibility masking, differences vs our setup, sigma derivation (49px),
+paper evaluation protocol, quick-run commands, object classes, paper findings.
+
+### Smoke test results (bunny, screen_space v2, local)
+
+| View | CC_full | CC_visible | n_visible |
+|------|---------|-----------|-----------|
+| 300 | −0.027 | −0.108 | 8633/20000 |
+| 413 | +0.175 | +0.128 | 6800/20000 |
+| 599 | −0.184 | −0.216 | 7605/20000 |
+
+Low metrics expected — cross-condition mismatch. Both scripts run without errors.
+
+### Key rules for 3DVA evaluation (summary)
+
+1. Always use `metrics_vs_gt_visible_only` — matches paper protocol.
+2. sigma_px=49.0 for screen_space. Never 26.3 (SAL3D) or 96 (v1 bug).
+3. Always use `3DModels-Simplif-up/`. Never `3DModels-Simplif/`.
+4. Low CC is expected and NOT a method bug (cross-condition).
+5. Best 3DVA comparison: our method vs Lee/Leifman/Song/Tasse on same GT.
+
+Risks:
+1. Full 32-model 3DVA benchmark not yet run — only bunny tested locally.
+2. 3DVA GT cannot serve as primary method validation (cross-condition mismatch).
+3. Averaged GT (visibility-weighted cross-view) not yet implemented in eval scripts.
+   Would give one CC value per model instead of 3 per-view values.
+
+Questions for GPT:
+1. Should averaged GT (weighted across 3 views) be implemented in eval scripts?
+2. Should we run the full 32-model 3DVA benchmark before or after SAL3D full run?
+3. Should we implement a 3DVA vs SaliencyAlgorithmMaps comparison (our method vs
+   Lee/Song/Leifman/Tasse on the same averaged GT)?
+
+## 2026-06-03 MSK (session 17 — geodesic diffusion local test runs)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: Local test runs of eval_meshmamba_geodesic.py and eval_sal3d_geodesic.py
+on 6 models. Validate scripts work end-to-end. Document Δ from diffusion.
+
+### MeshMamba test models (non_texture, covered_only metrics)
+
+Recipe: recenter=true, rotX=90°, h2v, blender_rig, sigma_visual=1.0°, vertex_angle=0.1°
+
+| Model | hit_rate | σ_mesh | CC geo | CC base | Δ CC | KLD geo | KLD base | Δ KLD | Spearman geo | Spearman base |
+|-------|----------|--------|--------|---------|------|---------|----------|-------|-------------|--------------|
+| Apple_Red_v1_L3 | 0.880 | 0.093m | 0.8647 | 0.8642 | +0.0005 | 0.772 | 0.786 | −0.014 | 0.530 | 0.537 |
+| BellPepper_v1_L3 | 0.951 | 0.102m | 0.2801 | 0.2789 | +0.0012 | 1.195 | 1.231 | −0.037 | 0.068 | 0.068 |
+| Domestic_cat_V2_L3 | 0.937 | 0.084m | 0.3380 | 0.3365 | +0.0015 | 1.274 | 1.436 | **−0.162** | 0.104 | 0.102 |
+| Flying_saucer_v1_L3 | 0.907 | 0.114m | 0.0268 | 0.0298 | −0.003 | 10.650 | 10.725 | −0.075 | 0.113 | 0.140 |
+
+Output: `results/meshmamba_geodesic_test/`
+
+### SAL3D test models (covered_only, RAW GT — no Smooth Gaze)
+
+| Model | gt_match | coverage | gt_smoothed | hit_rate | σ_mesh | CC geo | CC base | Δ CC | KLD geo | KLD base | Δ KLD | NSS10% geo | NSS10% base | Δ NSS |
+|-------|----------|----------|-------------|----------|--------|--------|---------|------|---------|----------|-------|-----------|------------|-------|
+| dog | subset | 44.9% | False | 0.851 | 0.040m | 0.134 | 0.132 | +0.002 | 2.156 | 2.160 | −0.004 | 0.250 | 0.248 | +0.002 |
+| prot | direct | 100% | False | 0.965 | 0.112m | 0.212 | 0.205 | +0.007 | 1.652 | 1.668 | **−0.016** | **0.631** | 0.603 | **+0.029** |
+
+⚠️ dog and prot have no Smooth Gaze → gt_smoothed=False → raw GT has 65–85% zeros.
+CC/SIM absolute values are unreliable. Only the Δ(geo − baseline) is meaningful here.
+
+Output: `results/sal3d_geodesic_test/`
+
+### Patterns observed across all 6 models
+
+1. **KLD consistently improves (decreases) with diffusion on all models.**
+   Diffusion spreads signal along the mesh surface, making the predicted distribution
+   closer in shape to the GT. This is the primary benefit of geodesic diffusion.
+   Largest Δ KLD: Domestic_cat −0.162 (the signal was very concentrated pre-diffusion).
+
+2. **CC improvement is small and positive on most models (+0.001 to +0.007).**
+   Exception: Flying_saucer CC −0.003 — already a known problematic model where
+   the baseline projection misses the GT cluster entirely; diffusion spreads
+   the wrong signal wider, slightly hurting CC.
+
+3. **MSE often degrades slightly** (diffusion smooths out peaks → higher point-wise error).
+   This is the KLD/MSE tradeoff: diffusion trades point accuracy for distributional fit.
+
+4. **NSS improves on prot (+0.029)** — largest absolute gain observed.
+   NSS benefits when diffusion correctly fills in GT-covered regions that the
+   sparse cone projection missed.
+
+5. **sigma_mesh varies significantly by model scale:**
+   - dog: σ=0.040m (44K vertices, dense mesh, small mean_edge → weak diffusion)
+   - prot: σ=0.112m (20K vertices, coarser mesh → stronger diffusion)
+   - The scale fix (using world-space vertices) makes sigma physically meaningful,
+     but the sigma_visual_deg / vertex_angle_deg parameters may still need
+     per-dataset tuning for optimal results.
+
+6. **Baseline (cone_vertex_avg) ≠ cone_gaussian_on_mesh from eval_meshmamba_cone.py.**
+   The baseline here averages vertex cone hits to face level (mean of 3 vertices).
+   The cone in eval_meshmamba_cone.py spreads directly to face centroids via KDTree.
+   Results are similar but not identical — do not mix them in comparison tables.
+
+### Conclusion from local tests
+
+Geodesic diffusion is a valid additional method that provides modest but consistent
+improvements in KLD and CC on well-projected models. It is NOT a rescue method for
+models where the base projection fails (Flying_saucer — wrong GT region).
+
+Recommended next step: run full batch on MeshMamba non_texture (105 models) and
+full SAL3D (50 smoothed models) to get aggregate statistics. This will determine
+whether the KLD improvement is statistically meaningful across the dataset.
