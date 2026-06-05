@@ -222,14 +222,16 @@ def resolve_json_root(texture_type: str) -> Path:
         path = _env_path(
             "MESHMAMBA_JSON_ROOT",
             "REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT",
-            fallback=f"{side_inputs_root}/MeshMamba_non_texture/json" if side_inputs_root else None,
+            fallback=str(REPO_ROOT / "jsons" / "mamba_non_jsons"),
         )
     else:
         path = _env_path(
             "MESHMAMBA_RGB_TEXTURE_JSON_ROOT",
             "REPROJECT_GAZE_JSON_MESHMAMBA_RGB_TEXTURE_ROOT",
-            fallback=f"{side_inputs_root}/MeshMamba_rgb_texture/json" if side_inputs_root else None,
+            fallback=str(REPO_ROOT / "jsons" / "mamba_rgb_jsons"),
         )
+    if path is not None and not path.exists() and side_inputs_root:
+        path = Path(f"{side_inputs_root}/MeshMamba_{texture_type}/json")
     if path is None:
         raise RuntimeError(f"JSON root not configured for {texture_type}.")
     return path

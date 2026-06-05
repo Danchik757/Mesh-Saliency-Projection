@@ -33,6 +33,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 EVAL_SCRIPT="${REPO_ROOT}/reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py"
 PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
+THREE_DVA_JSON_ROOT="${THREE_DVA_JSON_ROOT:-${REPROJECT_GAZE_JSON_3DVA_ROOT:-${REPO_ROOT}/jsons/3dva_jsons}}"
 
 : "${VISUAL_ATTENTION_3D_SHAPES_ROOT:?Need VISUAL_ATTENTION_3D_SHAPES_ROOT}"
 : "${THREE_DVA_CSV_ROOT:?Need THREE_DVA_CSV_ROOT}"

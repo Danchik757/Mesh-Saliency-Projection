@@ -12,7 +12,7 @@
 #
 # Required env vars:
 #   MESHMAMBA_NON_TEXTURE_ROOT  — dataset root (MeshFile/non_texture, SaliencyMap/non_texture)
-#   SIDE_INPUTS_ROOT            — root for mirrored CSV/JSON side inputs
+#   SIDE_INPUTS_ROOT            — root for mirrored gaze CSV side inputs
 #   OUTPUT_ROOT                 — writable output root
 #
 # Optional env vars (defaults shown):
@@ -39,8 +39,8 @@ MESHMAMBA_NON_TEXTURE_ROOT="${MESHMAMBA_NON_TEXTURE_ROOT:-${REPROJECT_DATASET_ME
 OUTPUT_ROOT="${OUTPUT_ROOT:-${REPROJECT_OUTPUT_ROOT:-}}"
 : "${MESHMAMBA_NON_TEXTURE_ROOT:?Set MESHMAMBA_NON_TEXTURE_ROOT (see configs/server_vg_intellect.env)}"
 : "${OUTPUT_ROOT:?Set OUTPUT_ROOT}"
-if [ -z "${MESHMAMBA_CSV_ROOT:-}" ] || [ -z "${MESHMAMBA_JSON_ROOT:-}" ]; then
-  : "${SIDE_INPUTS_ROOT:?Set SIDE_INPUTS_ROOT or both MESHMAMBA_CSV_ROOT and MESHMAMBA_JSON_ROOT}"
+if [ -z "${MESHMAMBA_CSV_ROOT:-}" ]; then
+  : "${SIDE_INPUTS_ROOT:?Set SIDE_INPUTS_ROOT or MESHMAMBA_CSV_ROOT}"
 fi
 
 # ---------- defaults ----------
@@ -57,7 +57,7 @@ PROJECTION_FOV_MODE="${PROJECTION_FOV_MODE:-horizontal_to_vertical}"
 TRANSFORM_ORDER="${TRANSFORM_ORDER:-blender_rig}"
 
 CSV_DIR="${MESHMAMBA_CSV_ROOT:-${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv}"
-JSON_DIR="${MESHMAMBA_JSON_ROOT:-${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/json}"
+JSON_DIR="${MESHMAMBA_JSON_ROOT:-${REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT:-${REPO_ROOT}/jsons/mamba_non_jsons}}"
 OUTPUT_DIR="${OUTPUT_ROOT}/MeshMamba_non_texture/baseline_cone"
 mkdir -p "${OUTPUT_DIR}"
 

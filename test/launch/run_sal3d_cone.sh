@@ -36,6 +36,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 EVAL_SCRIPT="${REPO_ROOT}/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"
 PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
+REPROJECT_GAZE_JSON_SAL3D_ROOT="${REPROJECT_GAZE_JSON_SAL3D_ROOT:-${SAL3D_JSON_ROOT:-${REPO_ROOT}/jsons/sal3d_jsons}}"
 
 # ── required env var checks ──────────────────────────────────────────────────
 : "${REPROJECT_DATASET_SAL3D_ROOT:?Set REPROJECT_DATASET_SAL3D_ROOT}"

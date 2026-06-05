@@ -196,8 +196,10 @@ def resolve_json_root() -> Path:
     path = _env_path(
         "SAL3D_JSON_ROOT",
         "REPROJECT_GAZE_JSON_SAL3D_ROOT",
-        fallback=os.environ.get("SIDE_INPUTS_ROOT", "") + "/SAL3D/json" if os.environ.get("SIDE_INPUTS_ROOT") else None,
+        fallback=str(REPO_ROOT / "jsons" / "sal3d_jsons"),
     )
+    if path is not None and not path.exists() and os.environ.get("SIDE_INPUTS_ROOT"):
+        path = Path(os.environ["SIDE_INPUTS_ROOT"]) / "SAL3D" / "json"
     if path is None:
         raise RuntimeError("JSON root not configured. Set SAL3D_JSON_ROOT.")
     return path
