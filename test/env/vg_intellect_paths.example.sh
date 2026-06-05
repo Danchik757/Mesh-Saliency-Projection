@@ -3,7 +3,7 @@
 export REPROJECT_WORK_ROOT="/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING"
 export REPROJECT_OUTPUT_ROOT="$REPROJECT_WORK_ROOT/outputs"
 export REPROJECT_REPO_ROOT="$REPROJECT_WORK_ROOT/Mesh-Saliency-Projection"
-export REPROJECT_CANONICAL_JSON_ROOT="$REPROJECT_REPO_ROOT/jsons"
+export REPROJECT_CANONICAL_JSON_ROOT="$REPROJECT_REPO_ROOT/jsons/object_placement"
 
 export REPROJECT_DATASET_3DVA_ROOT="/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA"
 export REPROJECT_DATASET_MESHMAMBA_ROOT="/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/MeshMambaSaliency"

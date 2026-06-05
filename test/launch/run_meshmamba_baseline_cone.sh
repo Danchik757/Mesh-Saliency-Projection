@@ -57,7 +57,7 @@ PROJECTION_FOV_MODE="${PROJECTION_FOV_MODE:-horizontal_to_vertical}"
 TRANSFORM_ORDER="${TRANSFORM_ORDER:-blender_rig}"
 
 CSV_DIR="${MESHMAMBA_CSV_ROOT:-${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv}"
-JSON_DIR="${MESHMAMBA_JSON_ROOT:-${REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT:-${REPO_ROOT}/jsons/mamba_non_jsons}}"
+JSON_DIR="${MESHMAMBA_JSON_ROOT:-${REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT:-${REPO_ROOT}/jsons/object_placement/mamba_non_jsons}}"
 OUTPUT_DIR="${OUTPUT_ROOT}/MeshMamba_non_texture/baseline_cone"
 mkdir -p "${OUTPUT_DIR}"
 

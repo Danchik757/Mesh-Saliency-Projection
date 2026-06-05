@@ -18,7 +18,7 @@ import numpy as np
 # ── paths ─────────────────────────────────────────────────────────────────────
 REPO_ROOT = Path(__file__).resolve().parents[2]
 BASE_JSON = Path(
-    "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/SAL3D_json/Sal3D_bunny.json"
+    "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/jsons/object_placement/sal3d_jsons/Sal3D_bunny.json"
 )
 OBJ_PATH = Path(
     "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/3DVA/models/bunny.obj"

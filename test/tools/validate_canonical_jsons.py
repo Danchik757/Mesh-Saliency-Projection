@@ -94,7 +94,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--json-root",
         type=Path,
-        default=REPO_ROOT / "jsons",
+        default=REPO_ROOT / "jsons" / "object_placement",
         help="Root containing 3dva_jsons, mamba_*_jsons, and sal3d_jsons.",
     )
     return parser.parse_args()

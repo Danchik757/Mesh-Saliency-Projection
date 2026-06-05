@@ -1,0 +1,3981 @@
+{
+  "dataset": "3DVA",
+  "track": "3dva",
+  "purpose": "model-level index linking placement JSONs, participant CSVs, meshes, and GT files",
+  "object_placement_json_root": "jsons/object_placement/3dva_jsons",
+  "model_count": 32,
+  "participant_data_format": "csv",
+  "notes": [
+    "3DVA GT views 300/413/599 are static-view fixation maps, not dynamic-video GT."
+  ],
+  "models": [
+    {
+      "model": "A380",
+      "model_name_in_json": "A380",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_A380.json",
+        "sha256": "3e7bb1b52e85a99cf65bebff90963f8c5e133430bc4cafbcc9ae202f6a138963"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/A380.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/A380.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/A380.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/A380.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/A380_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/A380_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/A380_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/A380_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/A380_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/A380_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.009570088237524033,
+            0.009570088237524033,
+            0.009570088237524033
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "Harley",
+      "model_name_in_json": "Harley",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_Harley.json",
+        "sha256": "1c95d0f73d7d1902a0aa155e121fd848ab1a719e685ba41390f3fe41db69568e"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/Harley.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/Harley.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/Harley.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/Harley.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/Harley_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/Harley_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/Harley_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/Harley_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/Harley_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/Harley_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.0007956803310662508,
+            0.0007956803310662508,
+            0.0007956803310662508
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "Max-Planck",
+      "model_name_in_json": "Max-Planck",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_Max-Planck.json",
+        "sha256": "2fe2c024ef83a5aecc1ae631d4bdf914509cf438edcf73d90928c5a7f8134670"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/Max-Planck.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/Max-Planck.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/Max-Planck.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/Max-Planck.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/Max-Planck_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/Max-Planck_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/Max-Planck_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/Max-Planck_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/Max-Planck_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/Max-Planck_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.0020877032075077295,
+            0.0020877032075077295,
+            0.0020877032075077295
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "bimba",
+      "model_name_in_json": "bimba",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_bimba.json",
+        "sha256": "249f5984e38bcf75ed37424ba99ea926ce14a9d32d274ca0d46900cfe2f2ea63"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/bimba.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/bimba.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/bimba.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/bimba.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/bimba_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/bimba_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/bimba_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/bimba_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/bimba_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/bimba_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            2.180488348007202,
+            2.180488348007202,
+            2.180488348007202
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "blade-200K",
+      "model_name_in_json": "blade-200K",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_blade-200K.json",
+        "sha256": "2f3962c33b7947bf3bcc5361e512f1915dbcc5cd882d89f16aa7eba3238ba0fb"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/blade-200K.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/blade-200K.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/blade-200K.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/blade-200K.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/blade-200K_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/blade-200K_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/blade-200K_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/blade-200K_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/blade-200K_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/blade-200K_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.6870511770248413,
+            0.6870511770248413,
+            0.6870511770248413
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "bunny",
+      "model_name_in_json": "bunny",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_bunny.json",
+        "sha256": "01d0c04c9ed0b199bd4b123068866c8d7b1c3841b1bc2de1ace57738e5ffaa99"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/bunny.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/bunny.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/bunny.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/bunny.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/bunny_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/bunny_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/bunny_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/bunny_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/bunny_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/bunny_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.568381130695343,
+            0.568381130695343,
+            0.568381130695343
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "camel",
+      "model_name_in_json": "camel",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_camel.json",
+        "sha256": "38487901ed5849cc205fee9e3bba0b0d6072e71bc3325a8701677096698c8451"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/camel.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/camel.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/camel.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/camel.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/camel_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/camel_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/camel_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/camel_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/camel_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/camel_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.7167460322380066,
+            0.7167460322380066,
+            0.7167460322380066
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "car-vasa",
+      "model_name_in_json": "car-vasa",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_car-vasa.json",
+        "sha256": "7f4c3821f76d52845c06b27f1b7dc24f5cad0940796e5e0941617b21a47f0627"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/car-vasa.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/car-vasa.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/car-vasa.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/car-vasa.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/car-vasa_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/car-vasa_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/car-vasa_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/car-vasa_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/car-vasa_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/car-vasa_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            1.1470305919647217,
+            1.1470305919647217,
+            1.1470305919647217
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "carter",
+      "model_name_in_json": "carter",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_carter.json",
+        "sha256": "16672842726e39f9633c42739ab082d82f9e9c33829be82a41778493c0ef14e0"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/carter.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/carter.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/carter.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/carter.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/carter_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/carter_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/carter_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/carter_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/carter_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/carter_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.7982684969902039,
+            0.7982684969902039,
+            0.7982684969902039
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "casting",
+      "model_name_in_json": "casting",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_casting.json",
+        "sha256": "277576a46b12b9c712b2b591f951c8b8f621746773e37fe6ea4a17a62b68999f"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/casting.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/casting.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/casting.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/casting.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/casting_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/casting_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/casting_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/casting_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/casting_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/casting_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.45080119371414185,
+            0.45080119371414185,
+            0.45080119371414185
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "chair107",
+      "model_name_in_json": "chair107",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_chair107.json",
+        "sha256": "9f6b2e8f1c4b922fb9a057fa4b58ae5c56c4da957e1bd49eb05c234cc781180d"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/chair107.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/chair107.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/chair107.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/chair107.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/chair107_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/chair107_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/chair107_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/chair107_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/chair107_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/chair107_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.3952236771583557,
+            0.3952236771583557,
+            0.3952236771583557
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "cow",
+      "model_name_in_json": "cow",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_cow.json",
+        "sha256": "3af4eb716efcae933faab59e62f86c69a51cfd46feabaf3c37f5495e64a636bd"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/cow.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/cow.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/cow.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/cow.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/cow_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/cow_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/cow_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/cow_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/cow_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/cow_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.03190529718995094,
+            0.03190529718995094,
+            0.03190529718995094
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "dinosaur-40K",
+      "model_name_in_json": "dinosaur-40K",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_dinosaur-40K.json",
+        "sha256": "2c260e8adaad1f20d0c553511e2d9d6cdcbc60ac1e7154e34d42dd54f8657733"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/dinosaur-40K.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/dinosaur-40K.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/dinosaur-40K.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/dinosaur-40K.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/dinosaur-40K_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/dinosaur-40K_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/dinosaur-40K_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/dinosaur-40K_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/dinosaur-40K_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/dinosaur-40K_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.8007991909980774,
+            0.8007991909980774,
+            0.8007991909980774
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "dragon",
+      "model_name_in_json": "dragon",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_dragon.json",
+        "sha256": "e88c9fbc420d462216efe5b14f589f96c6913f32eeaa06f366534d61586eff8d"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/dragon.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/dragon.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/dragon.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/dragon.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/dragon_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/dragon_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/dragon_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/dragon_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/dragon_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/dragon_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.45203712582588196,
+            0.45203712582588196,
+            0.45203712582588196
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "fandisk",
+      "model_name_in_json": "fandisk",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_fandisk.json",
+        "sha256": "03c363e7d1fe98f0492706e181898fa4af894bd2362a17b75d7f29b4423118cd"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/fandisk.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/fandisk.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/fandisk.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/fandisk.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/fandisk_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/fandisk_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/fandisk_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/fandisk_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/fandisk_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/fandisk_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.8000388145446777,
+            0.8000388145446777,
+            0.8000388145446777
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "flowerpot",
+      "model_name_in_json": "flowerpot",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_flowerpot.json",
+        "sha256": "38ec04f9920058c4549d54964bffcf034512b843b5d479fa6efacc9673e66d06"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/flowerpot.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/flowerpot.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/flowerpot.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/flowerpot.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/flowerpot_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/flowerpot_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/flowerpot_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/flowerpot_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/flowerpot_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/flowerpot_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.002344768727198243,
+            0.002344768727198243,
+            0.002344768727198243
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "gorgoile",
+      "model_name_in_json": "gorgoile",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_gorgoile.json",
+        "sha256": "088c1093de09ed8aec722656e25ae4fc3b00f32650aead35dd3aafc4de8b232d"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/gorgoile.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/gorgoile.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/gorgoile.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/gorgoile.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/gorgoile_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/gorgoile_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/gorgoile_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/gorgoile_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/gorgoile_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/gorgoile_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.0054263584315776825,
+            0.0054263584315776825,
+            0.0054263584315776825
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "hand-35K",
+      "model_name_in_json": "hand-35K",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_hand-35K.json",
+        "sha256": "dc21e0ae07c60cb3bb97c7877754095944b7f44bf7f32314f839c8ff80a30d69"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/hand-35K.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/hand-35K.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/hand-35K.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/hand-35K.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/hand-35K_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/hand-35K_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/hand-35K_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/hand-35K_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/hand-35K_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/hand-35K_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.3751305341720581,
+            0.3751305341720581,
+            0.3751305341720581
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "horse-110k",
+      "model_name_in_json": "horse-110k",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_horse-110k.json",
+        "sha256": "c332d7d1bd79a47a3251af21bf575c68632405c60d9066d3f78e026227356de1"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/horse-110k.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/horse-110k.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/horse-110k.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/horse-110k.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/horse-110k_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/horse-110k_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/horse-110k_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/horse-110k_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/horse-110k_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/horse-110k_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.5363303422927856,
+            0.5363303422927856,
+            0.5363303422927856
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "house",
+      "model_name_in_json": "house",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_house.json",
+        "sha256": "cec36d3cd07b19b266532138eeb6a2cd167bd35149c792563c2c4dac4ca61685"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/house.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/house.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/house.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/house.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/house_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/house_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/house_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/house_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/house_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/house_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.004407838452607393,
+            0.004407838452607393,
+            0.004407838452607393
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "igea-100K",
+      "model_name_in_json": "igea-100K",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_igea-100K.json",
+        "sha256": "edc3bd5a11ebdb0f059ab089789e48c299630b9ed4dc78f524d15325373b0e3c"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/igea-100K.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/igea-100K.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/igea-100K.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/igea-100K.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/igea-100K_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/igea-100K_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/igea-100K_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/igea-100K_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/igea-100K_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/igea-100K_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.39964374899864197,
+            0.39964374899864197,
+            0.39964374899864197
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "james",
+      "model_name_in_json": "james",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_james.json",
+        "sha256": "8a012b23539cc474b45a7a97596a62840a2e6a61dd61eb1c8e6983067c121ab0"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/james.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/james.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/james.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/james.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/james_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/james_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/james_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/james_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/james_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/james_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.9255170226097107,
+            0.9255170226097107,
+            0.9255170226097107
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "jessi",
+      "model_name_in_json": "jessi",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_jessi.json",
+        "sha256": "41aaa9ca11dec3e27291428bb113ab44128180f1f89150b0e46ccf6bcb20ea91"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/jessi.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/jessi.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/jessi.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/jessi.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/jessi_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/jessi_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/jessi_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/jessi_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/jessi_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/jessi_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            5.592349529266357,
+            5.592349529266357,
+            5.592349529266357
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "meca-15k",
+      "model_name_in_json": "meca-15k",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_meca-15k.json",
+        "sha256": "f3dabf79e7cce6889149a0fe7f0617390037e183aa1453851513b9d9a93b6500"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/meca-15k.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/meca-15k.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/meca-15k.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/meca-15k.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/meca-15k_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/meca-15k_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/meca-15k_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/meca-15k_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/meca-15k_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/meca-15k_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.5598961114883423,
+            0.5598961114883423,
+            0.5598961114883423
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "michael3",
+      "model_name_in_json": "michael3",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_michael3.json",
+        "sha256": "3df0619e84f7e8353c84c6c7e76d9dbcfbdc82854d0e297b66dc0cc64550bbfa"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/michael3.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/michael3.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/michael3.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/michael3.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/michael3_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/michael3_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/michael3_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/michael3_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/michael3_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/michael3_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.003786270972341299,
+            0.003786270972341299,
+            0.003786270972341299
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "michael8",
+      "model_name_in_json": "michael8",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_michael8.json",
+        "sha256": "90b563ac35e63f98bada64ad412d3bb48a47519c5bc42f0aa042a05a27fb8463"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/michael8.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/michael8.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/michael8.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/michael8.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/michael8_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/michael8_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/michael8_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/michael8_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/michael8_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/michael8_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.005347339436411858,
+            0.005347339436411858,
+            0.005347339436411858
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "octopus",
+      "model_name_in_json": "octopus",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_octopus.json",
+        "sha256": "e1a767224d44c83e68599e3a17b76ccf7eb47dbc0e60086082305f5e98883b99"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/octopus.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/octopus.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/octopus.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/octopus.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/octopus_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/octopus_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/octopus_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/octopus_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/octopus_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/octopus_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.8003000617027283,
+            0.8003000617027283,
+            0.8003000617027283
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "prot",
+      "model_name_in_json": "prot",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_prot.json",
+        "sha256": "8ece05e7322597efd632471ebfaaa42d96eb3fabc2390a032c7f798a065dd14a"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/prot.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/prot.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/prot.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/prot.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/prot_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/prot_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/prot_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/prot_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/prot_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/prot_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.010694107972085476,
+            0.010694107972085476,
+            0.010694107972085476
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "rockerarm",
+      "model_name_in_json": "rockerarm",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_rockerarm.json",
+        "sha256": "45ccfa25e1b2014718d23efa340cbd691a2954ee7d7839d25353e8934b92e51d"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/rockerarm.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/rockerarm.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/rockerarm.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/rockerarm.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/rockerarm_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/rockerarm_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/rockerarm_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/rockerarm_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/rockerarm_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/rockerarm_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.7005926966667175,
+            0.7005926966667175,
+            0.7005926966667175
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "torso",
+      "model_name_in_json": "torso",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_torso.json",
+        "sha256": "9f4773aca16fb79564cd52704bc687a4d144f103a198bbcca2eaf8121fff5379"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/torso.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/torso.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/torso.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/torso.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/torso_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/torso_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/torso_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/torso_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/torso_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/torso_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.8605342507362366,
+            0.8605342507362366,
+            0.8605342507362366
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "turbine",
+      "model_name_in_json": "turbine",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_turbine.json",
+        "sha256": "847958195b7370ea7298ee44caf73a378951f695e8289cedd941b533a4f33a54"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/turbine.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/turbine.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/turbine.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/turbine.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/turbine_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/turbine_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/turbine_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/turbine_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/turbine_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/turbine_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.001170263160020113,
+            0.001170263160020113,
+            0.001170263160020113
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    },
+    {
+      "model": "vase-15k",
+      "model_name_in_json": "vase-15k",
+      "placement_json": {
+        "relative_path": "jsons/object_placement/3dva_jsons/3DVA_vase-15k.json",
+        "sha256": "cea4a65f5c0efc9af78f7e98257530cdd76eed2f9b30be01375cc3ce42027b31"
+      },
+      "participant_data": {
+        "format": "csv",
+        "local": {
+          "path": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA/vase-15k.csv",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv/vase-15k.csv"
+        },
+        "note": "Raw participant gaze observations are stored in CSV, not in repository JSONs."
+      },
+      "mesh": {
+        "local": {
+          "path": "/Users/admin/Documents/LAB/Dataset/3DVA/3DModels-Simplif-up/vase-15k.obj",
+          "exists_on_this_machine": true
+        },
+        "server": {
+          "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/3DModels-Simplif-up/vase-15k.obj"
+        }
+      },
+      "ground_truth": {
+        "type": "per_vertex_static_views",
+        "local": [
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/vase-15k_300norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/vase-15k_413norm.txt",
+            "exists_on_this_machine": true
+          },
+          {
+            "path": "/Users/admin/Documents/LAB/Dataset/3DVA/FixationMaps/vase-15k_599norm.txt",
+            "exists_on_this_machine": true
+          }
+        ],
+        "server": [
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/vase-15k_300norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/vase-15k_413norm.txt"
+          },
+          {
+            "path": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/3DVA/FixationMaps/vase-15k_599norm.txt"
+          }
+        ]
+      },
+      "render_and_projection": {
+        "camera_static": {
+          "location": [
+            0.0,
+            -1.5,
+            0.5
+          ],
+          "rotation_euler_degrees": [
+            71.56505555723612,
+            -0.0,
+            0.0
+          ],
+          "fov_degrees": 60.000001669652114,
+          "lens_mm": 31.176912307739258,
+          "sensor_width_mm": 36.0,
+          "sensor_height_mm": 24.0,
+          "clip_start": 0.10000000149011612,
+          "clip_end": 1000.0,
+          "has_view_matrix": true,
+          "has_projection_matrix": true
+        },
+        "model_static": {
+          "location": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "scale": [
+            0.3644922077655792,
+            0.3644922077655792,
+            0.3644922077655792
+          ],
+          "bbox_max_dimensions": {
+            "width": 0.8,
+            "depth": 0.8,
+            "height": 0.7
+          }
+        },
+        "animation": {
+          "start_angle_radians": 0.0,
+          "start_angle_degrees": 0.0,
+          "rotation_speed_deg_per_sec": 24.0,
+          "rotation_speed_rad_per_sec": 0.4188790204786391,
+          "rotation_axis": "Z",
+          "rotation_direction": "counter_clockwise"
+        },
+        "video_info": {
+          "fps": 30,
+          "duration_seconds": 17,
+          "total_frames": 510,
+          "resolution_width": 1920,
+          "resolution_height": 1080,
+          "aspect_ratio": 1.7777777777777777
+        },
+        "frame_count": 510,
+        "first_frame": {
+          "frame": 1,
+          "timestamp": 0.0,
+          "rotation_z_radians": 0.0,
+          "rotation_z_degrees": 0.0
+        },
+        "last_frame": {
+          "frame": 510,
+          "timestamp": 16.966666666666665,
+          "rotation_z_radians": 7.120943546295166,
+          "rotation_z_degrees": 408.00001135363436
+        }
+      }
+    }
+  ]
+}

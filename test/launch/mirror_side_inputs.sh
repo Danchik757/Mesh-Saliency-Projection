@@ -3,10 +3,11 @@
 #
 # Transfer policy:
 #   CODE   — arrives via GitHub (git pull on server)
-#   SIDE INPUTS (csv/json) — arrive via this script: local tar.gz → scp → server unpack
+#   SIDE INPUTS (CSV) — arrive via this script: local tar.gz → scp → server unpack
+#   PLACEMENT JSON — arrives via GitHub under jsons/object_placement
 #
 # Datasets (OBJ meshes, GT saliency maps) are already on the server.
-# This script handles ONLY participant CSV files and JSON camera metadata.
+# This script handles ONLY participant CSV files.
 #
 # Run this LOCALLY (not on the server) before first pilot run.
 #
@@ -53,8 +54,7 @@ LOCAL_GAZE_DATA_ROOT="${LOCAL_GAZE_DATA_ROOT}" LOCAL_PACK_DIR="${LOCAL_PACK_DIR}
   bash "${REPO_ROOT}/test/side_inputs/pack_3dva.sh"
 
 echo "[mirror_side_inputs] transferring 3DVA archives..."
-scp "${LOCAL_PACK_DIR}/3dva_csv.tar.gz"  "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
-scp "${LOCAL_PACK_DIR}/3dva_json.tar.gz" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
+scp "${LOCAL_PACK_DIR}/3dva_csv.tar.gz" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
 
 # ---------- MeshMamba non_texture side inputs ----------
 echo "[mirror_side_inputs] packing MeshMamba_non_texture archives..."
@@ -62,8 +62,7 @@ LOCAL_GAZE_DATA_ROOT="${LOCAL_GAZE_DATA_ROOT}" LOCAL_PACK_DIR="${LOCAL_PACK_DIR}
   bash "${REPO_ROOT}/test/side_inputs/pack_meshmamba_non_texture.sh"
 
 echo "[mirror_side_inputs] transferring MeshMamba_non_texture archives..."
-scp "${LOCAL_PACK_DIR}/meshmamba_non_texture_csv.tar.gz"  "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
-scp "${LOCAL_PACK_DIR}/meshmamba_non_texture_json.tar.gz" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
+scp "${LOCAL_PACK_DIR}/meshmamba_non_texture_csv.tar.gz" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
 
 # ---------- server-side unpack ----------
 echo "[mirror_side_inputs] unpacking archives on server..."
@@ -76,17 +75,9 @@ echo "[server] unpacking 3dva_csv ..."
 mkdir -p 3DVA/csv
 tar -xzf 3dva_csv.tar.gz -C 3DVA/csv --strip-components=1
 
-echo "[server] unpacking 3dva_json ..."
-mkdir -p 3DVA/json
-tar -xzf 3dva_json.tar.gz -C 3DVA/json --strip-components=1
-
 echo "[server] unpacking meshmamba_non_texture_csv ..."
 mkdir -p MeshMamba_non_texture/csv
 tar -xzf meshmamba_non_texture_csv.tar.gz -C MeshMamba_non_texture/csv --strip-components=1
-
-echo "[server] unpacking meshmamba_non_texture_json ..."
-mkdir -p MeshMamba_non_texture/json
-tar -xzf meshmamba_non_texture_json.tar.gz -C MeshMamba_non_texture/json --strip-components=1
 
 echo "[server] done. layout:"
 ls -la 3DVA/ MeshMamba_non_texture/
@@ -96,8 +87,7 @@ REMOTE
 # Transfer only after non_texture protocol is stable.
 # Uncomment and run separately when ready:
 #   LOCAL_GAZE_DATA_ROOT=... LOCAL_PACK_DIR=... bash test/side_inputs/pack_meshmamba_rgb_texture.sh
-#   scp "${LOCAL_PACK_DIR}/meshmamba_rgb_texture_csv.tar.gz"  "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
-#   scp "${LOCAL_PACK_DIR}/meshmamba_rgb_texture_json.tar.gz" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
+#   scp "${LOCAL_PACK_DIR}/meshmamba_rgb_texture_csv.tar.gz" "${SSH_HOST}:${REMOTE_SIDE_INPUTS}/"
 
 # ---------- SAL3D (blocked) ----------
 # Blocked until dense GT reconstruction is complete.

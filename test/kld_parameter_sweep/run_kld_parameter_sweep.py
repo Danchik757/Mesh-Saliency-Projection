@@ -214,7 +214,7 @@ def resolve_sal3d_roots() -> tuple[Path, Path, Path]:
     json_root = _env_path(
         "SAL3D_JSON_ROOT",
         "REPROJECT_GAZE_JSON_SAL3D_ROOT",
-        fallback=str(REPO_ROOT / "jsons" / "sal3d_jsons"),
+        fallback=str(REPO_ROOT / "jsons" / "object_placement" / "sal3d_jsons"),
     )
     if not (dataset_root and csv_root and json_root):
         raise RuntimeError("SAL3D roots are not configured: set SAL3D_DATASET_ROOT, SAL3D_CSV_ROOT, SAL3D_JSON_ROOT.")
@@ -233,7 +233,7 @@ def resolve_meshmamba_roots(texture_type: str) -> tuple[Path, Path, Path]:
         json_root = _env_path(
             "MESHMAMBA_JSON_ROOT",
             "REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT",
-            fallback=str(REPO_ROOT / "jsons" / "mamba_non_jsons"),
+            fallback=str(REPO_ROOT / "jsons" / "object_placement" / "mamba_non_jsons"),
         )
     else:
         dataset_root = _env_path("MESHMAMBA_RGB_TEXTURE_ROOT", "REPROJECT_DATASET_MESHMAMBA_RGB_TEXTURE_ROOT")
@@ -245,7 +245,7 @@ def resolve_meshmamba_roots(texture_type: str) -> tuple[Path, Path, Path]:
         json_root = _env_path(
             "MESHMAMBA_RGB_TEXTURE_JSON_ROOT",
             "REPROJECT_GAZE_JSON_MESHMAMBA_RGB_TEXTURE_ROOT",
-            fallback=str(REPO_ROOT / "jsons" / "mamba_rgb_jsons"),
+            fallback=str(REPO_ROOT / "jsons" / "object_placement" / "mamba_rgb_jsons"),
         )
     if not (dataset_root and csv_root and json_root):
         raise RuntimeError(f"MeshMamba roots are not configured for {texture_type}.")

@@ -15,7 +15,7 @@ alignment script can consume them without modification.
 Usage:
     python3 test/tools/generate_sal3d_jsons.py \
         --mesh-dir /path/to/SAL3D_Dataset/Meshes \
-        --out-dir  /path/to/jsons_for_models/SAL3D_json
+        --out-dir  jsons/object_placement/sal3d_jsons
 """
 from __future__ import annotations
 
@@ -239,9 +239,7 @@ def main() -> None:
     parser.add_argument(
         "--out-dir",
         type=Path,
-        default=Path(
-            "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/SAL3D_json"
-        ),
+        default=Path(__file__).resolve().parents[2] / "jsons/object_placement/sal3d_jsons",
         help="Output directory for Sal3D_{model}.json files.",
     )
     parser.add_argument("--models", nargs="*", default=None, help="Subset of models (default: all).")

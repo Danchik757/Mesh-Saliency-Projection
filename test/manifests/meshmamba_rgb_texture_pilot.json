@@ -24,16 +24,16 @@
     "mesh_subdir": "MeshFile/rgb_texture",
     "gt_subdir": "GT/rgb_texture",
     "side_inputs_csv": "${SIDE_INPUTS_ROOT}/MeshMamba_rgb_texture/csv",
-    "side_inputs_json": "${SIDE_INPUTS_ROOT}/MeshMamba_rgb_texture/json",
+    "placement_json": "${REPO_ROOT}/jsons/object_placement/mamba_rgb_jsons",
     "output_dir": "${OUTPUT_ROOT}/MeshMamba_rgb_texture/pilot"
   },
 
   "side_inputs_needed": true,
   "side_inputs_to_mirror": {
     "csv_source": "GAZE_DATA/csv_for_models/MeshMamba_rgb_texture/*.csv",
-    "json_source": "GAZE_DATA/jsons_for_models/Mamba_rgb_textured/*.json",
-    "transfer_method": "scp",
-    "note": "json metadata is mandatory; do not skip."
+    "json_source": "jsons/object_placement/mamba_rgb_jsons/*.json",
+    "transfer_method": "CSV via scp; JSON via git",
+    "note": "json metadata is mandatory; use the repo-local canonical JSONs."
   },
 
   "transform_recipe": {

@@ -17,7 +17,7 @@ fi
 
 export SAL3D_DATASET_ROOT="${SAL3D_DATASET_ROOT:-/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/SAL3D}"
 export SAL3D_CSV_ROOT="${SAL3D_CSV_ROOT:-/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/gaze_csv/SAL3D}"
-export SAL3D_JSON_ROOT="${SAL3D_JSON_ROOT:-${REPO_ROOT}/jsons/sal3d_jsons}"
+export SAL3D_JSON_ROOT="${SAL3D_JSON_ROOT:-${REPO_ROOT}/jsons/object_placement/sal3d_jsons}"
 export SAL3D_SMOOTH_GAZE_DIR="${SAL3D_SMOOTH_GAZE_DIR:-/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/SAL3D/Smooth_Gaze}"
 
 export OMP_NUM_THREADS=1

@@ -1,0 +1,47 @@
+{
+  "purpose": "summary of repository-local JSON organization and dataset model indexes",
+  "object_placement_root": "jsons/object_placement",
+  "dataset_model_info_root": "jsons/dataset_model_info",
+  "participant_data_location": {
+    "format": "csv",
+    "local_roots": {
+      "3DVA:3dva": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA",
+      "MeshMamba:non_texture": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/MeshMamba_non_texture",
+      "MeshMamba:rgb_texture": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/MeshMamba_rgb_texture",
+      "SAL3D:sal3d": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/SAL3D"
+    },
+    "server_roots": {
+      "3DVA:3dva": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv",
+      "MeshMamba:non_texture": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/MeshMamba_non_texture/csv",
+      "MeshMamba:rgb_texture": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/MeshMamba_rgb_texture/csv",
+      "SAL3D:sal3d": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/gaze_csv/SAL3D"
+    },
+    "note": "There are no participant-observation JSONs in the repo; repo JSONs describe camera/object placement."
+  },
+  "datasets": [
+    {
+      "dataset": "3DVA",
+      "track": "3dva",
+      "model_count": 32,
+      "index_file": "jsons/dataset_model_info/3dva_models.json"
+    },
+    {
+      "dataset": "MeshMamba",
+      "track": "non_texture",
+      "model_count": 105,
+      "index_file": "jsons/dataset_model_info/meshmamba_non_texture_models.json"
+    },
+    {
+      "dataset": "MeshMamba",
+      "track": "rgb_texture",
+      "model_count": 105,
+      "index_file": "jsons/dataset_model_info/meshmamba_rgb_texture_models.json"
+    },
+    {
+      "dataset": "SAL3D",
+      "track": "sal3d",
+      "model_count": 57,
+      "index_file": "jsons/dataset_model_info/sal3d_models.json"
+    }
+  ]
+}

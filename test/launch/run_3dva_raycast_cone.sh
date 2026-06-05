@@ -37,7 +37,7 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 EVAL_SCRIPT="${REPO_ROOT}/reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py"
 PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
-THREE_DVA_JSON_ROOT="${THREE_DVA_JSON_ROOT:-${REPROJECT_GAZE_JSON_3DVA_ROOT:-${REPO_ROOT}/jsons/3dva_jsons}}"
+THREE_DVA_JSON_ROOT="${THREE_DVA_JSON_ROOT:-${REPROJECT_GAZE_JSON_3DVA_ROOT:-${REPO_ROOT}/jsons/object_placement/3dva_jsons}}"
 
 # ---------- required env var checks ----------
 : "${VISUAL_ATTENTION_3D_SHAPES_ROOT:?Set VISUAL_ATTENTION_3D_SHAPES_ROOT (see configs/server_vg_intellect.env)}"

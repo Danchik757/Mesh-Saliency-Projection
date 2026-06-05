@@ -42,7 +42,7 @@ run_scp() {
 }
 
 # ---------- 3DVA ----------
-for ARCHIVE in 3dva_csv.tar.gz 3dva_json.tar.gz; do
+for ARCHIVE in 3dva_csv.tar.gz; do
   SRC="${LOCAL_PACK_DIR}/${ARCHIVE}"
   if [ ! -f "${SRC}" ]; then
     echo "[scp_archives] WARNING: archive not found, skipping: ${SRC}"
@@ -54,7 +54,7 @@ for ARCHIVE in 3dva_csv.tar.gz 3dva_json.tar.gz; do
 done
 
 # ---------- MeshMamba non_texture ----------
-for ARCHIVE in meshmamba_non_texture_csv.tar.gz meshmamba_non_texture_json.tar.gz; do
+for ARCHIVE in meshmamba_non_texture_csv.tar.gz; do
   SRC="${LOCAL_PACK_DIR}/${ARCHIVE}"
   if [ ! -f "${SRC}" ]; then
     echo "[scp_archives] WARNING: archive not found, skipping: ${SRC}"
@@ -66,3 +66,4 @@ for ARCHIVE in meshmamba_non_texture_csv.tar.gz meshmamba_non_texture_json.tar.g
 done
 
 echo "[scp_archives] done. Run test/side_inputs/unpack_on_server.sh next."
+echo "[scp_archives] JSON placement metadata is not transferred here; it is tracked in git under jsons/object_placement."

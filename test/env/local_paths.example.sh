@@ -2,7 +2,7 @@
 
 export REPROJECT_OUTPUT_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/output_local"
 export REPROJECT_REPO_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection"
-export REPROJECT_CANONICAL_JSON_ROOT="${REPROJECT_REPO_ROOT}/jsons"
+export REPROJECT_CANONICAL_JSON_ROOT="${REPROJECT_REPO_ROOT}/jsons/object_placement"
 
 export REPROJECT_DATASET_3DVA_ROOT="/Users/admin/Documents/LAB/Dataset/3DVA"
 export REPROJECT_DATASET_MESHMAMBA_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency"

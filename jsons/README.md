@@ -1,13 +1,21 @@
 # Canonical Camera JSONs
 
 This directory is the repository-local source of truth for camera, projection,
-scale, and animation JSONs used by gaze reprojection benchmarks.
+scale, animation, and model/dataset index JSONs used by gaze reprojection
+benchmarks.
 
 Do not use `GAZE_DATA/jsons_for_models` or dataset release JSONs for benchmark
 runs unless the goal is an explicit diagnostic comparison. In particular,
 SAL3D release JSONs differ from the corrected render-export JSONs stored here.
 
 ## Layout
+
+| Directory | Purpose |
+| --- | --- |
+| `object_placement/` | Full camera/object/render JSONs used directly by projection code. |
+| `dataset_model_info/` | Generated per-dataset model indexes and data-source manifests. |
+
+`object_placement/` contains:
 
 | Directory | Dataset/track | Count | Filename prefix |
 | --- | --- | ---: | --- |
@@ -24,10 +32,11 @@ Server and local environment files should point JSON roots here:
 
 ```bash
 export REPROJECT_CANONICAL_JSON_ROOT="${REPO_ROOT}/jsons"
-export THREE_DVA_JSON_ROOT="${REPROJECT_CANONICAL_JSON_ROOT}/3dva_jsons"
-export MESHMAMBA_JSON_ROOT="${REPROJECT_CANONICAL_JSON_ROOT}/mamba_non_jsons"
-export MESHMAMBA_RGB_TEXTURE_JSON_ROOT="${REPROJECT_CANONICAL_JSON_ROOT}/mamba_rgb_jsons"
-export SAL3D_JSON_ROOT="${REPROJECT_CANONICAL_JSON_ROOT}/sal3d_jsons"
+export REPROJECT_OBJECT_PLACEMENT_JSON_ROOT="${REPO_ROOT}/jsons/object_placement"
+export THREE_DVA_JSON_ROOT="${REPROJECT_OBJECT_PLACEMENT_JSON_ROOT}/3dva_jsons"
+export MESHMAMBA_JSON_ROOT="${REPROJECT_OBJECT_PLACEMENT_JSON_ROOT}/mamba_non_jsons"
+export MESHMAMBA_RGB_TEXTURE_JSON_ROOT="${REPROJECT_OBJECT_PLACEMENT_JSON_ROOT}/mamba_rgb_jsons"
+export SAL3D_JSON_ROOT="${REPROJECT_OBJECT_PLACEMENT_JSON_ROOT}/sal3d_jsons"
 ```
 
 CSV gaze files and dataset meshes/GT still live outside the repository.
@@ -52,3 +61,13 @@ The validator checks JSON syntax, required camera/model/video/animation fields,
 4x4 view/projection matrices, positive scales and bounding dimensions, frame
 count, monotonic timestamps, and radians/degrees consistency for per-frame
 object rotation.
+
+Regenerate dataset/model indexes after changing `object_placement/`:
+
+```bash
+python3 test/tools/generate_dataset_model_info.py
+```
+
+The participant gaze observations are not stored here as JSON. They are stored
+as CSV files under `GAZE_DATA/csv_for_models/...` locally and under the
+corresponding server side-input/release CSV roots.
