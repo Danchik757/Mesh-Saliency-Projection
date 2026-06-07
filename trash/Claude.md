@@ -3861,3 +3861,89 @@ models where the base projection fails (Flying_saucer — wrong GT region).
 Recommended next step: run full batch on MeshMamba non_texture (105 models) and
 full SAL3D (50 smoothed models) to get aggregate statistics. This will determine
 whether the KLD improvement is statistically meaningful across the dataset.
+
+---
+
+## 2026-06-03 MSK (session 18 — 3DVA combined GT pipeline)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: Implemented complete pipeline for combining 3DVA per-view GTs into one
+per-model combined GT, plus two new eval scripts and a batch runner.
+
+### Problem
+
+3DVA GT = 3 independent fixation maps from 3 static viewpoints (300, 413, 599).
+Our gaze data = dynamic rotating video. Comparing our accumulated prediction vs
+a single static-view GT is cross-condition. Combined GT (all 3 views merged) is
+more appropriate for our rotating-video use case: both represent accumulated
+attention across multiple viewpoints.
+
+### Solution implemented
+
+1. `scripts/build_3dva_combined_gt.py` — per_view_l1 normalization:
+   - Normalize each view's GT to sum=1 over visible vertices
+   - Visibility-weighted mean across 3 views
+   - Result: one {model}_combined_gt.txt per model + meta JSON
+   - turbine edge case: GT=19999, visibility=20000 → truncate to GT length (off-by-1 tolerance ≤5)
+   - A380 no special handling needed at build stage
+
+2. `reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py`
+   - NEW script based on eval_3dva_raycast_cone.py with all bug fixes
+   - Loads combined GT from --combined-gt-dir
+   - Reports metrics_vs_gt_combined: raycast + cone × full + covered_only
+   - Covered mask: combined_gt > 0 (mirrors SAL3D protocol)
+
+3. `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py`
+   - NEW script based on eval_3dva_screen_space.py v2
+   - 1920×1080, sigma_px=49.0, bilinear deposition
+   - Reports metrics_vs_gt_combined: screen_space × full + covered_only
+
+4. `test/launch/run_3dva_reference_batch.py`
+   - NEW batch runner, based on run_sal3d_reference_batch.py pattern
+   - Methods: screen_space, cone, raycast (cone+raycast share one subprocess)
+   - VIDEO_ID_OVERRIDES = {"A380": 2365}
+   - Fixed tags: SCREEN_TAG, CONE_TAG (both include _combined suffix)
+   - Outputs: 3dva_combined_long.csv / wide.csv / summary.csv
+
+5. `docs/3DVA_COMBINED_GT_IMPLEMENTATION.md`
+   - Self-contained instruction MD for executing agent
+
+### Key design decisions
+- per_view_l1 normalization: each view contributes equal total attention mass
+- Always use metrics_covered_only for summary tables (mirrors SAL3D)
+- VIDEO_ID_OVERRIDES = {"A380": 2365} — A380 CSV has mixed sessions
+- turbine: OBJ=20000, GT=19999, visibility=20000 → builder truncates vis to 19999
+- 3DVA transform order preserved: base_rotZ → recenter → scale → rotZ_anim → extraX → extraY → translate
+- override_fov_deg=35.9834 for 3DVA (NOT h2v mode which is MeshMamba/SAL3D only)
+- sigma=49px for screen_space (NOT 26.3px = SAL3D, NOT 96px = v1 bug)
+
+### Test results (local, /tmp/3dva_combined_gt/)
+
+build_3dva_combined_gt.py (4 pilot models):
+- bunny:    n=20000  coverage=79.3%  nonzero=15856
+- A380:     n=47756  coverage=42.3%  nonzero=20212
+- turbine:  n=19999  coverage=50.2%  nonzero=10036  [turbine WARN: OBJ=20000, GT=19999]
+- meca-15k: n=15000  coverage=88.8%  nonzero=13313
+
+Syntax checks: all 4 scripts pass py_compile ✅
+
+eval_3dva_screen_space_combined.py (bunny test, running in background):
+  Expected: metrics_vs_gt_combined.screen_space_gaussian, CC_covered ≈ −0.1 to +0.3
+
+### Notes on interpretation
+
+1. Combined GT is NOT comparable to paper's per-view metrics (different protocol).
+2. Low CC is expected — cross-condition (dynamic vs static). Not a method bug.
+3. The instruction MD (docs/3DVA_COMBINED_GT_IMPLEMENTATION.md) is the handoff
+   document for executing the full 32-model run.
+
+Risks:
+1. turbine 1-vertex mismatch handled but must not cause hard crash in eval scripts.
+2. A380 video_id must be applied in batch runner (VIDEO_ID_OVERRIDES).
+3. Combined GT requires building first — eval scripts will fail without it.
+
+Questions for GPT:
+1. Should we also compare combined GT predictions against SaliencyAlgorithmMaps
+   baselines (Lee/Leifman/Song/Tasse)?
+2. After full 32-model run: should 3DVA results go into main benchmark table
+   alongside MeshMamba/SAL3D, or stay as a separate cross-condition appendix?
