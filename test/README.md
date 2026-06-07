@@ -17,7 +17,8 @@ test/
 │   ├── search_preview_alignment.py     grid search (rotX × FOV, trimesh renderer)
 │   └── overlay_video_and_preview.py    side-by-side and edge overlay helpers
 ├── tools/
-│   └── render_preview_from_manifest.py   Python/trimesh preview renderer
+│   ├── render_preview_from_manifest.py   Python/trimesh preview renderer
+│   └── README.md                         utility/debug helpers only
 ├── manifests/                  per-model manifest JSONs (see section below)
 ├── env/
 │   ├── local_paths.example.sh          local env-var definitions
@@ -73,6 +74,26 @@ python3 test/overlay_alignment/search_preview_alignment.py \
     --fov-start 28 --fov-stop 55 --fov-step 1
 ```
 Reads `alignment_search_report.json` + visual overlays in `output-dir`.
+
+## GT visualizations
+
+The canonical location for method-specific `prediction vs GT` viewers is:
+
+```text
+../gt_visualizations/
+```
+
+Currently available:
+- `preview_meshmamba_screenspace_alignment.py` — MeshMamba `screen_space_gaussian`
+- `preview_meshmamba_cone_alignment.py` — MeshMamba `cone_gaussian_on_mesh`
+- `preview_sal3d_screenspace_alignment.py` — SAL3D `screen_space_gaussian`
+
+These scripts produce three-panel PNGs per frame:
+- left: gaze density
+- middle: predicted saliency
+- right: GT saliency
+
+See [../gt_visualizations/README.md](../gt_visualizations/README.md) for usage examples.
 
 ### Path B — Blender canonical (gold standard)
 

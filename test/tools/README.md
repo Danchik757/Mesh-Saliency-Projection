@@ -1,7 +1,23 @@
 # test/tools/
 
 Diagnostic and utility scripts for inspecting pipeline correctness.
-None of these run the main eval — they help debug or verify it.
+These are helper tools, not the main benchmark runners.
+
+Method-specific `prediction vs GT` viewers now live in:
+
+```text
+gt_visualizations/
+```
+
+See [../../gt_visualizations/README.md](../../gt_visualizations/README.md) for:
+- MeshMamba `screen_space_gaussian`
+- MeshMamba `cone_gaussian_on_mesh`
+- SAL3D `screen_space_gaussian`
+
+Thin compatibility wrappers are kept in `test/tools/` for the historical paths:
+- `preview_screenspace_alignment.py`
+- `preview_meshmamba_cone_alignment.py`
+- `preview_sal3d_screenspace_alignment.py`
 
 ## Tools
 
@@ -17,30 +33,6 @@ python3 test/tools/render_preview_from_manifest.py \
 ```
 
 Output: PNG overlay at `$REPROJECT_OUTPUT_ROOT/preview_checks/...`
-
-### `preview_screenspace_alignment.py` — screen_space method visual check
-
-Three-panel PNG per frame: gaze density / predicted saliency / GT saliency.
-Confirms no Y-flip or coordinate-system bugs in `eval_meshmamba_screen_space_v2.py`.
-
-```bash
-source configs/server_vg_intellect.env   # or local_paths.sh
-$REPROJECT_PYTHON test/tools/preview_screenspace_alignment.py \
-    --model Rubber_Duck_v1_L3 \
-    --texture-type non_texture \
-    --output-dir /tmp/preview_v2
-
-# Specific frames:
-$REPROJECT_PYTHON test/tools/preview_screenspace_alignment.py \
-    --model Rubber_Duck_v1_L3 --preview-frames 127 255 382
-```
-
-Output: `<output-dir>/<model>_frame<NNNN>.png` + `<model>_summary.png`
-
-Panel meaning:
-- **Left** — Gaze density: where participants looked (INPUT to the method)
-- **Middle** — Predicted saliency: our result (face centroids coloured by prediction)
-- **Right** — GT saliency: reference from dataset
 
 ### `export_metrics_csv.py` — batch JSON → CSV export
 

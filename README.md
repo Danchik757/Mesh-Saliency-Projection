@@ -73,15 +73,29 @@ bash scripts/upload_release.sh            # uploads to GitHub release v1.0-data
 
 ---
 
-## Visual verification of screen_space method
+## Visual verification of prediction vs GT
 
-Before relying on metrics, run the visual sanity check to confirm the method
-projects gaze to the correct mesh faces (no coordinate-system or Y-flip bugs):
+Before relying on metrics, run the visual sanity checks to confirm the method
+projects gaze to the correct mesh vertices/faces and that the predicted map is
+spatially plausible relative to GT.
+
+Canonical folder:
+
+```text
+gt_visualizations/
+```
+
+Available viewers:
+- `preview_meshmamba_screenspace_alignment.py`
+- `preview_meshmamba_cone_alignment.py`
+- `preview_sal3d_screenspace_alignment.py`
+
+Example for MeshMamba `screen_space_gaussian`:
 
 ```bash
 # On vg-intellect:
 source configs/server_vg_intellect.env
-$REPROJECT_PYTHON test/tools/preview_screenspace_alignment.py \
+$REPROJECT_PYTHON gt_visualizations/preview_meshmamba_screenspace_alignment.py \
     --model Rubber_Duck_v1_L3 \
     --texture-type non_texture \
     --output-dir /tmp/preview_v2
@@ -96,7 +110,13 @@ Output: three-panel PNG images per frame.
 | **Right** — GT saliency | Ground-truth per-face CSV from the dataset (reference) |
 
 Check that hot spots in **Middle** spatially match hot spots in **Right**.
-Script: [`test/tools/preview_screenspace_alignment.py`](./test/tools/preview_screenspace_alignment.py)
+Scripts:
+- [`gt_visualizations/preview_meshmamba_screenspace_alignment.py`](./gt_visualizations/preview_meshmamba_screenspace_alignment.py)
+- [`gt_visualizations/preview_meshmamba_cone_alignment.py`](./gt_visualizations/preview_meshmamba_cone_alignment.py)
+- [`gt_visualizations/preview_sal3d_screenspace_alignment.py`](./gt_visualizations/preview_sal3d_screenspace_alignment.py)
+
+Detailed usage:
+- [`gt_visualizations/README.md`](./gt_visualizations/README.md)
 
 ## Quick start
 

@@ -66,6 +66,11 @@ prediction mass being too weak at GT peaks.
   - Small server smoke test.
 - `server/run_nightly_vg_intellect.sh`
   - Starts the overnight sweep in a tmux session.
+- `run_kld_postprocess_diagnostics.py`
+  - Loads existing MeshMamba `*_faces.txt` prediction maps and recomputes
+    metrics under diagnostic post-processing variants.
+- `server/run_postprocess_diagnostic_vg_intellect.sh`
+  - Starts the post-processing diagnostic in a tmux session.
 - `server/schedule_nightly_vg_intellect.sh`
   - Schedules `run_nightly_vg_intellect.sh` for a wall-clock time using `sleep`.
 - `server/monitor_vg_intellect.sh`
@@ -147,6 +152,62 @@ Monitor:
 cd /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection
 bash test/kld_parameter_sweep/server/monitor_vg_intellect.sh
 ```
+
+## Post-Processing Diagnostic
+
+After the reference MeshMamba run and the focused KLD sweep are complete, run:
+
+```bash
+cd /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection
+bash test/kld_parameter_sweep/server/run_postprocess_diagnostic_vg_intellect.sh
+```
+
+This does not rerun projection. It loads the existing per-face maps from:
+
+```text
+/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/MeshMamba_reference_batch_20260601/
+/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/KLD_diagnostic_20260602_064256/
+```
+
+It writes:
+
+- `postprocess_long.csv`
+  - One row per source prediction map and diagnostic variant.
+- `postprocess_summary.csv`
+  - Mean/median metrics by source, texture, method, and variant.
+- `postprocess_best_by_model.csv`
+  - Best KLD variant per source/texture/model/method/variant family.
+- `postprocess_top_kld_faces.csv`
+  - Faces contributing most to baseline KLD for manual inspection.
+
+Diagnostic variants:
+
+- `alpha_floor`
+  - Adds a small uniform floor to prediction probabilities before KLD.
+- `support_mask`
+  - Computes metrics on selected face subsets, for example only faces where
+    prediction is non-zero.
+- `area_weighting`
+  - Tests whether GT/prediction should be compared as face mass or face density.
+- `diffusion`
+  - Smooths prediction over adjacent mesh faces for several step counts.
+
+Use a short smoke run first:
+
+```bash
+MAX_INPUT_ROWS=4 SKIP_DIFFUSION=true bash test/kld_parameter_sweep/server/run_postprocess_diagnostic_vg_intellect.sh
+```
+
+Interpretation:
+
+- If `alpha_floor` greatly reduces `KLD` while `CC/SIM` stay stable, the main
+  issue is likely zero/near-zero predicted mass on GT-positive faces.
+- If `support_mask` gives good metrics but baseline does not, prediction support
+  is too sparse or GT/prediction support definitions differ.
+- If `area_weighting` changes the ranking substantially, the GT and prediction
+  maps may use different face mass/density conventions.
+- If `diffusion` improves `KLD` without destroying `CC/SIM`, mesh-space
+  smoothing should be considered as a promoted method variant.
 
 ## Overnight Defaults
 

@@ -3947,3 +3947,294 @@ Questions for GPT:
    baselines (Lee/Leifman/Song/Tasse)?
 2. After full 32-model run: should 3DVA results go into main benchmark table
    alongside MeshMamba/SAL3D, or stay as a separate cross-condition appendix?
+
+---
+
+## 2026-06-07 MSK (session 19 — pipeline audit + back-face culling fix в 3DVA screen_space)
+Role: Claude
+Commit: 2d79c1f
+Scope: Систематический аудит всего пайплайна. Найдена и исправлена критическая ошибка
+в двух 3DVA screen_space скриптах. Анализ причин низкой корреляции.
+
+### Аудит пайплайна — что было проверено
+
+Проверены следующие компоненты:
+
+1. **Временная привязка gaze** ✅ — t в секундах, `frame = floor(t × fps)` корректен.
+   render_video_timestamps (1277 записей) — браузерные события, в пайплайне не используются.
+
+2. **Координаты взгляда** ✅ — x,y нормализованы [0,1]. Y-конвенция: 0=верх, 1=низ.
+   Одинакова в CSV и в world_to_screen → инверсия правильная.
+
+3. **FOV в JSON** — JSON projection matrix содержит P[1,1]=1.7321 = 1/tan(30°),
+   что кодирует fov_vertical=60° (но рендер был с 60° HORIZONTAL).
+   override_fov_deg=35.9834 корректно компенсирует. Результаты A/B смешанные → не критично для CC.
+
+4. **video_id** ✅ — только A380 имеет несколько video_id (1970 и 2365). Остальные 31 модель: по одному.
+
+5. **Cone + trimesh back-face** ✅ — multiple_hits=False возвращает ближайшее попадание.
+   Для закрытых мешей (bunny, octopus) всегда front-facing. Проверено на обоих.
+
+6. **SAL3D view_matrix** ✅ — реконструкция из Euler angles корректна (cam_pos совпадает).
+
+7. **Normal transform** ✅ — все датасеты имеют uniform scale → нормали трансформируются
+   как обычные векторы через R (без inverse-transpose). Верно.
+
+### 🔴 КРИТИЧЕСКИЙ БАГ: Back-face culling в 3DVA screen_space
+
+**Проблема:** `eval_3dva_screen_space.py` и `eval_3dva_screen_space_combined.py` фильтровали
+только `w_clip <= 0` (вершины за плоскостью камеры), но не back-facing вершины.
+
+**Измерение:** на каждом кадре 54.4% вершин bunny (10 963 из 20 000) back-facing,
+но попадают в [0,1]² и накапливают чужую gaze density.
+
+**Исправление** (скопировано с паттерна из eval_sal3d_screen_space.py):
+```python
+# Перед циклом
+camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
+base_normals = np.asarray(mesh.vertex_normals, ...).copy()
+# [применяем base_rotate_z к base_normals один раз]
+normals_w = np.empty_like(base_normals)  # переиспользуемый буфер
+culled_back = 0
+
+# Внутри цикла (per frame)
+normals_w[:,0] = cos(rot_z)*base_normals[:,0] - sin(rot_z)*base_normals[:,1]
+normals_w[:,1] = sin(rot_z)*base_normals[:,0] + cos(rot_z)*base_normals[:,1]
+normals_w[:,2] = base_normals[:,2]
+# [применяем extra_rotate_x/y если ненулевые]
+to_cam = camera_world_pos - verts_w
+front_facing = einsum("ij,ij->i", normals_w, to_cam) > 0
+culled_back += (~front_facing).sum()
+screen_xy[(w_clip <= 0) | (~front_facing)] = -1.0
+```
+
+**Эффект исправления на bunny:**
+```
+CC_covered:  -0.046 → +0.023  (+0.069)
+AUC_top10%:   0.354 → 0.452   (+0.098)
+view 300 CC: -0.108 → -0.057
+view 413 CC: +0.128 → +0.159
+view 599 CC: -0.216 → -0.132
+```
+
+**Что важно:** MeshMamba v2 и SAL3D screen_space уже имели этот фикс.
+3DVA скрипты отставали от паттерна.
+
+### Почему CC остаётся низким даже после фикса
+
+После исправления CC = +0.03 (cone), +0.02 (screen_space). Это не баг — это cross-condition mismatch:
+
+**Структурная причина:**
+- GT авторов: 19 человек, 7 сек, СТАТИЧНОЕ изображение с 3 фиксированных углов
+- Наши данные: участники смотрели ВРАЩАЮЩЕЕСЯ видео (360°, 17 сек)
+- Две эти задачи требуют разного когнитивного процесса (статика vs динамика)
+
+**Верхняя граница для нашей задачи:**
+- Cross-view CC в GT авторов: +0.02, -0.21, -0.12 (три вида почти не коррелируют)
+- CC(averaged_GT vs each view): +0.83..+0.96 (потолок для combined GT метода)
+- Оба числа говорят: GT авторов описывает "внимание к конкретной стороне объекта",
+  наш метод описывает "накопленное внимание за полный оборот" → разные вещи
+
+**Для сравнения, на SAL3D (те же условия):**
+- SAL3D bunny cone CC = +0.769 — там условия совпадают, метрики высокие
+
+Risks:
+1. Результаты 3DVA screen_space до commit 2d79c1f (в /tmp/) некорректны из-за back-face бага.
+2. Пересчёт 32 моделей после фикса не запускался — нет финальной таблицы.
+
+Questions for GPT: see session 18.
+
+---
+
+## 2026-06-07 MSK (session 19 — pipeline audit + back-face culling fix in 3DVA screen_space)
+Role: Claude
+Commit: 2d79c1f
+Scope: Systematic audit of the entire gaze-to-3D projection pipeline.
+Found and fixed a critical back-face contamination bug in 3DVA screen_space scripts.
+
+### Audit methodology
+Checked: gaze CSV parsing, frame alignment, coordinate conventions, FOV correctness,
+back-face culling, trimesh ray intersection, view_matrix reconstruction (SAL3D),
+normal transform under uniform scale, video_id filtering, render_video_timestamps.
+
+### CONFIRMED BUG: Missing back-face culling in 3DVA screen_space
+
+**Root cause:** `eval_3dva_screen_space.py` (v2) and `eval_3dva_screen_space_combined.py`
+filtered only `screen_xy[w_clip <= 0] = -1.0` (vertices behind camera plane),
+but did NOT filter back-facing vertices.
+
+**Measurement:** at frame 0 for bunny, 10,878/20,000 = 54.4% of vertices are
+back-facing but project to valid screen coordinates [0,1]², incorrectly
+accumulating gaze density from the front-side attention.
+
+**Fix applied (both files):**
+- Precompute camera_world_pos from view_matrix once outside loop (static camera)
+- Precompute base_normals with base_rotate_z applied once outside loop
+- Per frame: rotate normals by rotation_z + extraX + extraY → normals_w
+- `to_cam = camera_world_pos - verts_w`
+- `front_facing = einsum("ij,ij->i", normals_w, to_cam) > 0`
+- `screen_xy[(w_clip<=0) | (~front_facing)] = -1.0`
+- Track `culled_back_verts` in run_stats (= 5,591,620 total / 510 frames ≈ 10,963/frame)
+
+**Before → After (bunny, combined GT, metrics_covered_only):**
+- CC:  −0.046 → **+0.023**  (+0.069)
+- AUC: 0.354  → **0.452**   (+0.098)
+
+**Per-view (metrics_visible_only):**
+- view 300: −0.108 → −0.057  (+0.051)
+- view 413: +0.128 → +0.159  (+0.031)
+- view 599: −0.216 → −0.132  (+0.084)
+
+**Context:** MeshMamba v2 and SAL3D screen_space already had this fix.
+Pattern copied from eval_sal3d_screen_space.py lines 845-858.
+
+### All other pipeline components verified correct
+
+| Component | Status |
+|-----------|--------|
+| t in CSV → frame mapping: `frame = floor(t * fps)` | ✓ t in seconds, fps=30 from JSON |
+| Y-coordinate: y=0=top consistent in CSV and world_to_screen | ✓ |
+| video_id: only A380 has multiple video_ids in 3DVA | ✓ |
+| Cone trimesh multiple_hits=False → nearest (front-face) | ✓ verified on bunny + octopus |
+| SAL3D view_matrix reconstruction from Euler angles | ✓ camera position matches |
+| Uniform scale everywhere: normal transform = R only | ✓ all datasets confirmed |
+| Recenter: bbox_center from ORIGINAL verts before base_rotate_z | ✓ (session 3 fix) |
+| render_video_timestamps: 1277 entries (not 510) | ✓ browser events, not used |
+| JSON projection matrix FOV: override_fov_deg=35.9834 is CORRECT for 3DVA | ✓ |
+
+### Combined GT: current state and metric interpretation
+
+Combined GT was built in session 18 with per_view_l1 normalization:
+- normalize each view GT to sum=1 over visible vertices
+- visibility-weighted mean across 3 views
+
+File: `$VISUAL_ATTENTION_3D_SHAPES_ROOT/CombinedGT/{model}_combined_gt.txt`
+Coverage: bunny 79.3%, A380 42.3%, meca-15k 88.8%, turbine 50.2%
+
+Current pilot results (1 model: bunny, AFTER back-face fix):
+
+| Method | CC_covered | AUC_top10% |
+|--------|-----------|-----------|
+| cone_gaussian_on_mesh | 0.031 | 0.439 |
+| screen_space_gaussian | 0.023 | 0.452 |
+
+**Why CC is low:** cross-condition mismatch.
+- Our gaze: participants watched rotating video (17s, ~374° rotation)
+- GT: 19 people watching STATIC images at 3 fixed camera angles (7s each)
+- Paper explicitly states (Sec 5.2.1): "fixations from dynamic scenes are
+  significantly different from static scenes" (p<0.0001)
+- Low CC is expected and NOT a method bug.
+
+Pending: full 32-model run to get meaningful aggregate statistics.
+
+### MeshMamba v2 screen_space full run still pending
+Results in benchmark_runs/meshmamba/*_screen_space/ are v1 (sigma=96px bug).
+v2 (sigma=26.3px) not yet run at 32-model scale.
+
+Risks:
+1. 3DVA combined GT: only 1 pilot model tested locally. Full run needed on server.
+2. back-face fix increases runtime slightly (per-frame normal rotation + einsum).
+   Estimated ~5-10% slower per model for screen_space.
+3. Combined GT is NOT comparable to paper's metrics (different protocol).
+
+Questions for GPT:
+1. Should we run all 32 3DVA models now (combined GT) to get aggregate CC means?
+2. Is the residual gap between cone (0.031) and screen_space (0.023) meaningful
+   given the cross-condition noise floor?
+
+---
+
+## 2026-06-07 MSK (session 19 — pipeline audit + back-face culling fix)
+Role: Claude
+Commit: 2d79c1f
+Scope: Systematic audit of the entire eval pipeline. Found and fixed critical bug.
+
+### Pipeline audit findings
+
+Audited all components of the gaze→3D projection pipeline:
+- CSV parsing (t in seconds ✓, x/y normalized ✓, video_id ✓)
+- Frame mapping: `frame=floor(t*fps)` ✓
+- Y-coordinate convention: y=0=top, consistent ✓
+- render_video_timestamps: browser events (not frames), not used ✓
+- Cone method: trimesh `multiple_hits=False` returns nearest (front-facing) hit ✓
+- SAL3D view_matrix reconstruction from Euler: camera_pos matches ✓
+- Normal transform for uniform scale: R only (no inverse-transpose needed) ✓
+- video_id mixed: only A380 in 3DVA ✓
+- All datasets have uniform scale ✓
+
+### CRITICAL BUG FOUND AND FIXED
+
+**Missing vertex back-face culling in 3DVA screen_space scripts.**
+
+Files affected:
+- `eval_3dva_screen_space.py`
+- `eval_3dva_screen_space_combined.py`
+
+Both had only `screen_xy[w_clip <= 0] = -1.0` which filters vertices behind the
+camera plane, but does NOT filter back-facing vertices (those with normals pointing
+away from camera). At any given animation frame, ~54% of 3DVA mesh vertices
+(bunny: 10 963 of 20 000) are back-facing but project to valid [0,1]² screen
+coordinates and wrongly accumulate gaze density.
+
+MeshMamba v2 and SAL3D screen_space scripts had this fix already.
+Pattern copied from eval_sal3d_screen_space.py.
+
+### Fix applied
+
+Added per-frame back-face culling to both scripts:
+```python
+# Once, before loop:
+camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
+base_normals = np.asarray(mesh.vertex_normals, ...).copy()
+# apply base_rotate_z to base_normals once
+
+# Inside loop (after verts_w computed):
+normals_w[:, 0] = cos(rot_z)*base_normals[:,0] - sin(rot_z)*base_normals[:,1]
+normals_w[:, 1] = sin(rot_z)*base_normals[:,0] + cos(rot_z)*base_normals[:,1]
+normals_w[:, 2] = base_normals[:, 2]
+# + extra_rotate_x, extra_rotate_y if nonzero
+to_cam = camera_world_pos - verts_w
+front_facing = einsum("ij,ij->i", normals_w, to_cam) > 0
+culled_back += (~front_facing).sum()
+screen_xy[(w_clip <= 0) | (~front_facing)] = -1.0
+```
+
+### Metrics improvement (bunny, combined GT, metrics_covered_only)
+
+| Metric | Before fix | After fix | Δ |
+|--------|-----------|----------|---|
+| CC | −0.046 | +0.023 | +0.069 |
+| AUC_top10% | 0.354 | 0.452 | +0.098 |
+| Per-view 300 CC_visible | −0.108 | −0.057 | +0.051 |
+| Per-view 413 CC_visible | +0.128 | +0.159 | +0.031 |
+| Per-view 599 CC_visible | −0.216 | −0.132 | +0.084 |
+
+### Current metric state (bunny, combined GT, after all fixes)
+
+| Method | CC | SIM | KLD | AUC_top10% |
+|--------|-----|-----|-----|-----------|
+| raycast | 0.016 | 0.335 | 10.06 | 0.476 |
+| cone | **0.031** | 0.495 | 1.315 | 0.472 |
+| screen_space | 0.023 | **0.523** | **0.940** | 0.452 |
+
+### Why CC is low (cross-condition explanation)
+
+CC ~0.02–0.03 is expected and NOT a method bug. The fundamental reason:
+- Authors' GT: 19 people watching STATIC images at 3 specific camera angles, 7s each
+- Our data: our participants watching a ROTATING VIDEO (360°, 17s)
+- Paper (Section 4.5): "fixations resulting from a dynamic scene are significantly 
+  different from those resulting from a static scene" (p<0.0001)
+- Combined GT covers ~79% of bunny vertices (3 views don't cover everything)
+- Residual CC of ~0.02–0.03 = meaningful but weak signal
+
+For reference from the paper: best algorithm (Song) gets CC~0.47 vs human 0.81 —
+but those are SAME-CONDITION comparisons (everyone watching same static images).
+
+### Pending
+
+1. Run full 32-model benchmark with fixed scripts (3DVA combined GT)
+2. MeshMamba: do NOT re-run (full run already done 2026-06-01, results valid)
+   Note: MeshMamba results use v1 screen_space (sigma=96px) for screen_space track,
+   but cone results are correct. v2 re-run is desirable but not urgent.
+3. SAL3D full run still pending (50 models × 2 methods)
+

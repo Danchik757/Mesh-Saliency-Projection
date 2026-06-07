@@ -1504,3 +1504,624 @@ Purpose:
   - `Ice_Cream_V1_L3 -> Ice_Cream_v1_LOD1.csv`
   - `barbiegirl_V1_L3 -> barbiedoll_v1_L3.csv`
   - `WWII_Plane-Germany_Focke-Wulf_Fw_190_v1 -> WWII_Plane-Germany_Focke-Wulf_FW_190_v1_l3.csv`
+
+## 2026-06-01 MSK — SAL3D full reference run provenance
+
+User asked which script was used for the SAL3D run, which models were included,
+and where GT came from.
+
+Actual server wrapper used:
+- `/tmp/run_sal3d_full_20260601.sh` on `vg-intellect`
+
+Actual repository entry point:
+- `test/launch/run_sal3d_reference_batch.py`
+
+Per-method scripts called by the batch runner:
+- `reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py`
+- `reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py`
+
+Actual server command shape:
+
+```bash
+cd /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection
+source configs/server_vg_intellect.env
+
+export SAL3D_DATASET_ROOT=/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/SAL3D
+export SAL3D_CSV_ROOT=/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/gaze_csv/SAL3D
+export SAL3D_JSON_ROOT=/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/jsons_for_models/SAL3D_json
+export SAL3D_SMOOTH_GAZE_DIR=/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/SAL3D/Smooth_Gaze
+
+nice -n 10 "$REPROJECT_PYTHON" test/launch/run_sal3d_reference_batch.py \
+  --methods screen_space cone \
+  --workers 4 \
+  --batch-output-dir /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/SAL3D_reference_batch_20260601 \
+  --smooth-gaze-dir "$SAL3D_SMOOTH_GAZE_DIR"
+```
+
+Model selection:
+- not manually hard-coded in the run command
+- `run_sal3d_reference_batch.py` built the model list as a case-insensitive
+  intersection of:
+  - `$SAL3D_DATASET_ROOT/Gaze/*.txt`
+  - `$SAL3D_CSV_ROOT/*.csv`
+- this produced `54` SAL3D models and `108` tasks (`54 models × 2 methods`)
+
+Models included:
+- `A380`
+- `MaxPlanck`
+- `alien`
+- `alien2`
+- `armadillo`
+- `building`
+- `bunny`
+- `camel`
+- `car`
+- `cart`
+- `carter`
+- `casting`
+- `cat`
+- `centauro`
+- `chair`
+- `chicken`
+- `cow`
+- `dinosaur`
+- `dog`
+- `dragon`
+- `facestatue`
+- `fandisk`
+- `flowerpot`
+- `footballplayer`
+- `gorilla`
+- `hand`
+- `harley`
+- `hay`
+- `horse`
+- `house`
+- `igea`
+- `james`
+- `jessi`
+- `lion`
+- `meca`
+- `michael3`
+- `michael8`
+- `octopus`
+- `prot`
+- `ring`
+- `ringdragon`
+- `rockerarm`
+- `skull`
+- `sofa`
+- `spaceshuttle`
+- `starfish`
+- `teapot`
+- `torso`
+- `triceratop`
+- `turbine`
+- `vase`
+- `victoria`
+- `watchtower`
+- `wolf`
+
+GT source and semantics:
+- GT files came from:
+  - `/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/SAL3D/Gaze/<model>.txt`
+- Each file is expected to be an `N×8` text file with columns:
+  - `x y z nx ny nz smooth_saliency binary_saliency`
+- Current benchmark uses column index `6` by default:
+  - `smooth_saliency`
+- Column index `7` is available in the scripts but was not used in this run:
+  - `binary_saliency`
+- If `$SAL3D_SMOOTH_GAZE_DIR/<model>_neighbors.txt` exists, GT is additionally
+  smoothed using the dataset/paper-style Smooth_Gaze neighbour propagation.
+- Metrics are read from `metrics_vs_gt_covered_only`, not from full-mesh metrics.
+  This matters because many SAL3D OBJ meshes have more vertices than the 20k GT
+  rows, so only vertices actually covered by the GT file are benchmark-valid.
+
+Transform/projection recipe used by both methods:
+- `--recenter-to-bbox-center`
+- `--extra-rotate-x-deg 90`
+- `--projection-fov-mode horizontal_to_vertical`
+- `--transform-order blender_rig`
+- no `--override-fov-deg`; the JSON FOV value is used and interpreted as
+  horizontal FOV, then converted to vertical FOV for projection.
+
+Method-specific parameters:
+- `screen_space_gaussian`:
+  - `--sigma-px 26.3`
+- `cone_gaussian_on_mesh`:
+  - `--sigma-deg 1.0`
+  - `--radius-sigma-mult 3.0`
+
+Run result:
+- `102 / 108` tasks succeeded.
+- `51 / 54` models succeeded for each method.
+- `MaxPlanck`, `meca`, and `sofa` failed for both methods because their GT row
+  count is larger than the OBJ vertex count:
+  - `MaxPlanck`: `GT row count (20000) > OBJ vertex count (19999)`
+  - `meca`: `GT row count (20000) > OBJ vertex count (15000)`
+  - `sofa`: `GT row count (20000) > OBJ vertex count (15162)`
+
+Local copied result files:
+- `results/benchmark_runs/sal3d/2026-06-01_sal3d_reference/sal3d_detailed_by_model_method.csv`
+- `results/benchmark_runs/sal3d/2026-06-01_sal3d_reference/sal3d_per_model_wide.csv`
+- `results/benchmark_runs/sal3d/2026-06-01_sal3d_reference/sal3d_overall_summary.csv`
+- `results/benchmark_runs/sal3d/2026-06-01_sal3d_reference/sal3d_model_metrics_compact.csv`
+- `results/benchmark_runs/sal3d/2026-06-01_sal3d_reference/sal3d_failed_rows.csv`
+- `results/benchmark_runs/sal3d/2026-06-01_sal3d_reference/sal3d_failed_models_concise.csv`
+
+---
+
+## 2026-06-02 — GT visualization scripts restructured
+
+Goal:
+- move method-specific `prediction vs GT` viewers out of `test/tools/`
+- make the layout explicit and dataset/method-specific
+- keep `test/tools/` for generic utilities only
+
+Canonical folder:
+- `test/gt_visualizations/`
+
+Canonical scripts after restructuring:
+- `test/gt_visualizations/preview_meshmamba_screenspace_alignment.py`
+- `test/gt_visualizations/preview_meshmamba_cone_alignment.py`
+- `test/gt_visualizations/preview_sal3d_screenspace_alignment.py`
+
+Backward-compatible wrappers kept in `test/tools/`:
+- `preview_screenspace_alignment.py`
+- `preview_meshmamba_cone_alignment.py`
+- `preview_sal3d_screenspace_alignment.py`
+
+Documentation updated:
+- `test/gt_visualizations/README.md` — new dedicated README for all GT viewers
+- `test/README.md` — directory tree now includes `gt_visualizations/`
+- `test/tools/README.md` — now points to `gt_visualizations/` for method viewers
+- `README.md` — top-level docs now point to the new canonical viewer paths
+
+Important implementation note:
+- the old MeshMamba screen-space preview script only read legacy env vars
+  (`MESHMAMBA_*`) and did not work from `test/env/local_paths.example.sh`
+  because that file exports the newer `REPROJECT_*` paths.
+- this was fixed in
+  `test/gt_visualizations/preview_meshmamba_screenspace_alignment.py`
+  by adding fallback resolution:
+  - dataset root: `MESHMAMBA_NON_TEXTURE_ROOT` or `REPROJECT_DATASET_MESHMAMBA_ROOT`
+  - csv root: `MESHMAMBA_CSV_ROOT` or texture-specific `REPROJECT_GAZE_CSV_*`
+  - json root: `MESHMAMBA_JSON_ROOT` or texture-specific `REPROJECT_GAZE_JSON_*`
+
+Smoke checks completed after restructuring:
+- `py_compile` passed for:
+  - `preview_meshmamba_screenspace_alignment.py`
+  - `preview_meshmamba_cone_alignment.py`
+  - `preview_sal3d_screenspace_alignment.py`
+- MeshMamba cone quick smoke passed from the new path:
+  - command:
+    - `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/venv/bin/python3 test/gt_visualizations/preview_meshmamba_cone_alignment.py --model Starfruit_L3 --texture-type non_texture --max-frames 12 --output-dir test/output_local/preview_meshmamba_cone_starfruit_smoke_quick_v2`
+  - outputs:
+    - `Starfruit_L3_frame0138.png`
+    - `Starfruit_L3_frame0277.png`
+    - `Starfruit_L3_frame0416.png`
+    - `Starfruit_L3_summary.png`
+- MeshMamba screen-space runtime smoke passed from the new path:
+  - command:
+    - `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/venv/bin/python3 test/gt_visualizations/preview_meshmamba_screenspace_alignment.py --model Starfruit_L3 --texture-type non_texture --preview-frames 138 --output-dir test/output_local/preview_meshmamba_screen_starfruit_smoke_v2`
+  - outputs:
+    - `Starfruit_L3_frame0138.png`
+    - `Starfruit_L3_summary.png`
+
+Resulting convention:
+- `test/gt_visualizations/` = method-specific visual comparison scripts
+- `test/tools/` = reusable utility/debug helpers not tied to one metric viewer
+
+---
+
+## 2026-06-02 — MeshMamba bad-KLD visual diagnostics
+
+Context:
+- after the MeshMamba reference benchmark, the worst KLD cases were concentrated
+  in a small set of `rgb_texture` models, especially:
+  - `Flying_saucer_v1_L3`
+  - `Spinning_Top_v1_L3`
+  - `MushroomShitake_L3`
+  - `UFO_v1_L2` (screen-space)
+
+Practical fix made before visualization:
+- `test/gt_visualizations/preview_meshmamba_cone_alignment.py` originally used
+  the `non_texture` CSV/JSON env fallbacks even when `--texture-type rgb_texture`
+  was passed.
+- fixed so that when explicit `--csv-root/--json-root` are omitted, the script
+  now resolves:
+  - `REPROJECT_GAZE_CSV_MESHMAMBA_RGB_TEXTURE_ROOT`
+  - `REPROJECT_GAZE_JSON_MESHMAMBA_RGB_TEXTURE_ROOT`
+  for `rgb_texture`, and keeps the non-texture roots for `non_texture`.
+
+Visualizations generated for the worst benchmark cases:
+- output root:
+  - `test/output_local/meshmamba_bad_kld/`
+- full viewers run for:
+  - `Flying_saucer_v1_L3` + `cone_gaussian_on_mesh` + `rgb_texture`
+  - `Flying_saucer_v1_L3` + `screen_space_gaussian` + `rgb_texture`
+  - `Spinning_Top_v1_L3` + `cone_gaussian_on_mesh` + `rgb_texture`
+  - `Spinning_Top_v1_L3` + `screen_space_gaussian` + `rgb_texture`
+
+Benchmark KLD values for these runs:
+- `Flying_saucer_v1_L3` + `rgb_texture` + `cone`:
+  - `KLD = 16.8744`
+- `Flying_saucer_v1_L3` + `rgb_texture` + `screen_space`:
+  - `KLD = 5.5428`
+- `Spinning_Top_v1_L3` + `rgb_texture` + `cone`:
+  - `KLD = 9.5799`
+- `Spinning_Top_v1_L3` + `rgb_texture` + `screen_space`:
+  - `KLD = 5.6922`
+
+Diagnostic takeaway from summary images:
+- `Flying_saucer_v1_L3`:
+  - `cone` prediction is much more spread across the visible plate than GT;
+    GT mass is sparse/localized on separated components, so KLD explodes when
+    prediction gives non-trivial mass almost everywhere visible.
+  - `screen_space` is also too diffuse, but it follows the visible silhouette
+    more coherently than cone; KLD is still high because GT is much sparser.
+- `Spinning_Top_v1_L3`:
+  - both methods produce broad, smooth saliency over most of the top, while GT
+    is concentrated in a few localized regions (`cap`, side of stem, inner rim).
+  - this is a classic high-KLD pattern: prediction is not random, but it fails
+    to preserve GT sparsity/localization.
+
+Follow-up fix:
+- a visual inconsistency was found between the MeshMamba `screen_space` and
+  `cone` viewers: for the same object, the GT panel could look very different
+  even though the underlying GT file was identical.
+- root cause:
+  - `preview_meshmamba_screenspace_alignment.py` drew all visible GT faces,
+    including zero-valued ones (blue / low-value dots).
+  - `preview_meshmamba_cone_alignment.py` filtered GT to `value > 0`, so only
+    positive GT faces were drawn and the rest stayed black.
+- this made the same GT map appear "dense" in screen-space and "sparse" in cone.
+- fixed by removing the `value > 0` filtering in the cone viewer so both scripts
+  now visualize visible zero-valued GT faces in the same way.
+
+Filename convention update:
+- GT viewer outputs now include the projection method in the filename:
+  - `<model>__<method>__frame<NNNN>.png`
+  - `<model>__<method>__summary.png`
+- example:
+  - `Flying_saucer_v1_L3__cone_gaussian_on_mesh__summary.png`
+
+---
+
+## 2026-06-02 — MeshMamba worst-case PNG bundles (KLD / CC)
+
+New batch script:
+- `test/gt_visualizations/generate_meshmamba_worst_case_bundle.py`
+
+Purpose:
+- read `results/benchmark_runs/meshmamba/2026-06-02_meshmamba_reference/meshmamba_reference_long.csv`
+- select:
+  - top-10 worst rows by `KLD` (largest first)
+  - top-10 worst rows by `CC` (smallest first)
+- run the correct visualization script for each selected row
+- collect PNGs into ranked folders and pack them into zip archives
+
+Output root:
+- `results/diagnostics/2026-06-02_meshmamba_worst_cases/`
+
+Final bundle artifacts:
+- `worst_kld_top10.zip`
+- `worst_cc_top10.zip`
+
+Manifest files:
+- `worst_kld_top10/worst_kld_manifest.csv`
+- `worst_cc_top10/worst_cc_manifest.csv`
+
+Important implementation fixes discovered during the run:
+- `preview_meshmamba_screenspace_alignment.py` was updated to resolve GT files
+  using both:
+  - the requested `model`
+  - `obj_path.stem`
+  This was required for non-standard dataset names such as:
+  - `MushroomShitake_L3` -> `MushroomShitake_v1-L3.csv`
+  - `White-TailedDeer_V1_L2` -> `White-Tailed_Deer_v1_l2.csv`
+- `generate_meshmamba_worst_case_bundle.py --skip-existing` is useful after
+  partial completion or after patching a resolver edge case.
+
+Result summary:
+- all targeted worst-case rows were rendered successfully
+- because the top-10 `KLD` list and top-10 `CC` list overlap, the number of
+  unique generated cases is smaller than 20
+- each case directory contains:
+  - 3 frame PNGs
+  - 1 summary PNG
+
+---
+
+## 2026-06-03 — `gt_visualizations` moved to repo root
+
+Structural change:
+- canonical folder moved from:
+  - `test/gt_visualizations/`
+- to:
+  - `gt_visualizations/`
+
+What was updated:
+- root docs:
+  - `README.md`
+- test docs:
+  - `test/README.md`
+  - `test/tools/README.md`
+- moved scripts:
+  - `gt_visualizations/preview_meshmamba_screenspace_alignment.py`
+  - `gt_visualizations/preview_meshmamba_cone_alignment.py`
+  - `gt_visualizations/preview_sal3d_screenspace_alignment.py`
+  - `gt_visualizations/generate_meshmamba_worst_case_bundle.py`
+- compatibility wrappers in `test/tools/` were repointed to the new root path
+
+Implementation detail:
+- after moving the scripts one directory up, `REPO_ROOT` inside the moved
+  scripts changed from `Path(__file__).resolve().parents[2]` to `.parents[1]`
+  so imports from `reprojection_methods/...` still resolve correctly.
+
+Validation:
+- `py_compile` passed for the moved scripts and wrappers
+- smoke check passed via the old wrapper entrypoint:
+  - `test/tools/preview_meshmamba_cone_alignment.py`
+  - output written successfully to:
+    - `test/output_local/preview_meshmamba_cone_pear_wrapper_after_move/`
+
+---
+
+## 2026-06-02 — KLD post-processing diagnostics prepared and started
+
+Reason:
+- MeshMamba still has substantially higher `KLD` than SAL3D.
+- Prior parameter sweep showed that widening `cone_gaussian_on_mesh` helps KLD,
+  but it did not fully explain whether the issue is projection, GT/prediction
+  support, face-area convention, zero-probability KLD penalty, or missing
+  mesh-space smoothing.
+- To avoid mixing this with projection errors, the next test intentionally does
+  not rerun projection. It loads already saved `*_faces.txt` maps and recomputes
+  metrics under diagnostic post-processing variants.
+
+New files:
+- `test/kld_parameter_sweep/run_kld_postprocess_diagnostics.py`
+- `test/kld_parameter_sweep/server/run_postprocess_diagnostic_vg_intellect.sh`
+- `test/kld_parameter_sweep/README.md` was extended with a post-processing
+  diagnostic section.
+
+What the script tests:
+- `baseline`
+  - Recompute metrics from existing maps to verify compatibility with old CSVs.
+- `alpha_floor`
+  - Adds uniform probability floor to prediction before KLD.
+  - Tests whether high KLD is mainly caused by GT-positive faces where
+    prediction is exactly zero or near zero.
+- `support_mask`
+  - Recomputes metrics on selected supports:
+    - `pred_positive`
+    - `pred_above_1e_8`
+    - `pred_above_1e_6`
+    - `gt_positive`
+    - `intersection_positive`
+    - `union_positive`
+  - These are diagnostic only and must not be used as final benchmark numbers.
+- `area_weighting`
+  - Tests `none`, `multiply_area`, `divide_area`.
+  - Purpose: detect whether GT/prediction maps should be interpreted as
+    per-face mass or per-area density.
+- `diffusion`
+  - Applies neighbor averaging over the mesh face graph.
+  - Steps: `1,3,5,10,20,40`, blend `0.5`.
+  - Purpose: test whether mesh-space post-smoothing improves KLD without
+    destroying `CC/SIM`.
+- `top_kld_faces`
+  - Writes top KLD-contributing faces per baseline source row for manual
+    inspection.
+
+Server smoke test:
+- command:
+  - `RUN_ID=smoke_20260602_081254 MAX_INPUT_ROWS=4 SKIP_DIFFUSION=true NICE_LEVEL=15 bash test/kld_parameter_sweep/server/run_postprocess_diagnostic_vg_intellect.sh`
+- output:
+  - `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/KLD_postprocess_smoke_20260602_081254`
+- log:
+  - `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/tmp_launchers/kld_postprocess_smoke_20260602_081254.log`
+- result:
+  - 4 input maps
+  - 80 diagnostic rows
+  - 40 summary rows
+  - 16 best-by-model rows
+  - 200 top-KLD-face rows
+  - 0 errors
+- sanity check:
+  - baseline/`alpha_0` KLD matches the original reference KLD for checked rows,
+    so prediction/GT loading and KLD formula are compatible with prior runs.
+
+Full server run:
+- session:
+  - `kld_postprocess_full_20260602_081351`
+- command:
+  - `RUN_ID=full_20260602_081351 NICE_LEVEL=15 bash test/kld_parameter_sweep/server/run_postprocess_diagnostic_vg_intellect.sh`
+- output:
+  - `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/KLD_postprocess_full_20260602_081351`
+- log:
+  - `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/tmp_launchers/kld_postprocess_full_20260602_081351.log`
+- input CSVs:
+  - `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/MeshMamba_reference_batch_20260601/meshmamba_reference_long.csv`
+  - `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/KLD_diagnostic_20260602_064256/kld_sweep_long.csv`
+- detected input rows:
+  - `636` MeshMamba maps:
+    - `420` full-reference maps
+    - `216` focused-KLD-sweep maps
+- each full row should produce `26` diagnostic variants.
+- first checked progress:
+  - 16/636 processed
+  - 0 errors
+  - intermediate CSVs already present.
+
+Expected final files:
+- `postprocess_long.csv`
+- `postprocess_summary.csv`
+- `postprocess_best_by_model.csv`
+- `postprocess_top_kld_faces.csv`
+
+How to monitor manually:
+- `ssh vg-intellect 'tmux ls 2>/dev/null | grep kld_postprocess_full_20260602_081351 || true'`
+- `ssh vg-intellect 'tail -n 40 /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/tmp_launchers/kld_postprocess_full_20260602_081351.log'`
+- `ssh vg-intellect 'find /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/KLD_postprocess_full_20260602_081351 -maxdepth 1 -type f -print -exec wc -l {} \;'`
+
+Interpretation rules after completion:
+- If `alpha_floor` sharply lowers `KLD` and keeps `CC/SIM` close to baseline,
+  KLD is mostly a zero-probability support problem.
+- If `support_mask` is good but baseline is poor, projection may be roughly
+  right but prediction support is too sparse or differs from GT support.
+- If `area_weighting` changes ranking strongly, the face mass/density convention
+  must be resolved before final reporting.
+- If `diffusion` lowers `KLD` while preserving `CC/SIM`, promote diffusion as a
+  post-processing variant and rerun full MeshMamba metrics with that variant.
+- If none of these helps, return to projection/GT-file matching and top-KLD-face
+  visual inspection.
+
+### Completion summary
+
+The full run completed successfully.
+
+Final server output:
+- `/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/KLD_postprocess_full_20260602_081351`
+
+Local copy:
+- `results/benchmark_runs/kld_postprocess/2026-06-02_kld_postprocess_full_081351/`
+
+Final file sizes:
+- `postprocess_long.csv`
+  - `16536` data rows
+- `postprocess_summary.csv`
+  - `208` data rows
+- `postprocess_best_by_model.csv`
+  - `2220` data rows
+- `postprocess_top_kld_faces.csv`
+  - `31800` data rows
+
+Run status:
+- all rows are `status=ok`
+- no tracebacks or runtime failures were found in the server log
+
+### What changed in methodology
+
+Important: the core projection pipeline was not changed in this stage.
+
+What changed was the evaluation methodology after the prediction maps had
+already been produced:
+
+1. We separated projection from metric diagnosis.
+   - Instead of rerunning gaze transfer, we reused saved `*_faces.txt` maps.
+   - This isolates KLD behavior from camera / pose / JSON alignment issues.
+
+2. We added diagnostic variants on top of fixed prediction maps.
+   - `alpha_floor`
+     - adds a small uniform floor to prediction probability before `KLD`
+   - `support_mask`
+     - recomputes metrics only on selected face supports
+   - `area_weighting`
+     - tests whether GT/prediction should be compared as face mass or density
+   - `diffusion`
+     - applies face-neighbor smoothing on the mesh graph
+
+3. We explicitly separated "diagnostic tools" from "candidate promoted methods".
+   - Diagnostic only:
+     - `support_mask`
+     - `alpha_floor` as a post-hoc metric trick
+   - Potentially promotable as real method variants:
+     - `diffusion`
+     - possibly `area_weighting`, but only after the GT semantics are verified
+
+This distinction matters because some variants can improve `KLD` by changing
+how the metric sees the map, not by actually improving the prediction method.
+
+### What the results say
+
+For full-reference MeshMamba:
+
+- Baseline non-texture:
+  - `cone`: `KLD=0.9635`, `CC=0.3212`, `SIM=0.5935`
+  - `screen_space`: `KLD=1.9539`, `CC=0.1359`, `SIM=0.5833`
+- Baseline rgb-texture:
+  - `cone`: `KLD=1.1570`, `CC=0.2696`, `SIM=0.5719`
+  - `screen_space`: `KLD=1.9379`, `CC=0.1290`, `SIM=0.5744`
+
+Diagnostic bests on full-reference MeshMamba:
+
+- `alpha_floor=0.01`
+  - sharply lowers `KLD`
+  - keeps `CC` unchanged and changes `SIM` only slightly
+  - example:
+    - non-texture `screen_space`: `1.9539 -> 0.8641`
+    - rgb-texture `screen_space`: `1.9379 -> 0.8873`
+  - interpretation:
+    - a large part of the current high `KLD` is caused by GT mass falling onto
+      exact or near-zero predicted faces
+
+- `support_mask=intersection_positive`
+  - gives the lowest `KLD` of all tested families
+  - but it is not a valid benchmark replacement because it changes the region
+    on which the metric is computed
+  - interpretation:
+    - support mismatch is very important, but this is diagnostic evidence only
+
+- `diffusion_steps40_blend0p5`
+  - gives a real geometric improvement without changing the evaluation support
+  - strongest effect is on `screen_space`
+  - example:
+    - non-texture `screen_space`: `1.9539 -> 0.7705`
+    - rgb-texture `screen_space`: `1.9379 -> 0.9411`
+  - `CC` and `SIM` also improve slightly
+  - interpretation:
+    - mesh-space smoothing is a legitimate candidate to promote into the real
+      pipeline, especially for `screen_space`
+
+- `area_weighting=divide_area`
+  - strongly raises `CC` / `SIM`
+  - example:
+    - non-texture `cone`: `CC 0.3212 -> 0.6960`
+    - non-texture `screen_space`: `CC 0.1359 -> 0.6991`
+  - but `KLD` improves only modestly
+  - interpretation:
+    - this is a strong signal that GT/prediction mass-vs-density semantics may
+      be mismatched, and this must be verified before any promotion
+
+For the focused `kld_sweep` subset the same qualitative pattern holds:
+- `alpha_floor` lowers `KLD` strongly
+- `support_mask` lowers it even more, diagnostically
+- `diffusion` helps `screen_space` more than `cone`
+- `area_weighting` is unstable and depends on subset/texture
+
+### Current conclusion
+
+The main issue is no longer best explained by bad camera alignment alone.
+
+The strongest evidence now points to a combination of:
+- prediction support being too sparse relative to GT support
+- `KLD` being heavily penalized by zero / near-zero predicted probability
+- missing mesh-space smoothing, especially for `screen_space`
+- possible ambiguity in whether maps should be compared as face mass or density
+
+### Recommended next steps
+
+1. Promote `diffusion` into a real evaluated method variant.
+   - Best first target: `screen_space_gaussian + mesh diffusion`
+   - Then rerun full MeshMamba metrics end-to-end with this as a real method.
+
+2. Audit GT semantics before promoting any area-weighting rule.
+   - Need to determine whether MeshMamba GT CSV values represent:
+     - per-face mass
+     - per-face density
+     - or already normalized saliency independent of face area
+
+3. Treat `alpha_floor` only as evidence, not as the final reported method.
+   - It proves why `KLD` is large.
+   - It does not by itself mean the prediction method is fixed.
+
+4. Use `postprocess_top_kld_faces.csv` to inspect worst offending faces.
+   - This should guide whether the next real fix is:
+     - better diffusion
+     - visibility/support handling
+     - or GT convention alignment
+
+5. After that, rerun a clean benchmark with only promoted variants.
+   - Do not mix diagnostic-only variants into the final benchmark table.
