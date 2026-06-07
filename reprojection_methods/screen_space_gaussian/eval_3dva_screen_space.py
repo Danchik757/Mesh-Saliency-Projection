@@ -550,6 +550,22 @@ def run_screen_space(
         bbox_center = 0.5 * (base_verts.min(axis=0) + base_verts.max(axis=0))
         base_verts -= bbox_center
 
+    # Camera world position (static for 3DVA: camera never moves, only model rotates).
+    camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
+
+    # Precompute base normals with base_rotate_z applied once (same as base_verts).
+    # Normal transform = rotation only (no scale for uniform scale, no translate).
+    base_normals = np.asarray(mesh.vertex_normals, dtype=np.float64).copy()
+    rz0 = math.radians(base_rotate_z_deg)
+    if abs(rz0) > 1e-12:
+        cz0, sz0 = math.cos(rz0), math.sin(rz0)
+        nx0 = cz0 * base_normals[:, 0] - sz0 * base_normals[:, 1]
+        ny0 = sz0 * base_normals[:, 0] + cz0 * base_normals[:, 1]
+        base_normals[:, 0], base_normals[:, 1] = nx0, ny0
+
+    normals_w   = np.empty_like(base_normals)   # reused buffer (avoids per-frame alloc)
+    culled_back = 0
+
     total_points = 0
     total_weight = 0.0
     frames_used  = 0
@@ -577,7 +593,29 @@ def run_screen_space(
         )
 
         screen_xy, w_clip = world_to_screen(verts_w, view_matrix, proj_mat)
-        screen_xy[w_clip <= 0] = -1.0  # behind camera → out of bounds → 0
+
+        # Back-face culling: rotate normals for this frame (rotation_z only;
+        # base_rotate_z already baked into base_normals above).
+        normals_w[:, 0] = math.cos(rot_z) * base_normals[:, 0] - math.sin(rot_z) * base_normals[:, 1]
+        normals_w[:, 1] = math.sin(rot_z) * base_normals[:, 0] + math.cos(rot_z) * base_normals[:, 1]
+        normals_w[:, 2] = base_normals[:, 2]
+        rx = math.radians(extra_rotate_x_deg)
+        if abs(rx) > 1e-12:
+            crx, srx = math.cos(rx), math.sin(rx)
+            ny2 = crx * normals_w[:, 1] - srx * normals_w[:, 2]
+            nz2 = srx * normals_w[:, 1] + crx * normals_w[:, 2]
+            normals_w[:, 1], normals_w[:, 2] = ny2, nz2
+        ry = math.radians(extra_rotate_y_deg)
+        if abs(ry) > 1e-12:
+            cry, sry = math.cos(ry), math.sin(ry)
+            nx2 = cry * normals_w[:, 0] + sry * normals_w[:, 2]
+            nz2 = -sry * normals_w[:, 0] + cry * normals_w[:, 2]
+            normals_w[:, 0], normals_w[:, 2] = nx2, nz2
+        to_cam = camera_world_pos[None, :] - verts_w
+        front_facing = np.einsum("ij,ij->i", normals_w, to_cam) > 0.0
+        culled_back += int((~front_facing).sum())
+        screen_xy[(w_clip <= 0) | (~front_facing)] = -1.0
+
         sample = bilinear_sample(density, screen_xy)
         vert_sal    += n * sample
         total_weight += n
@@ -593,6 +631,7 @@ def run_screen_space(
         "sigma_px":              sigma_px,
         "nonzero_vertices":      int(np.count_nonzero(vert_sal)),
         "deposition":            "bilinear",
+        "culled_back_verts":     culled_back,
     }
     return vert_sal, stats
 
