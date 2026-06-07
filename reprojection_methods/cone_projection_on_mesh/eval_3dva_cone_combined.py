@@ -15,7 +15,8 @@ Methods:
 
 Metrics reported (JSON):
   metrics_vs_gt_combined.{method}.metrics_full:         all vertices
-  metrics_vs_gt_combined.{method}.metrics_covered_only: only vertices with combined_gt > 0
+  metrics_vs_gt_combined.{method}.metrics_covered_only: union support of the
+      3 source views, where support(view) = visibility OR (GT > 0)
   Use metrics_covered_only for all summary tables (mirrors SAL3D protocol).
 
 Bug fixes applied (vs older 3DVA scripts):
@@ -225,6 +226,48 @@ def _load_combined_gt(combined_gt_dir: Path, model: str) -> np.ndarray:
         f"Combined GT not found for model '{model}' in {combined_gt_dir}. "
         f"Run scripts/build_3dva_combined_gt.py first."
     )
+
+
+def _resolve_gt_file(dataset_root: Path, model: str, view: str) -> Path | None:
+    candidate_names = [f"{name}_{view}norm" for name in _candidate_model_names(model)]
+    return _resolve_casefold_file(dataset_root / "FixationMaps", candidate_names, ".txt")
+
+
+def _resolve_visibility_file(dataset_root: Path, model: str, view: str) -> Path | None:
+    candidate_names = [f"{name}_{view}_visibility" for name in _candidate_model_names(model)]
+    return _resolve_casefold_file(dataset_root / "CentricityAndVisibilityMaps", candidate_names, ".txt")
+
+
+def _load_combined_support_mask(dataset_root: Path, model: str, n_expected: int) -> tuple[np.ndarray, dict]:
+    support = np.zeros(n_expected, dtype=bool)
+    per_view_counts: dict[str, int] = {}
+    warnings: list[str] = []
+
+    for view in ("300", "413", "599"):
+        gt_path = _resolve_gt_file(dataset_root, model, view)
+        if gt_path is None:
+            warnings.append(f"missing GT file for view {view}")
+            continue
+        gt = np.loadtxt(str(gt_path), dtype=np.float64).reshape(-1)
+
+        vis_path = _resolve_visibility_file(dataset_root, model, view)
+        if vis_path is None:
+            vis = np.zeros_like(gt, dtype=bool)
+            warnings.append(f"missing visibility file for view {view}; using gt>0 only")
+        else:
+            vis = np.loadtxt(str(vis_path), dtype=np.float64).astype(bool).reshape(-1)
+
+        n = min(n_expected, len(gt), len(vis))
+        if len(gt) != len(vis):
+            warnings.append(
+                f"view {view} length mismatch: gt={len(gt)} vis={len(vis)}; using first {n} entries"
+            )
+
+        view_support = vis[:n] | (gt[:n] > 0)
+        support[:n] |= view_support
+        per_view_counts[view] = int(view_support.sum())
+
+    return support, {"per_view_support_counts": per_view_counts, "warnings": warnings}
 
 
 def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
@@ -684,10 +727,13 @@ def main() -> None:
     np.savetxt(out_dir / f"{args.model}_raycast_norm.txt", raycast_fix, fmt="%.10f")
     np.savetxt(out_dir / f"{args.model}_cone_norm.txt",    cone_fix,    fmt="%.10f")
 
-    # Compute metrics vs combined GT (full and covered-only)
+    # Compute metrics vs combined GT:
+    # - full: all vertices
+    # - covered_only: union support of source views, where support(view)=visibility OR (GT>0)
     gt_for_metrics = combined_gt[:n_eval]
-    covered_mask   = gt_for_metrics > 0
-    n_covered      = int(covered_mask.sum())
+    covered_mask, covered_stats = _load_combined_support_mask(args.dataset_root, args.model, n_eval)
+    n_covered = int(covered_mask.sum())
+    n_gt_positive = int((gt_for_metrics > 0).sum())
 
     def _metrics_pair(pred_all: np.ndarray) -> dict:
         pred = pred_all[:n_eval]
@@ -709,10 +755,15 @@ def main() -> None:
         "n_vertices":            n_mesh_verts,
         "n_gt_lines":            n_gt_lines,
         "n_eval":                n_eval,
-        "n_combined_nonzero":    n_covered,
+        "n_combined_nonzero":    n_gt_positive,
+        "n_gt_positive_vertices": n_gt_positive,
+        "combined_positive_pct": round(100.0 * n_gt_positive / n_eval, 2) if n_eval else 0.0,
+        "n_covered_vertices":    n_covered,
+        "covered_support_pct":   round(100.0 * n_covered / n_eval, 2) if n_eval else 0.0,
         "combined_coverage_pct": round(100.0 * n_covered / n_eval, 2) if n_eval else 0.0,
         "gaze_stats":   gaze_stats,
         "run_stats":    run_stats,
+        "covered_support_stats": covered_stats,
         "method_params": {
             "sigma_deg":               args.sigma_deg,
             "radius_sigma_mult":       args.radius_sigma_mult,
@@ -728,7 +779,8 @@ def main() -> None:
             ),
         },
         "metrics_note": (
-            "metrics_covered_only: vertices with combined_gt > 0 (GT-observed region). "
+            "metrics_covered_only: union support of the 3 source views, "
+            "where support(view)=visibility OR (GT > 0). "
             "This is the valid benchmark domain — use for all summary tables. "
             "metrics_full: all mesh vertices (includes unobserved back-faces, lower CC expected)."
         ),

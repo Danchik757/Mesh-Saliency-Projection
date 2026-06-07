@@ -32,7 +32,8 @@ Optional extras:
 | ZIP in release | Compressed | Uncompressed | Contents |
 |----------------|-----------|--------------|----------|
 | `3dva_objs.zip` | 16 MB | ~50 MB | 32 OBJ meshes (corrected orientation) |
-| `3dva_gt.zip` | 36 MB | ~8 MB | GT fixation maps + centricity maps |
+| `3dva_gt.zip` | 36 MB | ~8 MB | GT fixation maps + centricity/visibility maps |
+| `3dva_combined_gt.zip` | ~1 MB | ~3 MB | Pre-built CombinedGT maps + per-model metadata |
 | `meshmamba_non_texture_objs.zip` | 80 MB | ~279 MB | 105 OBJ meshes (no texture) |
 | `meshmamba_rgb_texture_objs.zip` | 128 MB | ~379 MB | 105 OBJ meshes (RGB texture) |
 | `meshmamba_saliency_gt.zip` | 19 MB | ~60 MB | Per-face GT saliency CSV |
@@ -68,6 +69,7 @@ Optional extras:
 | `3DVA/3DModels-Simplif-up/` | 32 `.obj` | ~50 MB |
 | `3DVA/FixationMaps/` | 96 `.txt` (32 models × 3 views) | ~7.8 MB |
 | `3DVA/CentricityAndVisibilityMaps/` | — | — |
+| `3DVA/CombinedGT/` | 32 `*_combined_gt.txt` + 32 meta JSON + summary | ~3 MB |
 | `gaze_csv/3DVA/` | 32 `.csv` | ~38 MB |
 | `jsons_for_models/3DVA_json/` | 32 `.json` | — |
 | `videos/3DVA/` | 32 `.mp4` | ~76 MB |
@@ -83,6 +85,35 @@ max vertex residual < 2×10⁻⁶. The rotations are non-trivial and different p
 (e.g., bunny: rotX=−11°, rotY=−51°, rotZ=+9°; chair107: rotY≈90°, rotZ≈−139°).
 
 The render script used `forward='X'`, `up='Z'` axis import in Blender.
+
+### CombinedGT package
+
+`3dva_combined_gt.zip` contains the merged benchmark target used by our rotating-video
+evaluators:
+
+- `3DVA/CombinedGT/<model>_combined_gt.txt`
+- `3DVA/CombinedGT/<model>_combined_gt_meta.json`
+- `3DVA/CombinedGT/build_summary.json`
+
+The merged support domain is built as:
+
+```text
+support(view) = visibility(view) OR (gt_view > 0)
+CombinedGT = support-weighted mean of per-view normalized GT maps
+```
+
+Use this package together with:
+
+- `3dva_objs.zip`
+- `3dva_gt.zip`
+- `gaze_csv_3dva.zip`
+- `camera_jsons.zip`
+
+when running:
+
+```bash
+python3 test/launch/run_3dva_reference_batch.py --methods screen_space cone
+```
 
 ### JSON structure (`3DVA_<model>.json`)
 

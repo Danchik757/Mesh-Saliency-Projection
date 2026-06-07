@@ -30,8 +30,12 @@ for arg in "$@"; do
 done
 
 # ── Source paths on this machine ──────────────────────────────────────────────
-DVA_ROOT="/Users/admin/Documents/LAB/Dataset/3DVA"
 GAZE_DATA="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA"
+if [[ -d "$GAZE_DATA/datasets/3DVA" ]]; then
+    DVA_ROOT="$GAZE_DATA/datasets/3DVA"
+else
+    DVA_ROOT="/Users/admin/Documents/LAB/Dataset/3DVA"
+fi
 VIDEOS_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/videos"
 
 echo "Output dir: $ASSETS_DIR"
@@ -87,6 +91,12 @@ echo "=== 3DVA ==="
     -x "*.DS_Store" -x "__MACOSX/*") \
     && echo "  3dva_gt.zip → $(du -sh "$ASSETS_DIR/3dva_gt.zip" | cut -f1)" \
     || echo "  [skip] 3dva_gt.zip already exists or failed"
+
+(cd "$DVA_ROOT/.." && zip -r "$ASSETS_DIR/3dva_combined_gt.zip" \
+    "3DVA/CombinedGT" \
+    -x "*.DS_Store" -x "__MACOSX/*") \
+    && echo "  3dva_combined_gt.zip → $(du -sh "$ASSETS_DIR/3dva_combined_gt.zip" | cut -f1)" \
+    || echo "  [skip] 3dva_combined_gt.zip already exists or failed"
 
 # ── MeshMamba ─────────────────────────────────────────────────────────────────
 echo ""

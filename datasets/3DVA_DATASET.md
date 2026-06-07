@@ -103,6 +103,39 @@ Count: 1248 files.
 
 ---
 
+### 2a. `CombinedGT/` — our rotating-video benchmark target
+
+```
+CombinedGT/
+  bunny_combined_gt.txt
+  bunny_combined_gt_meta.json
+  ...
+  build_summary.json
+```
+
+This is **not** part of the original paper release. We build it from the 3 author GT views
+to evaluate our dynamic rotating-video gaze recordings against a single per-object target.
+
+Construction:
+
+```text
+support(view) = visibility(view) OR (gt_view > 0)
+gt_norm(view) = gt_view / sum(gt_view on support(view))      # per_view_l1 mode
+CombinedGT    = mean of gt_norm(view) over all supporting views
+```
+
+Why this exists:
+- original 3DVA GT is static-view only (`300/413/599`)
+- our recordings come from a rotating video
+- `CombinedGT` gives one merged per-vertex target per model
+
+Release packaging:
+- `3dva_combined_gt.zip` contains the full `CombinedGT/` directory
+- this asset is required by `eval_3dva_screen_space_combined.py`,
+  `eval_3dva_cone_combined.py`, and `test/launch/run_3dva_reference_batch.py`
+
+---
+
 ### 3. `PerSubjectData.zip` — per-subject fixations (236 MB)
 
 ```

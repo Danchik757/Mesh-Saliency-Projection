@@ -11,7 +11,7 @@ Methods:
   raycast       → eval_3dva_cone_combined.py           (same script, reads raycast metrics)
 
 Reads metrics from: metrics_vs_gt_combined.{method}.metrics_covered_only
-(combined GT coverage mask: vertices with combined_gt > 0 = at least 1 view saw them).
+(combined GT support mask: union over views of visibility OR (GT > 0)).
 
 Usage example (local):
   export VISUAL_ATTENTION_3D_SHAPES_ROOT=/path/to/3DVA
@@ -76,6 +76,10 @@ LONG_COLUMNS = [
     "stdout_log_path",
     "n_vertices",
     "n_combined_nonzero",
+    "n_gt_positive_vertices",
+    "combined_positive_pct",
+    "n_covered_vertices",
+    "covered_support_pct",
     "combined_coverage_pct",
     "num_participants",
     "num_points",
@@ -408,9 +412,13 @@ def collect_row_from_report(
     report = json.loads(report_path.read_text(encoding="utf-8"))
     row = base_row(task, status=status, stdout_log_path=stdout_log_path, report_path=report_path)
 
-    row["n_vertices"]            = report.get("n_vertices", report.get("n_eval", ""))
-    row["n_combined_nonzero"]    = report.get("n_combined_nonzero", "")
-    row["combined_coverage_pct"] = report.get("combined_coverage_pct", "")
+    row["n_vertices"]             = report.get("n_vertices", report.get("n_eval", ""))
+    row["n_combined_nonzero"]     = report.get("n_combined_nonzero", "")
+    row["n_gt_positive_vertices"] = report.get("n_gt_positive_vertices", report.get("n_combined_nonzero", ""))
+    row["combined_positive_pct"]  = report.get("combined_positive_pct", "")
+    row["n_covered_vertices"]     = report.get("n_covered_vertices", "")
+    row["covered_support_pct"]    = report.get("covered_support_pct", report.get("combined_coverage_pct", ""))
+    row["combined_coverage_pct"]  = report.get("combined_coverage_pct", "")
 
     gaze_stats = report.get("gaze_stats", {})
     row["num_participants"]       = gaze_stats.get("num_participants", "")

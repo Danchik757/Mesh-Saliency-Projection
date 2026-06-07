@@ -8,17 +8,19 @@ This script merges them into a single combined GT per model via visibility-weigh
 averaging after per-view L1 normalization.
 
 Normalization strategy (per_view_l1, default):
-  1. For each view k, normalize GT to sum=1 over visible vertices:
-       gt_norm_k[v] = gt_k[v] / sum(gt_k[vis_k])
-  2. Combine via visibility-weighted mean:
-       combined[v] = sum(gt_norm_k[v] * vis_k[v]) / sum(vis_k[v])
+  1. For each view k, define support_k[v] = vis_k[v] OR (gt_k[v] > 0).
+  2. Normalize GT to sum=1 over that support:
+       gt_norm_k[v] = gt_k[v] / sum(gt_k[support_k])
+  3. Combine via support-weighted mean:
+       combined[v] = sum(gt_norm_k[v] * support_k[v]) / sum(support_k[v])
 
 Effect:
   - Each view contributes equal total "attention mass" regardless of how many
     vertices are visible from it.
-  - Vertex visible from all 3 views: mean of 3 normalized values.
-  - Vertex visible from 1 view only: that view's normalized value.
-  - Vertex never visible from any view: 0.0.
+  - Vertex supported by all 3 views: mean of 3 normalized values.
+  - Vertex supported by 1 view only: that view's normalized value.
+  - Boundary bleed in published GT (gt>0 but visibility=0) is preserved instead of discarded.
+  - Vertex never observed by any view remains 0.0.
 
 Output per model:
   {output-dir}/{model}_combined_gt.txt      — one float per line, N_vertices lines
@@ -134,13 +136,13 @@ def _load_visibility(vis_dir: Path, model: str, view: str) -> np.ndarray | None:
     return None
 
 
-def _normalize_gt(gt: np.ndarray, vis: np.ndarray, mode: str) -> np.ndarray:
+def _normalize_gt(gt: np.ndarray, support: np.ndarray, mode: str) -> np.ndarray:
     """Normalize GT values according to the chosen strategy."""
     gt_norm = gt.copy()
     if mode == "per_view_l1":
-        visible_sum = float(gt[vis].sum())
-        if visible_sum > 0:
-            gt_norm = gt / visible_sum
+        support_sum = float(gt[support].sum())
+        if support_sum > 0:
+            gt_norm = gt / support_sum
     elif mode == "per_view_max":
         gt_max = float(gt.max())
         if gt_max > 0:
@@ -166,6 +168,7 @@ def build_combined_gt(
     n_verts: int | None = None
     gt_arrays: dict[str, np.ndarray] = {}
     vis_arrays: dict[str, np.ndarray] = {}
+    support_arrays: dict[str, np.ndarray] = {}
     warnings: list[str] = []
 
     for view in views:
@@ -201,8 +204,10 @@ def build_combined_gt(
                 )
                 continue
 
-        gt_arrays[view]  = gt
-        vis_arrays[view] = vis
+        support = vis | (gt > 0)
+        gt_arrays[view]      = gt
+        vis_arrays[view]     = vis
+        support_arrays[view] = support
 
     if not gt_arrays:
         print(f"[ERROR] {model}: no valid views found. Cannot build combined GT.", file=sys.stderr)
@@ -214,26 +219,31 @@ def build_combined_gt(
 
     gt_sum_per_view: dict[str, float] = {}
     n_visible_per_view: dict[str, int] = {}
+    n_support_per_view: dict[str, int] = {}
 
     for view in views:
         if view not in gt_arrays:
             continue
-        gt  = gt_arrays[view]
-        vis = vis_arrays[view]
-        gt_norm = _normalize_gt(gt, vis, normalization)
+        gt      = gt_arrays[view]
+        vis     = vis_arrays[view]
+        support = support_arrays[view]
+        gt_norm = _normalize_gt(gt, support, normalization)
 
-        combined_num += gt_norm * vis.astype(np.float64)
-        combined_den += vis.astype(np.float64)
+        combined_num += gt_norm * support.astype(np.float64)
+        combined_den += support.astype(np.float64)
 
-        gt_sum_per_view[view]   = float(gt.sum())
+        gt_sum_per_view[view]    = float(gt.sum())
         n_visible_per_view[view] = int(vis.sum())
+        n_support_per_view[view] = int(support.sum())
 
     # Suppress divide-by-zero warning: denominator=0 cells are replaced by 0.0
     with np.errstate(invalid="ignore", divide="ignore"):
         combined_gt = np.where(combined_den > 0.0, combined_num / combined_den, 0.0)
 
     n_combined_nonzero = int((combined_gt > 0).sum())
+    n_combined_supported = int((combined_den > 0).sum())
     combined_coverage  = float(100.0 * n_combined_nonzero / n_verts) if n_verts else 0.0
+    combined_support_pct = float(100.0 * n_combined_supported / n_verts) if n_verts else 0.0
 
     meta: dict = {
         "model":               model,
@@ -243,8 +253,11 @@ def build_combined_gt(
         "views_skipped":       [v for v in views if v not in gt_arrays],
         "gt_sum_per_view":     gt_sum_per_view,
         "n_visible_per_view":  n_visible_per_view,
+        "n_support_per_view":  n_support_per_view,
         "n_combined_nonzero":  n_combined_nonzero,
+        "n_combined_supported": n_combined_supported,
         "combined_coverage_pct": round(combined_coverage, 2),
+        "combined_support_pct": round(combined_support_pct, 2),
         "combined_gt_sum":     float(combined_gt.sum()),
         "warnings":            warnings,
     }

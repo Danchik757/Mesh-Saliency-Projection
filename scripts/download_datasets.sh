@@ -80,6 +80,7 @@ echo ""
 ALL_ZIPS=(
     "3dva_objs.zip"
     "3dva_gt.zip"
+    "3dva_combined_gt.zip"
     "meshmamba_non_texture_objs.zip"
     "meshmamba_rgb_texture_objs.zip"
     "meshmamba_saliency_gt.zip"
@@ -122,6 +123,10 @@ _extract() {
         3dva_gt.zip)
             unzip -q "$zip_file" -d "$target"
             # Result: $target/3DVA/FixationMaps/ + CentricityAndVisibilityMaps/
+            ;;
+        3dva_combined_gt.zip)
+            unzip -q "$zip_file" -d "$target"
+            # Result: $target/3DVA/CombinedGT/
             ;;
         meshmamba_non_texture_objs.zip)
             mkdir -p "$target/MeshMamba/MeshFile"

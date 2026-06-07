@@ -64,6 +64,7 @@ All components required to reproduce benchmark experiments.
 |-----|----------|
 | 3dva_objs.zip | 3DVA OBJ meshes (corrected `-up` orientation, 32 models) |
 | 3dva_gt.zip | 3DVA GT fixation maps + centricity maps |
+| 3dva_combined_gt.zip | Pre-built 3DVA CombinedGT benchmark targets + metadata |
 | meshmamba_non_texture_objs.zip | MeshMamba non-texture OBJ (105 models) |
 | meshmamba_rgb_texture_objs.zip | MeshMamba RGB-texture OBJ (105 models) |
 | meshmamba_saliency_gt.zip | MeshMamba per-face GT saliency maps |

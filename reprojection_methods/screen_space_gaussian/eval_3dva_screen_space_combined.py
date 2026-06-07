@@ -20,8 +20,9 @@ Method (screen_space_gaussian v2):
 
 Metrics reported (JSON):
   metrics_vs_gt_combined.screen_space_gaussian.metrics_full:         all vertices
-  metrics_vs_gt_combined.screen_space_gaussian.metrics_covered_only: combined_gt > 0
-  Use metrics_covered_only for all summary tables (mirrors SAL3D protocol).
+  metrics_vs_gt_combined.screen_space_gaussian.metrics_covered_only: union support of the
+      3 source views, where support(view) = visibility OR (GT > 0)
+  Use metrics_covered_only for all summary tables.
 
 Bug fixes applied (vs older 3DVA scripts):
   - Resolution: 1920×1080 (was 256×144 in v1).
@@ -238,6 +239,48 @@ def _load_combined_gt(combined_gt_dir: Path, model: str) -> np.ndarray:
         f"Combined GT not found for model '{model}' in {combined_gt_dir}. "
         f"Run scripts/build_3dva_combined_gt.py first."
     )
+
+
+def _resolve_gt_file(dataset_root: Path, model: str, view: str) -> Path | None:
+    candidate_names = [f"{name}_{view}norm" for name in _candidate_model_names(model)]
+    return _resolve_casefold_file(dataset_root / "FixationMaps", candidate_names, ".txt")
+
+
+def _resolve_visibility_file(dataset_root: Path, model: str, view: str) -> Path | None:
+    candidate_names = [f"{name}_{view}_visibility" for name in _candidate_model_names(model)]
+    return _resolve_casefold_file(dataset_root / "CentricityAndVisibilityMaps", candidate_names, ".txt")
+
+
+def _load_combined_support_mask(dataset_root: Path, model: str, n_expected: int) -> tuple[np.ndarray, dict]:
+    support = np.zeros(n_expected, dtype=bool)
+    per_view_counts: dict[str, int] = {}
+    warnings: list[str] = []
+
+    for view in ("300", "413", "599"):
+        gt_path = _resolve_gt_file(dataset_root, model, view)
+        if gt_path is None:
+            warnings.append(f"missing GT file for view {view}")
+            continue
+        gt = np.loadtxt(str(gt_path), dtype=np.float64).reshape(-1)
+
+        vis_path = _resolve_visibility_file(dataset_root, model, view)
+        if vis_path is None:
+            vis = np.zeros_like(gt, dtype=bool)
+            warnings.append(f"missing visibility file for view {view}; using gt>0 only")
+        else:
+            vis = np.loadtxt(str(vis_path), dtype=np.float64).astype(bool).reshape(-1)
+
+        n = min(n_expected, len(gt), len(vis))
+        if len(gt) != len(vis):
+            warnings.append(
+                f"view {view} length mismatch: gt={len(gt)} vis={len(vis)}; using first {n} entries"
+            )
+
+        view_support = vis[:n] | (gt[:n] > 0)
+        support[:n] |= view_support
+        per_view_counts[view] = int(view_support.sum())
+
+    return support, {"per_view_support_counts": per_view_counts, "warnings": warnings}
 
 
 def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
@@ -561,21 +604,28 @@ def run_screen_space(
 
     view_matrix = np.asarray(cam["view_matrix"], dtype=np.float64).reshape(4, 4)
 
-    # Precompute vertex positions once: apply bbox recentering outside the per-frame loop.
-    # IMPORTANT: bbox_center is computed from ORIGINAL vertices BEFORE base_rotate_z.
-    # This is the canonical order (session 3 bug fix).
+    # Precompute vertex positions once using the canonical 3DVA order:
+    # base_rotate_z -> recenter.
+    # bbox_center is computed from ORIGINAL vertices BEFORE base_rotate_z.
     base_verts = np.asarray(mesh.vertices, dtype=np.float64).copy()
+    bbox_center = 0.5 * (
+        np.asarray(mesh.vertices, dtype=np.float64).min(axis=0)
+        + np.asarray(mesh.vertices, dtype=np.float64).max(axis=0)
+    )
+    rz0 = math.radians(base_rotate_z_deg)
+    if abs(rz0) > 1e-12:
+        cz0, sz0 = math.cos(rz0), math.sin(rz0)
+        x0 = cz0 * base_verts[:, 0] - sz0 * base_verts[:, 1]
+        y0 = sz0 * base_verts[:, 0] + cz0 * base_verts[:, 1]
+        base_verts[:, 0], base_verts[:, 1] = x0, y0
     if recenter_to_bbox_center:
-        bbox_center = 0.5 * (base_verts.min(axis=0) + base_verts.max(axis=0))
         base_verts -= bbox_center
 
     # Camera world position (static for 3DVA: camera never moves, only model rotates).
     camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
 
-    # Precompute base normals with base_rotate_z applied once (same as base_verts).
-    # Normal transform = rotation only (no scale for uniform scale, no translate).
+    # Precompute base normals with base_rotate_z already baked in.
     base_normals = np.asarray(mesh.vertex_normals, dtype=np.float64).copy()
-    rz0 = math.radians(base_rotate_z_deg)
     if abs(rz0) > 1e-12:
         cz0, sz0 = math.cos(rz0), math.sin(rz0)
         nx0 = cz0 * base_normals[:, 0] - sz0 * base_normals[:, 1]
@@ -608,7 +658,7 @@ def run_screen_space(
         rot_z   = float(frames_list[frame]["rotation_z_radians"])
         verts_w = _apply_transform_no_recenter(
             base_verts, camera_data, rot_z,
-            base_rotate_z_deg, extra_rotate_x_deg, extra_rotate_y_deg,
+            0.0, extra_rotate_x_deg, extra_rotate_y_deg,
         )
 
         screen_xy, w_clip = world_to_screen(verts_w, view_matrix, proj_mat)
@@ -724,11 +774,14 @@ def main() -> None:
         override_fov_deg=args.override_fov_deg,
     )
 
-    # Compute metrics vs combined GT (full and covered-only)
+    # Compute metrics vs combined GT:
+    # - full: all vertices
+    # - covered_only: union support of source views, where support(view)=visibility OR (GT>0)
     gt_for_metrics = combined_gt[:n_eval]
     pred_for_metrics = vert_sal[:n_eval]
-    covered_mask     = gt_for_metrics > 0
-    n_covered        = int(covered_mask.sum())
+    covered_mask, covered_stats = _load_combined_support_mask(args.dataset_root, args.model, n_eval)
+    n_covered = int(covered_mask.sum())
+    n_gt_positive = int((gt_for_metrics > 0).sum())
 
     metrics_vs_gt_combined = {
         "screen_space_gaussian": {
@@ -752,10 +805,15 @@ def main() -> None:
         "n_vertices":            n_mesh_verts,
         "n_gt_lines":            n_gt_lines,
         "n_eval":                n_eval,
-        "n_combined_nonzero":    n_covered,
+        "n_combined_nonzero":    n_gt_positive,
+        "n_gt_positive_vertices": n_gt_positive,
+        "combined_positive_pct": round(100.0 * n_gt_positive / n_eval, 2) if n_eval else 0.0,
+        "n_covered_vertices":    n_covered,
+        "covered_support_pct":   round(100.0 * n_covered / n_eval, 2) if n_eval else 0.0,
         "combined_coverage_pct": round(100.0 * n_covered / n_eval, 2) if n_eval else 0.0,
         "gaze_stats":   gaze_stats,
         "run_stats":    run_stats,
+        "covered_support_stats": covered_stats,
         "method_params": {
             "sigma_px":                args.sigma_px,
             "density_img":             f"{_IMG_W}x{_IMG_H}",
@@ -772,7 +830,8 @@ def main() -> None:
             ),
         },
         "metrics_note": (
-            "metrics_covered_only: vertices with combined_gt > 0 (GT-observed region). "
+            "metrics_covered_only: union support of the 3 source views, "
+            "where support(view)=visibility OR (GT > 0). "
             "This is the valid benchmark domain — use for all summary tables. "
             "metrics_full: all mesh vertices (includes unobserved back-faces, lower CC expected). "
             f"Sigma {args.sigma_px}px at {_IMG_W}px ≈ 1° visual angle (3DVA paper setup). "
