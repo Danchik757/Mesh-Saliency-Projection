@@ -59,6 +59,8 @@ def add_tree(archive: zipfile.ZipFile, source: Path, archive_root: str) -> int:
     source = source.resolve()
     count = 0
     for path in iter_files(source):
+        if archive_root == "object_placement_json_canonical" and path.suffix.lower() != ".json":
+            continue
         relative = path.relative_to(source).as_posix()
         archive.write(path, f"{archive_root.rstrip('/')}/{relative}")
         count += 1
