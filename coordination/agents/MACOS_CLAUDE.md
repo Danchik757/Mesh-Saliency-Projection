@@ -462,3 +462,81 @@ No output directories (loader is a library module, not a script).
 git status --short  →  (empty, clean)
 git log --oneline -1  →  b46dd1e A1: Add shared processed-fixation and timing loader
 ```
+
+---
+
+### A2 Pre-plan (no code changes — awaiting A1 review)
+
+Planning note only. No implementation until reviewer approves A1 and lifts
+the review gate.
+
+#### Evaluators to migrate (8 scripts)
+
+Each script needs the same three changes:
+1. Replace `--csv-root` default path with `--fixation-root` pointing to
+   `participant_data/processed_fixations_offset_2000/`; keep `--csv-root`
+   behind an explicit `--csv-compat` flag.
+2. Replace the local `FrameGazeBatch` dataclass definition + `load_gaze_batches()`
+   CSV function with a single call to `load_processed_track()` (or
+   `load_csv_compat_track()` when `--csv-compat` is set). Remove the
+   `min(..., total_frames - 1)` clamp.
+3. Inject `track.provenance` into the output report JSON under a
+   `"participant_input"` key alongside the existing metrics.
+
+Scripts:
+```
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py
+reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py
+reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py
+```
+
+#### Batch launchers to migrate (8 files)
+
+Python launchers: replace CSV-directory discovery with processed-JSON
+directory discovery; pass `--fixation-root` (or `--csv-compat --csv-root`)
+to evaluators; inject `input_mode` into per-model batch rows.
+
+Shell launchers: add `FIXATION_ROOT` env var; forward `--fixation-root` to
+evaluator; document `--csv-compat` flag.
+
+```
+test/launch/run_3dva_reference_batch.py
+test/launch/run_meshmamba_reference_batch.py
+test/launch/run_sal3d_reference_batch.py
+test/launch/run_3dva_screen_space.sh
+test/launch/run_3dva_raycast_cone.sh
+test/launch/run_meshmamba_baseline_screen_space.sh
+test/launch/run_meshmamba_baseline_cone.sh
+test/launch/run_sal3d_cone.sh
+```
+
+#### Key decisions needed from reviewer before A2 code
+
+1. **`canonical_name` resolution for MeshMamba**: processed JSON dirs are named
+   `MeshMamba_non_texture_<model>` and `MeshMamba_rgb_texture_<model>`. The
+   `canonical_name` passed to `load_processed_track` should be the full dir
+   name (e.g. `MeshMamba_non_texture_Ice_Cream_V1_L3`), with `dataset` =
+   `MeshMamba_non_texture` and `model` = `Ice_Cream_V1_L3`. Confirm this
+   is the intended naming for report output.
+
+2. **`--csv-compat` flag name**: confirm this is the approved name (vs
+   `--use-csv`, `--legacy-csv`, etc.) so all 8 evaluators + batch launchers
+   use the same flag.
+
+3. **Placement JSON lookup in evaluators**: currently evaluators accept
+   `--json-root` (3DVA) or similar. After migration `load_processed_track`
+   takes `placement_path` directly. Confirm that the existing `--json-root`
+   / `THREE_DVA_JSON_ROOT` env var convention is retained and the loader is
+   called with the resolved path (not a root dir).
+
+4. **Report key name for provenance**: confirm `"participant_input"` is the
+   agreed key name for the provenance dict in the output JSON report, or
+   specify another name.
+
+These are blocking for correct A2 implementation; will not start code until
+confirmed by reviewer.
