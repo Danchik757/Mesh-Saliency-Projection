@@ -387,3 +387,78 @@ trash/*.md, md/archive/*, coordination/ (other agents' files)
 **Audit status: COMPLETE**. Awaiting BASE_REF publication by reviewer/controller
 before any implementation code edits. Will append milestone entries once worker
 branch is created from BASE_REF.
+
+---
+
+### Milestone A1 — 2026-06-09
+
+**Branch:** `agent/macos-ingestion-release`
+**Commit:** `b46dd1e`
+**BASE_REF:** `agent-base-2026-06-09` = `b232129`
+**git status --short after push:** clean (no modified or untracked files)
+
+#### Files changed
+
+New files:
+```
+utils/participant_loader.py        — shared processed-fixation and timing loader
+test/test_participant_loader.py    — 14 unit tests for all A1 required behaviors
+```
+
+No existing files modified in this milestone.
+
+#### Commands run
+
+```
+# Development
+python3 -m pytest test/test_participant_loader.py -v
+# All 14 tests pass; output: "14 passed in 0.39s"
+
+# Smoke test on real participant data (read-only, data from main repo path):
+# python3 smoke_script.py  (inline script, not committed)
+# Results below under "Actual results".
+
+# Commit and push
+git add utils/participant_loader.py test/test_participant_loader.py
+git commit -m "A1: Add shared processed-fixation and timing loader"
+git push origin agent/macos-ingestion-release
+```
+
+#### Input data version and model/track
+
+Real data smoke test used local participant_data from the main repo
+(`Mesh-Saliency-Projection`), not committed to git (517 MB payload).
+- 3DVA track: model `A380`, placement `3DVA_A380.json`
+- SAL3D track: model `horse`, placement `Sal3D_horse.json`
+- Blocker models: `jessi` (3DVA), `gorgoile` (SAL3D)
+
+#### Expected vs actual results
+
+| Test | Expected | Actual |
+| --- | --- | --- |
+| 3DVA A380 (processed JSON) | usable=450, start=54, end=504, 450 batches | ✓ all match |
+| SAL3D horse (processed JSON) | usable=660, start=54, end=714 | ✓ all match |
+| 3DVA jessi | `InvalidFixationError` (41 != 510) | ✓ raised, "fall back" in message |
+| SAL3D gorgoile | `MissingFixationError` | ✓ raised, "fall back" in message |
+| 3DVA A380 CSV compat | 450 in-window frames, drops out-of-window | ✓ 45684 dropped, 0 frames outside window |
+| Unit tests 14/14 | all pass | ✓ |
+
+**Significant finding:** CSV compat loader dropped 45,684 out-of-window gaze samples for A380 alone — samples the old evaluator was silently clamping to the last placement frame. This confirms the critical impact of the approved timing contract.
+
+#### Output paths
+
+No output directories (loader is a library module, not a script).
+
+#### Known limitations / open questions
+
+1. **No `__init__.py` in `utils/`**: The existing module `utils/path_defaults.py` is already imported without one (evaluators add REPO_ROOT to sys.path). Consistent with the existing convention.
+2. **Out-of-bounds pixel points in processed JSON**: The loader silently drops them (no error). The `validate_data_contract.py` already confirmed there are none in the valid dataset files. If a future file contains them they will be dropped and a comment in the code explains this.
+3. **CSV compat resolves CSV file naming itself**: The real CSVs are named `A380.csv` not `3DVA_A380.csv`. Callers must pass the correct path. This is intentional — the caller (evaluator or batch launcher) knows the naming convention for its dataset.
+4. **`GazeBatch` type replaces per-evaluator `FrameGazeBatch`**: Evaluators in A2 should import `GazeBatch` from `utils.participant_loader` and remove their local `FrameGazeBatch` definition. Both have identical fields (`x_norm`, `y_norm`).
+
+#### Confirmed clean push
+
+```
+git status --short  →  (empty, clean)
+git log --oneline -1  →  b46dd1e A1: Add shared processed-fixation and timing loader
+```
