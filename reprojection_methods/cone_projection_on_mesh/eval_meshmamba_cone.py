@@ -23,18 +23,14 @@ Env vars (used when CLI args are not provided):
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import math
 import os
 import re
 import sys
-from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import trimesh
 from scipy.spatial import cKDTree
 from scipy.stats import pearsonr, spearmanr
@@ -43,11 +39,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from utils.participant_loader import GazeBatch, load_processed_track, load_csv_compat_track  # noqa: E402
 
-@dataclass
-class FrameGazeBatch:
-    x_norm: np.ndarray
-    y_norm: np.ndarray
+FrameGazeBatch = GazeBatch
 
 
 def _env_path(var: str, fallback: str) -> Path:
@@ -75,7 +69,19 @@ def parse_args() -> argparse.Namespace:
         "--csv-root",
         type=Path,
         default=_env_path("MESHMAMBA_CSV_ROOT", "e.g. /srv/side_inputs/MeshMamba_non_texture/csv"),
-        help="Directory with per-model MeshMamba CSV gaze files.",
+        help="Directory with per-model MeshMamba CSV gaze files (only used with --csv-compat).",
+    )
+    parser.add_argument(
+        "--fixation-root",
+        type=Path,
+        default=Path(os.environ["FIXATION_ROOT"]) if "FIXATION_ROOT" in os.environ else None,
+        help="Root of processed_fixations_offset_2000/. Required unless --csv-compat is set.",
+    )
+    parser.add_argument(
+        "--csv-compat",
+        action="store_true",
+        default=False,
+        help="Use legacy CSV input (requires --csv-root). Reports will show input_mode=csv_compat.",
     )
     parser.add_argument(
         "--json-root",
@@ -272,7 +278,6 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
         gt_candidates.append(resolved_stem)
     gt_path  = find_gt_file(gt_dir, args.model, extra_candidate_names=gt_candidates)
     return {
-        "csv":  find_csv_file(args.csv_root, args.model),
         "json": find_json_file(args.json_root, args.model, texture_type),
         "obj":  obj_path,
         "gt":   gt_path,
@@ -285,39 +290,32 @@ def ensure_exists(paths: dict[str, Path]) -> None:
         raise SystemExit("Missing inputs:\n" + "\n".join(missing))
 
 
-def load_gaze_batches(
-    csv_path: Path, fps: int, total_frames: int
-) -> tuple[dict[int, FrameGazeBatch], dict[str, int]]:
-    df = pd.read_csv(csv_path)
-    per_frame_x: dict[int, list[float]] = defaultdict(list)
-    per_frame_y: dict[int, list[float]] = defaultdict(list)
-    total_points = 0
-
-    for _, row in df.iterrows():
-        gaze = ast.literal_eval(row["data_gazes"])
-        for t, x, y in zip(gaze.get("t", []), gaze.get("x", []), gaze.get("y", [])):
-            x, y = float(x), float(y)
-            if not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0):
-                continue
-            frame = min(int(math.floor(float(t) * fps)), total_frames - 1)
-            per_frame_x[frame].append(x)
-            per_frame_y[frame].append(y)
-            total_points += 1
-
-    batches = {
-        frame: FrameGazeBatch(
-            x_norm=np.asarray(per_frame_x[frame], dtype=np.float64),
-            y_norm=np.asarray(per_frame_y[frame], dtype=np.float64),
+def _load_gaze_track(args: argparse.Namespace, placement_path: Path):
+    texture_type   = args.texture_type
+    dataset        = f"MeshMamba_{texture_type}"
+    model          = args.model
+    canonical_name = f"MeshMamba_{texture_type}_{model}"
+    if args.csv_compat:
+        return load_csv_compat_track(
+            find_csv_file(args.csv_root, model), placement_path,
+            dataset=dataset, model=model, canonical_name=canonical_name,
         )
-        for frame in sorted(per_frame_x)
+    if args.fixation_root is None:
+        raise SystemExit("--fixation-root is required unless --csv-compat is set")
+    return load_processed_track(
+        args.fixation_root / canonical_name / "fixations.json",
+        placement_path,
+        dataset=dataset, model=model, canonical_name=canonical_name,
+    )
+
+
+def _gaze_stats(track) -> dict:
+    return {
+        "num_rows":               track.provenance.get("csv_num_rows"),
+        "num_participants":       track.provenance.get("csv_num_participants"),
+        "num_points":             sum(len(b.x_norm) for b in track.gaze_batches.values()),
+        "num_frames_with_points": sum(1 for b in track.gaze_batches.values() if len(b.x_norm) > 0),
     }
-    stats = {
-        "num_rows": int(len(df)),
-        "num_participants": int(df["participation_id"].nunique()),
-        "num_points": int(total_points),
-        "num_frames_with_points": int(len(batches)),
-    }
-    return batches, stats
 
 
 def build_projection_matrix_from_fov(
@@ -730,11 +728,9 @@ def main() -> None:
     if not isinstance(mesh, trimesh.Trimesh):
         raise SystemExit(f"Expected a Trimesh-compatible OBJ, got {type(mesh)}")
 
-    gaze_batches, gaze_stats = load_gaze_batches(
-        paths["csv"],
-        fps=int(camera_data["video_info"]["fps"]),
-        total_frames=int(camera_data["video_info"]["total_frames"]),
-    )
+    track = _load_gaze_track(args, paths["json"])
+    gaze_batches = track.gaze_batches
+    gaze_stats   = _gaze_stats(track)
 
     tag_parts = []
     if args.recenter_to_bbox_center:
@@ -790,8 +786,9 @@ def main() -> None:
         "dataset": f"MeshMamba_{args.texture_type}",
         "gt_file": str(paths["gt"].name),
         "n_faces": int(len(mesh.faces)),
-        "gaze_stats":  gaze_stats,
-        "run_stats":   run_stats,
+        "gaze_stats":        gaze_stats,
+        "participant_input": track.provenance,
+        "run_stats":         run_stats,
         "method_params": {
             "sigma_deg":               args.sigma_deg,
             "radius_sigma_mult":       args.radius_sigma_mult,

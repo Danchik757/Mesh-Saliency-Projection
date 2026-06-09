@@ -577,3 +577,105 @@ test/test_participant_loader.py — test_out_of_bounds_points_dropped renamed to
 4. Report provenance key: `participant_input`.
 
 Waiting for reviewer to lift A2 gate.
+
+---
+
+### Milestone A2 — 2026-06-09
+
+**Branch:** `agent/macos-ingestion-release`
+**BASE_REF:** `agent-base-2026-06-09` = `b232129`
+**A1 commits:** `b46dd1e`, `133c08f` (fix: out-of-bounds raises InvalidFixationError)
+
+#### Files changed (16 total)
+
+Evaluators (8 scripts) — all now default to processed JSON via `--fixation-root`;
+legacy CSV behind explicit `--csv-compat`; no clamping path in processed/default
+mode; all reports include `"participant_input": track.provenance`:
+```
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py
+reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py
+reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py
+```
+
+Python batch launchers (3 scripts) — discover models from processed JSON
+(`<DATASET>_*/fixations.json`) by default; pass `--fixation-root` or
+`--csv-compat --csv-root` to evaluators; resume skips only when
+`participant_input` provenance matches current mode/timing contract:
+```
+test/launch/run_3dva_reference_batch.py
+test/launch/run_meshmamba_reference_batch.py
+test/launch/run_sal3d_reference_batch.py
+```
+
+Shell launchers (5 scripts) — accept `FIXATION_ROOT` / `CSV_COMPAT` env vars;
+default to `--fixation-root $FIXATION_ROOT`; `CSV_COMPAT=true` falls back to
+CSV with explicit `--csv-compat --csv-root`:
+```
+test/launch/run_3dva_screen_space.sh
+test/launch/run_3dva_raycast_cone.sh
+test/launch/run_meshmamba_baseline_screen_space.sh
+test/launch/run_meshmamba_baseline_cone.sh
+test/launch/run_sal3d_cone.sh
+```
+
+#### Key per-evaluator changes (shared pattern)
+
+- Removed local `@dataclass class FrameGazeBatch`; replaced with
+  `FrameGazeBatch = GazeBatch` alias imported from `utils.participant_loader`.
+- Removed `load_gaze_batches()` CSV function and all CSV imports (`ast`,
+  `defaultdict`, `dataclass`, `pandas`, `csv`).
+- Added `--fixation-root` and `--csv-compat` CLI args.
+- Added `_load_gaze_track(args, placement_path)` helper: routes to
+  `load_processed_track()` or `load_csv_compat_track()` based on flag.
+- Removed `"csv"` from `ensure_required_exist()` / `resolve_model_paths()`
+  return dicts in default mode.
+- Added `"participant_input": track.provenance` to every report dict.
+
+#### MeshMamba canonical_name
+
+`f"MeshMamba_{texture_type}_{model}"` — e.g. `MeshMamba_non_texture_Ice_Cream_V1_L3`.
+Consistent with approved A2 decision.
+
+#### Resume provenance contract (`_provenance_matches`)
+
+All three Python launchers check before reusing any existing report:
+- `input_mode` == `"processed_json"` (or `"csv_compat"` when `--csv-compat`)
+- `crop_start_seconds` ≈ 1.8 (±1e-6)
+- `crop_end_seconds` ≈ 0.2 (±1e-6)
+
+Reports with a different participant/timing contract trigger a rerun.
+
+#### Syntax checks
+
+```
+# All 8 evaluators
+python3 -c "import ast; ast.parse(...)"  →  all OK
+
+# All 5 shell launchers
+bash -n <script>  →  all OK
+```
+
+#### Known limitations
+
+1. **Smoke evidence not yet collected** — server execution is forbidden on
+   macOS worker. The A2 acceptance smoke tests (valid 3DVA model, MeshMamba
+   non+rgb, SAL3D, expected `jessi`/`gorgoile` failures) require server runs
+   that the reviewer/controller must authorize and execute.
+2. **MeshMamba rgb_texture batch launcher** — no dedicated `run_meshmamba_rgb_reference_batch.py`
+   was found in the repository; the existing `run_meshmamba_reference_batch.py`
+   handles both texture types via `--texture-type` arg. Migrated accordingly.
+3. **`eval_meshmamba_screen_space_v2.py`** — out-of-scope experimental variant;
+   not migrated per audit decision.
+
+#### Awaiting review
+
+Branch pushed. Requesting reviewer to:
+1. Verify all 16 changed files against A2 acceptance criteria.
+2. Run smoke tests on server (`jessi` expected failure, `gorgoile` expected
+   failure, one valid model each track/method).
+3. Confirm before A3 or any server jobs begin.

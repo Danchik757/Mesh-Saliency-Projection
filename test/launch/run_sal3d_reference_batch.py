@@ -160,10 +160,16 @@ def parse_args() -> argparse.Namespace:
         default=500,
     )
     parser.add_argument(
+        "--csv-compat",
+        action="store_true",
+        default=False,
+        help="Use legacy CSV input. Reports will show input_mode=csv_compat.",
+    )
+    parser.add_argument(
         "--resume",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Skip tasks with an already existing report JSON.",
+        help="Skip tasks with an existing report JSON whose participant contract matches.",
     )
     parser.add_argument("--nice-level", type=int, default=10)
     parser.add_argument(
@@ -189,6 +195,13 @@ def resolve_csv_root() -> Path:
     )
     if path is None:
         raise RuntimeError("CSV root not configured. Set SAL3D_CSV_ROOT.")
+    return path
+
+
+def resolve_fixation_root() -> Path:
+    path = _env_path("FIXATION_ROOT")
+    if path is None:
+        raise RuntimeError("Fixation root not configured. Set FIXATION_ROOT.")
     return path
 
 
@@ -226,14 +239,12 @@ def load_explicit_models(args: argparse.Namespace) -> list[str] | None:
     return deduped
 
 
-def inventory_models(explicit_models: list[str] | None) -> list[str]:
-    """Build model list as intersection of Gaze/*.txt ∩ csv_root/*.csv."""
+def inventory_models(explicit_models: list[str] | None, *, csv_compat: bool = False) -> list[str]:
+    """Build model list as intersection of Gaze/*.txt ∩ gaze_source."""
     if explicit_models is not None:
         return list(explicit_models)
 
     dataset_root = resolve_dataset_root()
-    csv_root = resolve_csv_root()
-
     gaze_dir = dataset_root / "Gaze"
     if not gaze_dir.is_dir():
         raise RuntimeError(f"Gaze directory not found: {gaze_dir}")
@@ -241,11 +252,18 @@ def inventory_models(explicit_models: list[str] | None) -> list[str]:
     # Models with GT
     gt_stems = {p.stem.lower(): p.stem for p in sorted(gaze_dir.glob("*.txt"))}
 
-    # Models with our gaze CSV
-    csv_stems = {p.stem.lower() for p in sorted(csv_root.glob("*.csv"))}
+    if csv_compat:
+        csv_root = resolve_csv_root()
+        gaze_set = {p.stem.lower() for p in sorted(csv_root.glob("*.csv"))}
+    else:
+        fixation_root = resolve_fixation_root()
+        gaze_set = {
+            p.parent.name[len("SAL3D_"):].lower()
+            for p in sorted(fixation_root.glob("SAL3D_*/fixations.json"))
+        }
 
     # Intersection (case-insensitive, preserve GT name)
-    models = [name for key, name in sorted(gt_stems.items()) if key in csv_stems]
+    models = [name for key, name in sorted(gt_stems.items()) if key in gaze_set]
     return models
 
 
@@ -265,16 +283,21 @@ def report_path_for_task(batch_output_dir: Path, task: Task) -> Path:
 
 def build_command(args: argparse.Namespace, task: Task) -> list[str]:
     dataset_root = resolve_dataset_root()
-    csv_root     = resolve_csv_root()
     json_root    = resolve_json_root()
     output_dir   = task_output_dir(args.batch_output_dir, task.method)
+
+    gaze_args: list[str] = []
+    if args.csv_compat:
+        gaze_args = ["--csv-compat", "--csv-root", str(resolve_csv_root())]
+    else:
+        gaze_args = ["--fixation-root", str(resolve_fixation_root())]
 
     common = [
         "--model",       task.model,
         "--dataset-root", str(dataset_root),
-        "--csv-root",    str(csv_root),
         "--json-root",   str(json_root),
         "--output-dir",  str(output_dir),
+        *gaze_args,
         "--recenter-to-bbox-center",
         "--extra-rotate-x-deg", "90",
         "--projection-fov-mode", "horizontal_to_vertical",
@@ -313,10 +336,9 @@ def classify_error(message: str) -> tuple[str, str]:
     return "runtime_error", message.strip()
 
 
-def preflight_status(task: Task) -> tuple[str, str]:
+def preflight_status(task: Task, *, csv_compat: bool = False) -> tuple[str, str]:
     try:
         dataset_root = resolve_dataset_root()
-        csv_root     = resolve_csv_root()
         json_root    = resolve_json_root()
     except RuntimeError as exc:
         return "config_error", str(exc)
@@ -329,8 +351,20 @@ def preflight_status(task: Task) -> tuple[str, str]:
         return "missing_gt", f"Gaze GT not found for '{task.model}' in {gaze_dir}"
     if not any(p.stem.lower() == model_lc for p in mesh_dir.glob("*.obj")):
         return "missing_obj", f"OBJ not found for '{task.model}' in {mesh_dir}"
-    if not any(p.stem.lower() == model_lc for p in csv_root.glob("*.csv")):
-        return "missing_csv", f"CSV not found for '{task.model}' in {csv_root}"
+    if csv_compat:
+        try:
+            csv_root = resolve_csv_root()
+        except RuntimeError as exc:
+            return "config_error", str(exc)
+        if not any(p.stem.lower() == model_lc for p in csv_root.glob("*.csv")):
+            return "missing_csv", f"CSV not found for '{task.model}' in {csv_root}"
+    else:
+        try:
+            fixation_path = resolve_fixation_root() / f"SAL3D_{task.model}" / "fixations.json"
+        except RuntimeError as exc:
+            return "config_error", str(exc)
+        if not fixation_path.exists():
+            return "missing_fixation", f"fixation JSON not found: {fixation_path}"
     json_prefix = f"sal3d_{model_lc}"
     if not any(p.stem.lower() == json_prefix for p in json_root.glob("*.json")):
         return "missing_json", f"JSON not found for '{task.model}' (prefix Sal3D_) in {json_root}"
@@ -338,15 +372,29 @@ def preflight_status(task: Task) -> tuple[str, str]:
     return "", ""
 
 
+def _provenance_matches(report_path: Path, args: argparse.Namespace) -> bool:
+    try:
+        existing = json.loads(report_path.read_text(encoding="utf-8"))
+        prov = existing.get("participant_input", {})
+        current_mode = "csv_compat" if args.csv_compat else "processed_json"
+        return (
+            prov.get("input_mode") == current_mode
+            and abs(float(prov.get("crop_start_seconds", -1)) - 1.8) < 1e-6
+            and abs(float(prov.get("crop_end_seconds", -1)) - 0.2) < 1e-6
+        )
+    except Exception:
+        return False
+
+
 def run_task(args: argparse.Namespace, task: Task) -> dict[str, Any]:
     report_path = report_path_for_task(args.batch_output_dir, task)
     log_path    = task_log_path(args.batch_output_dir, task.method, task.model)
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if args.resume and report_path.exists():
+    if args.resume and report_path.exists() and _provenance_matches(report_path, args):
         return collect_row_from_report(task, report_path, status="ok", stdout_log_path=log_path)
 
-    preflight_error, preflight_message = preflight_status(task)
+    preflight_error, preflight_message = preflight_status(task, csv_compat=args.csv_compat)
     if preflight_error:
         return base_row(task, status=preflight_error, error_type=preflight_error,
                         error_message=preflight_message, stdout_log_path=log_path, report_path=report_path)
@@ -528,7 +576,7 @@ def main() -> int:
     args.batch_output_dir.mkdir(parents=True, exist_ok=True)
     explicit_models = load_explicit_models(args)
 
-    models = inventory_models(explicit_models)
+    models = inventory_models(explicit_models, csv_compat=args.csv_compat)
     tasks: list[Task] = [
         Task(method=method, model=model)
         for method in args.methods

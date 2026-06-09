@@ -27,18 +27,14 @@ Env vars:
 from __future__ import annotations
 
 import argparse
-import ast
 import json
 import math
 import os
 import re
 import sys
-from collections import defaultdict
-from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
-import pandas as pd
 import trimesh
 from scipy.spatial import cKDTree
 from scipy.stats import pearsonr, spearmanr
@@ -47,11 +43,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
+from utils.participant_loader import GazeBatch, load_processed_track, load_csv_compat_track  # noqa: E402
 
-@dataclass
-class FrameGazeBatch:
-    x_norm: np.ndarray
-    y_norm: np.ndarray
+FrameGazeBatch = GazeBatch
 
 
 def _env_path(var: str, fallback: str) -> Path:
@@ -73,7 +67,19 @@ def parse_args() -> argparse.Namespace:
         "--csv-root",
         type=Path,
         default=_env_path("SAL3D_CSV_ROOT", "e.g. /srv/side_inputs/SAL3D/csv"),
-        help="Directory with per-model SAL3D CSV gaze files (our experiment).",
+        help="Directory with per-model SAL3D CSV gaze files (only used with --csv-compat).",
+    )
+    parser.add_argument(
+        "--fixation-root",
+        type=Path,
+        default=Path(os.environ["FIXATION_ROOT"]) if "FIXATION_ROOT" in os.environ else None,
+        help="Root of processed_fixations_offset_2000/. Required unless --csv-compat is set.",
+    )
+    parser.add_argument(
+        "--csv-compat",
+        action="store_true",
+        default=False,
+        help="Use legacy CSV input (requires --csv-root). Reports will show input_mode=csv_compat.",
     )
     parser.add_argument(
         "--json-root",
@@ -229,12 +235,6 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
             f"Gaze GT not found for '{args.model}' in {args.dataset_root / 'Gaze'}"
         )
 
-    csv_path = _resolve(args.csv_root, names, ".csv")
-    if csv_path is None:
-        raise FileNotFoundError(
-            f"CSV not found for '{args.model}' in {args.csv_root}"
-        )
-
     json_names = [f"Sal3D_{n}" for n in names]
     json_path = _resolve(args.json_root, json_names, ".json")
     if json_path is None:
@@ -242,7 +242,7 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
             f"JSON not found for '{args.model}' (prefix Sal3D_) in {args.json_root}"
         )
 
-    return {"obj": obj_path, "gt": gt_path, "csv": csv_path, "json": json_path}
+    return {"obj": obj_path, "gt": gt_path, "json": json_path}
 
 
 def ensure_exists(paths: dict[str, Path]) -> None:
@@ -392,39 +392,35 @@ def load_gt_aligned_to_obj(
 
 # ── gaze loading (same format as 3DVA / MeshMamba) ───────────────────────────
 
-def load_gaze_batches(
-    csv_path: Path, fps: int, total_frames: int
-) -> tuple[dict[int, FrameGazeBatch], dict[str, int]]:
-    df = pd.read_csv(csv_path)
-    per_frame_x: dict[int, list[float]] = defaultdict(list)
-    per_frame_y: dict[int, list[float]] = defaultdict(list)
-    total_points = 0
-
-    for _, row in df.iterrows():
-        gaze = ast.literal_eval(row["data_gazes"])
-        for t, x, y in zip(gaze.get("t", []), gaze.get("x", []), gaze.get("y", [])):
-            x, y = float(x), float(y)
-            if not (0.0 <= x <= 1.0 and 0.0 <= y <= 1.0):
-                continue
-            frame = min(int(math.floor(float(t) * fps)), total_frames - 1)
-            per_frame_x[frame].append(x)
-            per_frame_y[frame].append(y)
-            total_points += 1
-
-    batches = {
-        fr: FrameGazeBatch(
-            x_norm=np.asarray(per_frame_x[fr], dtype=np.float64),
-            y_norm=np.asarray(per_frame_y[fr], dtype=np.float64),
+def _load_gaze_track(args: argparse.Namespace, placement_path: Path):
+    dataset        = "SAL3D"
+    model          = args.model
+    canonical_name = f"SAL3D_{model}"
+    if args.csv_compat:
+        names    = _candidate_model_names(model)
+        csv_path = _resolve(args.csv_root, names, ".csv")
+        if csv_path is None:
+            raise FileNotFoundError(f"CSV not found for '{model}' in {args.csv_root}")
+        return load_csv_compat_track(
+            csv_path, placement_path,
+            dataset=dataset, model=model, canonical_name=canonical_name,
         )
-        for fr in sorted(per_frame_x)
+    if args.fixation_root is None:
+        raise SystemExit("--fixation-root is required unless --csv-compat is set")
+    return load_processed_track(
+        args.fixation_root / canonical_name / "fixations.json",
+        placement_path,
+        dataset=dataset, model=model, canonical_name=canonical_name,
+    )
+
+
+def _gaze_stats(track) -> dict:
+    return {
+        "num_rows":               track.provenance.get("csv_num_rows"),
+        "num_participants":       track.provenance.get("csv_num_participants"),
+        "num_points":             sum(len(b.x_norm) for b in track.gaze_batches.values()),
+        "num_frames_with_points": sum(1 for b in track.gaze_batches.values() if len(b.x_norm) > 0),
     }
-    stats = {
-        "num_rows":               int(len(df)),
-        "num_participants":       int(df["participation_id"].nunique()),
-        "num_points":             int(total_points),
-        "num_frames_with_points": int(len(batches)),
-    }
-    return batches, stats
 
 
 # ── projection matrix ─────────────────────────────────────────────────────────
@@ -833,11 +829,9 @@ def main() -> None:
     if not isinstance(mesh, trimesh.Trimesh):
         raise SystemExit(f"Expected a single Trimesh, got {type(mesh)}")
 
-    gaze_batches, gaze_stats = load_gaze_batches(
-        paths["csv"],
-        fps=int(camera_data["video_info"]["fps"]),
-        total_frames=int(camera_data["video_info"]["total_frames"]),
-    )
+    track = _load_gaze_track(args, paths["json"])
+    gaze_batches = track.gaze_batches
+    gaze_stats   = _gaze_stats(track)
 
     # Load Smooth Gaze neighbour lists if directory is provided
     smooth_gaze_data = None
@@ -928,8 +922,9 @@ def main() -> None:
         "n_gt_covered":    n_gt_covered,
         "gt_coverage_pct": round(gt_coverage * 100.0, 2),
         "gt_match_type":   match_type,
-        "gaze_stats": gaze_stats,
-        "run_stats":  run_stats,
+        "gaze_stats":        gaze_stats,
+        "participant_input": track.provenance,
+        "run_stats":         run_stats,
         "method_params": {
             "sigma_deg":               args.sigma_deg,
             "radius_sigma_mult":       args.radius_sigma_mult,

@@ -36,10 +36,16 @@ EVAL_SCRIPT="${REPO_ROOT}/reprojection_methods/screen_space_gaussian/eval_3dva_s
 PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 THREE_DVA_JSON_ROOT="${THREE_DVA_JSON_ROOT:-${REPROJECT_GAZE_JSON_3DVA_ROOT:-${REPO_ROOT}/jsons/object_placement/3dva_jsons}}"
 
+CSV_COMPAT="${CSV_COMPAT:-false}"
+FIXATION_ROOT="${FIXATION_ROOT:-${REPROJECT_FIXATION_ROOT:-}}"
 : "${VISUAL_ATTENTION_3D_SHAPES_ROOT:?Need VISUAL_ATTENTION_3D_SHAPES_ROOT}"
-: "${THREE_DVA_CSV_ROOT:?Need THREE_DVA_CSV_ROOT}"
 : "${THREE_DVA_JSON_ROOT:?Need THREE_DVA_JSON_ROOT}"
 : "${OUTPUT_ROOT:?Need OUTPUT_ROOT}"
+if [ "${CSV_COMPAT}" = "true" ]; then
+    : "${THREE_DVA_CSV_ROOT:?Need THREE_DVA_CSV_ROOT when CSV_COMPAT=true}"
+else
+    : "${FIXATION_ROOT:?Need FIXATION_ROOT (or set CSV_COMPAT=true for legacy CSV mode)}"
+fi
 
 # All 32 3DVA models
 ALL_MODELS="A380 Harley Max-Planck bimba blade-200K bunny camel car-vasa carter casting chair107 cow dinosaur-40K dragon fandisk flowerpot gorgoile hand-35K horse-110k house igea-100K james jessi meca-15k michael3 michael8 octopus prot rockerarm torso turbine vase-15k"
@@ -52,6 +58,12 @@ OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
 VIDEO_ID="${VIDEO_ID:-}"
 WORKERS="${WORKERS:-4}"
 NICE_LEVEL="${NICE_LEVEL:-10}"
+
+if [ "${CSV_COMPAT}" = "true" ]; then
+    GAZE_ARGS="--csv-compat --csv-root ${THREE_DVA_CSV_ROOT:-}"
+else
+    GAZE_ARGS="--fixation-root ${FIXATION_ROOT}"
+fi
 
 OUT_DIR="${OUTPUT_ROOT}/3DVA/screen_space"
 mkdir -p "${OUT_DIR}"
@@ -75,7 +87,7 @@ fi
 
 echo "=== 3DVA screen_space_gaussian v2 ==="
 echo "  dataset_root : ${VISUAL_ATTENTION_3D_SHAPES_ROOT}"
-echo "  csv_root     : ${THREE_DVA_CSV_ROOT}"
+echo "  gaze_args    : ${GAZE_ARGS}"
 echo "  json_root    : ${THREE_DVA_JSON_ROOT}"
 echo "  output_dir   : ${OUT_DIR}"
 echo "  python_bin   : ${PYTHON_BIN}"
@@ -96,7 +108,7 @@ run_one() {
     nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
         --model "${model}" \
         --dataset-root "${VISUAL_ATTENTION_3D_SHAPES_ROOT}" \
-        --csv-root "${THREE_DVA_CSV_ROOT}" \
+        ${GAZE_ARGS} \
         --json-root "${THREE_DVA_JSON_ROOT}" \
         --output-dir "${OUT_DIR}" \
         --sigma-px "${SIGMA_PX}" \
@@ -109,7 +121,7 @@ run_one() {
 }
 
 export -f run_one
-export OUT_DIR EVAL_SCRIPT PYTHON_BIN VISUAL_ATTENTION_3D_SHAPES_ROOT THREE_DVA_CSV_ROOT \
+export OUT_DIR EVAL_SCRIPT PYTHON_BIN VISUAL_ATTENTION_3D_SHAPES_ROOT GAZE_ARGS \
        THREE_DVA_JSON_ROOT SIGMA_PX RECENTER_FLAG VIDEO_ID_FLAG EXTRA_ROTATE_X_DEG \
        PROJECTION_FOV_MODE OVERRIDE_FOV_DEG NICE_LEVEL
 
