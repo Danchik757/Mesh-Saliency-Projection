@@ -540,3 +540,40 @@ test/launch/run_sal3d_cone.sh
 
 These are blocking for correct A2 implementation; will not start code until
 confirmed by reviewer.
+
+---
+
+### A1 fix — 2026-06-09
+
+**Branch:** `agent/macos-ingestion-release`
+**Commit:** `133c08f`
+**git status --short after push:** clean
+
+**Required fix from reviewer:** out-of-bounds pixel points in processed JSON
+must raise `InvalidFixationError`, not be silently dropped.
+
+**Rationale (reviewer's):** `validate_data_contract.py` already confirms no
+valid release file contains out-of-bounds points. An out-of-bounds point
+reaching the loader is a data-contract violation, not a normal condition.
+
+**Files changed:**
+```
+utils/participant_loader.py   — replace silent drop with InvalidFixationError;
+                                added comment explaining the rationale
+test/test_participant_loader.py — test_out_of_bounds_points_dropped renamed to
+                                  test_out_of_bounds_points_raises; now asserts
+                                  InvalidFixationError with "out-of-bounds" in message
+```
+
+**Result:** 14/14 tests pass. Branch pushed and clean.
+
+**A2 decisions confirmed by reviewer:**
+1. MeshMamba canonical_name = full processed dir stem (e.g.
+   `MeshMamba_non_texture_Ice_Cream_V1_L3`); report additionally stores
+   `dataset` and `model` split.
+2. CSV compat flag: `--csv-compat`.
+3. Evaluators retain `--json-root` / env convention; resolve placement_path
+   themselves before passing to loader.
+4. Report provenance key: `participant_input`.
+
+Waiting for reviewer to lift A2 gate.
