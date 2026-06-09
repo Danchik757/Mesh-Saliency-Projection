@@ -160,7 +160,10 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--fixation-root",
         type=Path,
-        default=_env_path("FIXATION_ROOT"),
+        default=_env_path(
+            "FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT",
+            "THREE_DVA_PROCESSED_FIXATIONS_ROOT",
+        ),
         help="Root of processed_fixations_offset_2000/. Required unless --csv-compat.",
     )
     parser.add_argument(

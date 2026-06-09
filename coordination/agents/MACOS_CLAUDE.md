@@ -679,3 +679,34 @@ Branch pushed. Requesting reviewer to:
 2. Run smoke tests on server (`jessi` expected failure, `gorgoile` expected
    failure, one valid model each track/method).
 3. Confirm before A3 or any server jobs begin.
+
+---
+
+### A2 fix — env alias support — 2026-06-09
+
+**Branch:** `agent/macos-ingestion-release`
+**Blocking issue:** A2 code accepted only `FIXATION_ROOT`; server env files define
+`REPROJECT_PROCESSED_FIXATIONS_ROOT` and dataset-specific roots. Batch failed
+with `--fixation-root not found: None` after sourcing `configs/server_vg_intellect.env`.
+
+**Files changed (16):**
+
+All 8 evaluators — `--fixation-root` argparse default now checks env aliases in
+priority order via `next((...), None)`:
+- 3DVA (4 files): `FIXATION_ROOT` → `REPROJECT_PROCESSED_FIXATIONS_ROOT` → `THREE_DVA_PROCESSED_FIXATIONS_ROOT`
+- MeshMamba (2 files): `FIXATION_ROOT` → `REPROJECT_PROCESSED_FIXATIONS_ROOT` → `MESHMAMBA_PROCESSED_FIXATIONS_ROOT`
+- SAL3D (2 files): `FIXATION_ROOT` → `REPROJECT_PROCESSED_FIXATIONS_ROOT` → `SAL3D_PROCESSED_FIXATIONS_ROOT`
+
+Python batch launchers (3 files):
+- `run_3dva_reference_batch.py`: `_env_path()` call extended with 3DVA aliases
+- `run_meshmamba_reference_batch.py`: `resolve_fixation_root()` checks 3 keys; error message updated
+- `run_sal3d_reference_batch.py`: same pattern with SAL3D key
+
+Shell launchers (5 files): `FIXATION_ROOT` fallback chain extended:
+- 3DVA scripts: `…${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${THREE_DVA_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}`
+- MeshMamba scripts: `…${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${MESHMAMBA_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}`
+- SAL3D script: `…${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${SAL3D_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}`
+
+**Verified:** inline test confirms `REPROJECT_PROCESSED_FIXATIONS_ROOT` and
+dataset-specific env vars each resolve correctly; missing-all → `None` still
+triggers the existing validation error.

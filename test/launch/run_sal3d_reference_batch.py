@@ -199,9 +199,15 @@ def resolve_csv_root() -> Path:
 
 
 def resolve_fixation_root() -> Path:
-    path = _env_path("FIXATION_ROOT")
+    path = _env_path(
+        "FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT",
+        "SAL3D_PROCESSED_FIXATIONS_ROOT",
+    )
     if path is None:
-        raise RuntimeError("Fixation root not configured. Set FIXATION_ROOT.")
+        raise RuntimeError(
+            "Fixation root not configured. Set FIXATION_ROOT, "
+            "REPROJECT_PROCESSED_FIXATIONS_ROOT, or SAL3D_PROCESSED_FIXATIONS_ROOT."
+        )
     return path
 
 

@@ -72,7 +72,13 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--fixation-root",
         type=Path,
-        default=Path(os.environ["FIXATION_ROOT"]) if "FIXATION_ROOT" in os.environ else None,
+        default=next(
+            (Path(os.environ[k]) for k in (
+                "FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT",
+                "THREE_DVA_PROCESSED_FIXATIONS_ROOT",
+            ) if k in os.environ),
+            None,
+        ),
         help="Root of processed_fixations_offset_2000/. Required unless --csv-compat is set.",
     )
     parser.add_argument(

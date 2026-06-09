@@ -223,9 +223,15 @@ def resolve_csv_root(texture_type: str) -> Path:
 
 
 def resolve_fixation_root() -> Path:
-    path = _env_path("FIXATION_ROOT")
+    path = _env_path(
+        "FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT",
+        "MESHMAMBA_PROCESSED_FIXATIONS_ROOT",
+    )
     if path is None:
-        raise RuntimeError("Fixation root not configured. Set FIXATION_ROOT.")
+        raise RuntimeError(
+            "Fixation root not configured. Set FIXATION_ROOT, "
+            "REPROJECT_PROCESSED_FIXATIONS_ROOT, or MESHMAMBA_PROCESSED_FIXATIONS_ROOT."
+        )
     return path
 
 
