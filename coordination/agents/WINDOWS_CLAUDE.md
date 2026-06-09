@@ -342,3 +342,66 @@ pytest.ini — test runner config.
 No unresolved questions within B3 scope.
 
 git status --short after push: clean.
+
+---
+
+## 2026-06-09 — Phase 2: Heatmap-on-Mesh Video Renderer
+
+Branch: agent/windows-geometry-metrics
+Files changed:
+- `video_creation/heatmap_on_mesh_video/render_heatmap_video.py` — new, main CLI renderer
+- `video_creation/heatmap_on_mesh_video/run_server_heatmap_video_smoke.sh` — new, smoke script
+- `video_creation/heatmap_on_mesh_video/README.md` — new
+- `test/test_heatmap_video_renderer.py` — new, 38 unit tests
+- `coordination/agents/WINDOWS_CLAUDE.md` — this entry
+
+### Commands run
+
+```bash
+python3 -m py_compile video_creation/heatmap_on_mesh_video/render_heatmap_video.py
+python3 -m pytest test/test_heatmap_video_renderer.py test/metrics/ -q
+```
+
+### Results
+
+```
+py_compile: OK
+179 passed in 1.39s  (141 B3 metrics + 38 renderer)
+```
+
+### Design decisions
+
+| Decision | Rationale |
+| --- | --- |
+| blender_rig transform: recenter→scale→rotX(90°)→rotZ(per-frame) | Matches canonical evaluator defaults for both MeshMamba and SAL3D |
+| Camera from view_matrix decomposition | Reproduces exact Blender camera position/orientation; horizontal FOV 60° converted to vertical ≈ 35.98° for PyVista |
+| Per-face/per-vertex auto-detection from map length | MeshMamba evals output *_faces.txt; SAL3D evals output *_vertices.txt; GT files use same domain |
+| Persistent pv.Plotter with in-place mesh point updates | Avoids plotter recreation overhead per frame; standard PyVista animation pattern |
+| alpha blends heatmap with neutral gray (0.5,0.5,0.5) | alpha=1.0 = pure heatmap; alpha=0.0 = gray base |
+| Temp dir for PNG frames → ffmpeg assembly | Clean, debuggable; temp dir auto-deleted |
+| SAL3D GT multi-column: default column 7 | Matches eval_sal3d_screen_space.py load pattern |
+
+### Smoke scope
+
+4 cases, --max-frames 120:
+- MeshMamba non_texture Starfruit_L3 screen_space
+- MeshMamba non_texture Starfruit_L3 cone
+- SAL3D bunny screen_space
+- SAL3D bunny cone
+
+Smoke script: `video_creation/heatmap_on_mesh_video/run_server_heatmap_video_smoke.sh`
+Run on ssh vg-iai after reviewer approval.
+
+### Server smoke not yet run
+
+Pending reviewer/controller approval to SSH to vg-iai and run the smoke script.
+
+### Output structure
+
+```
+{output-dir}/{dataset}/{track}/{model}/{map-type}/
+  heatmap_video.mp4
+  manifest.json       ← full provenance (map path, timing, domain, frame count)
+```
+
+git status --short: see commit below.
