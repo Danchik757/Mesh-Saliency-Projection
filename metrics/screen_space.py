@@ -35,6 +35,11 @@ def binary_mask_from_fixation_points(
     shape: Sequence[int],
     fixation_points: Iterable[tuple[int, int]],
 ) -> np.ndarray:
+    if len(shape) < 2:
+        raise ValueError(
+            f"binary_mask_from_fixation_points requires a 2-D shape (height, width), "
+            f"got shape with {len(shape)} dimension(s): {tuple(shape)}"
+        )
     height, width = int(shape[0]), int(shape[1])
     mask = np.zeros((height, width), dtype=np.uint8)
     for x, y in fixation_points:
