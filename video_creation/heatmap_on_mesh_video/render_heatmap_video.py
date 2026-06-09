@@ -122,7 +122,12 @@ def precompute_base_transform(
     extra_rotate_x_deg: float = 90.0,
 ) -> np.ndarray:
     """Apply static transforms (recenter, scale, X-rot). Returns base vertices
-    ready for per-frame Z rotation via apply_frame_rotation()."""
+    ready for per-frame Z rotation via apply_frame_rotation().
+
+    model_static.location is NOT applied here; it must be added after the
+    per-frame rotation to match the evaluator blender_rig transform order:
+      recenter → scale → rotX → rotZ(frame) → +location
+    """
     v = vertices.copy()
     if recenter:
         bbox_center = 0.5 * (v.min(axis=0) + v.max(axis=0))
@@ -131,8 +136,6 @@ def precompute_base_transform(
     v *= scale
     if abs(extra_rotate_x_deg) > 1e-9:
         v = _rotate_x(v, extra_rotate_x_deg)
-    # model_static.location is [0,0,0] for all supported datasets
-    v += np.asarray(placement["model_static"]["location"], dtype=np.float64)
     return v
 
 
@@ -224,14 +227,20 @@ def render_frames(
     frames_dir: Path,
     width: int,
     height: int,
+    model_location: np.ndarray | None = None,
 ) -> list[Path]:
-    """Render frames off-screen. Reuses a single Plotter with in-place point updates."""
+    """Render frames off-screen. Reuses a single Plotter with in-place point updates.
+
+    model_location is added after per-frame rotation, matching the evaluator
+    blender_rig transform order (location is the final translation step).
+    """
     os.environ.setdefault("DISPLAY", "")
     pv.OFF_SCREEN = True
 
     position, focal_point, up, vert_fov_deg = camera_params
+    loc = model_location if model_location is not None else np.zeros(3)
 
-    init_verts = apply_frame_rotation(base_verts, frame_rotations[0])
+    init_verts = apply_frame_rotation(base_verts, frame_rotations[0]) + loc
     mesh_poly = build_poly(init_verts, faces)
     if pv_domain == "cell":
         mesh_poly.cell_data["color"] = rgb_colors
@@ -256,7 +265,8 @@ def render_frames(
     png_paths: list[Path] = []
     n = len(frame_rotations)
     for i, rot_rad in enumerate(frame_rotations):
-        rotated = apply_frame_rotation(base_verts, rot_rad)
+        # '+' creates a new array; safe even when apply_frame_rotation returns base_verts
+        rotated = apply_frame_rotation(base_verts, rot_rad) + loc
         mesh_poly.points = rotated.astype(np.float32)
         pl.render()
         img = pl.screenshot(return_img=True)
@@ -382,6 +392,7 @@ def main() -> None:
     print(f"[INFO] map: {len(values)} elements, domain={map_domain}", flush=True)
 
     base_verts = precompute_base_transform(vertices, placement)
+    model_location = np.asarray(placement["model_static"]["location"], dtype=np.float64)
     rgb_colors, pv_domain = compute_rgb_colors(
         values, map_domain, colormap=args.colormap, alpha=args.alpha
     )
@@ -399,6 +410,7 @@ def main() -> None:
             base_verts, faces, frame_rotations,
             rgb_colors, pv_domain, camera_params,
             tmp_path, args.width, args.height,
+            model_location=model_location,
         )
         if args.keep_frames:
             frames_out = out_subdir / "frames"

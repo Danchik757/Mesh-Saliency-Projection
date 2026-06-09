@@ -161,10 +161,10 @@ class TestRotateX:
 
 
 class TestApplyFrameRotation:
-    def test_zero_returns_same_object(self):
+    def test_zero_returns_identity(self):
         v = np.array([[1.0, 2.0, 3.0]])
         result = apply_frame_rotation(v, 0.0)
-        assert result is v
+        np.testing.assert_array_almost_equal(result, v)
 
     def test_small_rotation_applied(self):
         v = np.array([[1.0, 0.0, 0.0]])
@@ -197,11 +197,25 @@ class TestPrecomputeBaseTransform:
         result = precompute_base_transform(v, placement, recenter=False, extra_rotate_x_deg=0.0)
         assert result[0, 0] == pytest.approx(0.5)
 
-    def test_model_location_added(self):
+    def test_location_not_included(self):
+        # model_static.location must NOT be applied by precompute_base_transform;
+        # it is added after per-frame rotation to match evaluator blender_rig order.
         v = np.array([[0.0, 0.0, 0.0]])
         placement = _make_placement(scale=1.0, location=[1.0, 2.0, 3.0])
         result = precompute_base_transform(v, placement, recenter=False, extra_rotate_x_deg=0.0)
-        np.testing.assert_array_almost_equal(result[0], [1.0, 2.0, 3.0])
+        # Result should be at origin, not shifted by location
+        np.testing.assert_array_almost_equal(result[0], [0.0, 0.0, 0.0])
+
+    def test_full_transform_location_after_rotation(self):
+        # Verify evaluator order: base → frame_rotation → +location
+        v = np.array([[1.0, 0.0, 0.0]])
+        placement = _make_placement(scale=1.0, location=[0.0, 0.0, 5.0])
+        base = precompute_base_transform(v, placement, recenter=False, extra_rotate_x_deg=0.0)
+        rotated = apply_frame_rotation(base, math.pi / 2)
+        loc = np.array([0.0, 0.0, 5.0])
+        final = rotated + loc
+        # After 90° Z rotation: [1,0,0] → [0,1,0]; then +[0,0,5] → [0,1,5]
+        np.testing.assert_array_almost_equal(final[0], [0.0, 1.0, 5.0], decimal=10)
 
     def test_extra_rotate_x_90_applied(self):
         # Y-axis point [0,1,0] → after 90° X rotation → [0,0,1]
