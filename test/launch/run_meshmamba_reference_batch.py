@@ -162,10 +162,16 @@ def parse_args() -> argparse.Namespace:
         help="Optional text file with one model per line.",
     )
     parser.add_argument(
+        "--csv-compat",
+        action="store_true",
+        default=False,
+        help="Use legacy CSV input. Reports will show input_mode=csv_compat.",
+    )
+    parser.add_argument(
         "--resume",
         action=argparse.BooleanOptionalAction,
         default=True,
-        help="Skip tasks with an already existing report JSON.",
+        help="Skip tasks with an existing report JSON whose participant contract matches.",
     )
     parser.add_argument(
         "--nice-level",
@@ -213,6 +219,19 @@ def resolve_csv_root(texture_type: str) -> Path:
         )
     if path is None:
         raise RuntimeError(f"CSV root not configured for {texture_type}.")
+    return path
+
+
+def resolve_fixation_root() -> Path:
+    path = _env_path(
+        "FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT",
+        "MESHMAMBA_PROCESSED_FIXATIONS_ROOT",
+    )
+    if path is None:
+        raise RuntimeError(
+            "Fixation root not configured. Set FIXATION_ROOT, "
+            "REPROJECT_PROCESSED_FIXATIONS_ROOT, or MESHMAMBA_PROCESSED_FIXATIONS_ROOT."
+        )
     return path
 
 
@@ -271,23 +290,32 @@ def is_meshmamba_duplicate_dir(model_dir_name: str, csv_root: Path, json_root: P
     return not (has_exact_csv or has_exact_json or has_exact_gt)
 
 
-def inventory_models(texture_type: str, explicit_models: list[str] | None) -> list[str]:
+def inventory_models(texture_type: str, explicit_models: list[str] | None, *, csv_compat: bool = False) -> list[str]:
     if explicit_models is not None:
         return list(explicit_models)
 
-    dataset_root = resolve_dataset_root(texture_type)
-    mesh_root = dataset_root / "MeshFile" / texture_type
-    gt_root = dataset_root / "SaliencyMap" / texture_type
-    csv_root = resolve_csv_root(texture_type)
-    json_root = resolve_json_root(texture_type)
+    if csv_compat:
+        dataset_root = resolve_dataset_root(texture_type)
+        mesh_root = dataset_root / "MeshFile" / texture_type
+        gt_root = dataset_root / "SaliencyMap" / texture_type
+        csv_root = resolve_csv_root(texture_type)
+        json_root = resolve_json_root(texture_type)
+        models: list[str] = []
+        for path in sorted(mesh_root.iterdir()):
+            if not path.is_dir():
+                continue
+            if is_meshmamba_duplicate_dir(path.name, csv_root, json_root, gt_root, mesh_root):
+                continue
+            models.append(path.name)
+        return models
 
-    models: list[str] = []
-    for path in sorted(mesh_root.iterdir()):
-        if not path.is_dir():
-            continue
-        if is_meshmamba_duplicate_dir(path.name, csv_root, json_root, gt_root, mesh_root):
-            continue
-        models.append(path.name)
+    # Default: discover from processed fixation JSON directories
+    fixation_root = resolve_fixation_root()
+    prefix = f"MeshMamba_{texture_type}_"
+    models = sorted(
+        p.parent.name[len(prefix):]
+        for p in sorted(fixation_root.glob(f"{prefix}*/fixations.json"))
+    )
     return models
 
 
@@ -306,9 +334,15 @@ def report_path_for_task(batch_output_dir: Path, task: Task) -> Path:
 
 def build_command(args: argparse.Namespace, task: Task) -> list[str]:
     dataset_root = resolve_dataset_root(task.texture_type)
-    csv_root = resolve_csv_root(task.texture_type)
     json_root = resolve_json_root(task.texture_type)
     output_dir = task_output_dir(args.batch_output_dir, task.texture_type, task.method)
+
+    gaze_args: list[str] = []
+    if args.csv_compat:
+        csv_root = resolve_csv_root(task.texture_type)
+        gaze_args = ["--csv-compat", "--csv-root", str(csv_root)]
+    else:
+        gaze_args = ["--fixation-root", str(resolve_fixation_root())]
 
     if task.method == "screen_space":
         return [
@@ -317,9 +351,9 @@ def build_command(args: argparse.Namespace, task: Task) -> list[str]:
             "--model", task.model,
             "--texture-type", task.texture_type,
             "--dataset-root", str(dataset_root),
-            "--csv-root", str(csv_root),
             "--json-root", str(json_root),
             "--output-dir", str(output_dir),
+            *gaze_args,
             "--sigma-screen", "0.05",
             "--recenter-to-bbox-center",
             "--extra-rotate-x-deg", "90",
@@ -334,9 +368,9 @@ def build_command(args: argparse.Namespace, task: Task) -> list[str]:
         "--model", task.model,
         "--texture-type", task.texture_type,
         "--dataset-root", str(dataset_root),
-        "--csv-root", str(csv_root),
         "--json-root", str(json_root),
         "--output-dir", str(output_dir),
+        *gaze_args,
         "--sigma-deg", "1.0",
         "--radius-sigma-mult", "3.0",
         "--recenter-to-bbox-center",
@@ -360,20 +394,41 @@ def classify_error(message: str) -> tuple[str, str]:
     return "runtime_error", message.strip()
 
 
-def preflight_status(task: Task) -> tuple[str, str]:
+def preflight_status(task: Task, *, csv_compat: bool = False) -> tuple[str, str]:
     dataset_root = resolve_dataset_root(task.texture_type)
     mesh_root = dataset_root / "MeshFile" / task.texture_type
-    csv_root = resolve_csv_root(task.texture_type)
     json_root = resolve_json_root(task.texture_type)
 
     if not (mesh_root / task.model).is_dir():
         return "missing_obj", f"model dir not found: {(mesh_root / task.model)}"
-    if not (csv_root / f"{task.model}.csv").exists():
-        return "missing_csv", f"csv not found: {(csv_root / f'{task.model}.csv')}"
+    if csv_compat:
+        csv_root = resolve_csv_root(task.texture_type)
+        if not (csv_root / f"{task.model}.csv").exists():
+            return "missing_csv", f"csv not found: {(csv_root / f'{task.model}.csv')}"
+    else:
+        canonical = f"MeshMamba_{task.texture_type}_{task.model}"
+        fixation_path = resolve_fixation_root() / canonical / "fixations.json"
+        if not fixation_path.exists():
+            return "missing_fixation", f"fixation JSON not found: {fixation_path}"
     json_name = f"MeshMamba_{task.texture_type}_{task.model}.json"
     if not (json_root / json_name).exists():
         return "missing_json", f"json not found: {(json_root / json_name)}"
     return "", ""
+
+
+def _provenance_matches(report_path: Path, args: argparse.Namespace) -> bool:
+    """Return True only if the existing report matches the current participant/timing contract."""
+    try:
+        existing = json.loads(report_path.read_text(encoding="utf-8"))
+        prov = existing.get("participant_input", {})
+        current_mode = "csv_compat" if args.csv_compat else "processed_json"
+        return (
+            prov.get("input_mode") == current_mode
+            and abs(float(prov.get("crop_start_seconds", -1)) - 1.8) < 1e-6
+            and abs(float(prov.get("crop_end_seconds", -1)) - 0.2) < 1e-6
+        )
+    except Exception:
+        return False
 
 
 def run_task(args: argparse.Namespace, task: Task) -> dict[str, Any]:
@@ -381,10 +436,10 @@ def run_task(args: argparse.Namespace, task: Task) -> dict[str, Any]:
     log_path = task_log_path(args.batch_output_dir, task.texture_type, task.method, task.model)
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
-    if args.resume and report_path.exists():
+    if args.resume and report_path.exists() and _provenance_matches(report_path, args):
         return collect_row_from_report(task, report_path, status="ok", stdout_log_path=log_path)
 
-    preflight_error, preflight_message = preflight_status(task)
+    preflight_error, preflight_message = preflight_status(task, csv_compat=args.csv_compat)
     if preflight_error:
         return base_row(task, status=preflight_error, error_type=preflight_error, error_message=preflight_message, stdout_log_path=log_path, report_path=report_path)
 
@@ -572,7 +627,7 @@ def main() -> int:
 
     tasks: list[Task] = []
     for texture_type in args.texture_types:
-        models = inventory_models(texture_type, explicit_models)
+        models = inventory_models(texture_type, explicit_models, csv_compat=args.csv_compat)
         for method in args.methods:
             tasks.extend(Task(texture_type=texture_type, method=method, model=model) for model in models)
 

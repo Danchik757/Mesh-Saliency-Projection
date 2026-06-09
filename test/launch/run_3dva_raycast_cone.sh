@@ -41,10 +41,16 @@ PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 THREE_DVA_JSON_ROOT="${THREE_DVA_JSON_ROOT:-${REPROJECT_GAZE_JSON_3DVA_ROOT:-${REPO_ROOT}/jsons/object_placement/3dva_jsons}}"
 
 # ---------- required env var checks ----------
+CSV_COMPAT="${CSV_COMPAT:-false}"
+FIXATION_ROOT="${FIXATION_ROOT:-${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${THREE_DVA_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}"
 : "${VISUAL_ATTENTION_3D_SHAPES_ROOT:?Set VISUAL_ATTENTION_3D_SHAPES_ROOT (see configs/server_vg_intellect.env)}"
-: "${THREE_DVA_CSV_ROOT:?Set THREE_DVA_CSV_ROOT to the directory with per-model 3DVA CSV gaze files}"
 : "${THREE_DVA_JSON_ROOT:?Set THREE_DVA_JSON_ROOT to the directory with per-model 3DVA JSON camera files}"
 : "${OUTPUT_ROOT:?Set OUTPUT_ROOT}"
+if [ "${CSV_COMPAT}" = "true" ]; then
+  : "${THREE_DVA_CSV_ROOT:?Set THREE_DVA_CSV_ROOT when CSV_COMPAT=true}"
+else
+  : "${FIXATION_ROOT:?Set FIXATION_ROOT (or set CSV_COMPAT=true for legacy CSV mode)}"
+fi
 
 # ---------- defaults ----------
 WORKERS="${WORKERS:-4}"
@@ -61,12 +67,18 @@ PROJECTION_FOV_MODE="${PROJECTION_FOV_MODE:-horizontal_to_vertical}"
 OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
 VIDEO_ID="${VIDEO_ID:-}"
 
+if [ "${CSV_COMPAT}" = "true" ]; then
+  GAZE_ARGS="--csv-compat --csv-root ${THREE_DVA_CSV_ROOT:-}"
+else
+  GAZE_ARGS="--fixation-root ${FIXATION_ROOT}"
+fi
+
 OUTPUT_DIR="${OUTPUT_ROOT}/3DVA/raycast_cone"
 mkdir -p "${OUTPUT_DIR}"
 
 echo "[run_3dva_raycast_cone] repo_root=${REPO_ROOT}"
 echo "[run_3dva_raycast_cone] dataset_root=${VISUAL_ATTENTION_3D_SHAPES_ROOT}"
-echo "[run_3dva_raycast_cone] csv_root=${THREE_DVA_CSV_ROOT}"
+echo "[run_3dva_raycast_cone] gaze_args=${GAZE_ARGS}"
 echo "[run_3dva_raycast_cone] json_root=${THREE_DVA_JSON_ROOT}"
 echo "[run_3dva_raycast_cone] output_dir=${OUTPUT_DIR}"
 echo "[run_3dva_raycast_cone] python_bin=${PYTHON_BIN}"
@@ -98,7 +110,7 @@ run_model() {
   nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
     --model "${model}" \
     --dataset-root "${VISUAL_ATTENTION_3D_SHAPES_ROOT}" \
-    --csv-root "${THREE_DVA_CSV_ROOT}" \
+    ${GAZE_ARGS} \
     --json-root "${THREE_DVA_JSON_ROOT}" \
     --output-dir "${OUTPUT_DIR}" \
     --sigma-deg "${SIGMA_DEG}" \

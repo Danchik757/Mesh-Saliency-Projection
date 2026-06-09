@@ -39,10 +39,16 @@ PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 REPROJECT_GAZE_JSON_SAL3D_ROOT="${REPROJECT_GAZE_JSON_SAL3D_ROOT:-${SAL3D_JSON_ROOT:-${REPO_ROOT}/jsons/object_placement/sal3d_jsons}}"
 
 # ── required env var checks ──────────────────────────────────────────────────
+CSV_COMPAT="${CSV_COMPAT:-false}"
+FIXATION_ROOT="${FIXATION_ROOT:-${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${SAL3D_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}"
 : "${REPROJECT_DATASET_SAL3D_ROOT:?Set REPROJECT_DATASET_SAL3D_ROOT}"
-: "${REPROJECT_GAZE_CSV_SAL3D_ROOT:?Set REPROJECT_GAZE_CSV_SAL3D_ROOT}"
 : "${REPROJECT_GAZE_JSON_SAL3D_ROOT:?Set REPROJECT_GAZE_JSON_SAL3D_ROOT}"
 : "${REPROJECT_OUTPUT_ROOT:?Set REPROJECT_OUTPUT_ROOT}"
+if [ "${CSV_COMPAT}" = "true" ]; then
+  : "${REPROJECT_GAZE_CSV_SAL3D_ROOT:?Set REPROJECT_GAZE_CSV_SAL3D_ROOT when CSV_COMPAT=true}"
+else
+  : "${FIXATION_ROOT:?Set FIXATION_ROOT (or set CSV_COMPAT=true for legacy CSV mode)}"
+fi
 
 # ── defaults ─────────────────────────────────────────────────────────────────
 PILOT_MODELS="${PILOT_MODELS:-bunny camel cow}"
@@ -52,13 +58,19 @@ SIGMA_DEG="${SIGMA_DEG:-1.0}"
 RADIUS_SIGMA_MULT="${RADIUS_SIGMA_MULT:-3.0}"
 NICE_LEVEL="${NICE_LEVEL:-10}"
 
+if [ "${CSV_COMPAT}" = "true" ]; then
+  GAZE_ARGS="--csv-compat --csv-root ${REPROJECT_GAZE_CSV_SAL3D_ROOT:-}"
+else
+  GAZE_ARGS="--fixation-root ${FIXATION_ROOT}"
+fi
+
 OUTPUT_DIR="${REPROJECT_OUTPUT_ROOT}/SAL3D/cone_raycast"
 mkdir -p "${OUTPUT_DIR}"
 
 # ── log startup banner ────────────────────────────────────────────────────────
 echo "[run_sal3d_cone] repo_root=${REPO_ROOT}"
 echo "[run_sal3d_cone] dataset_root=${REPROJECT_DATASET_SAL3D_ROOT}"
-echo "[run_sal3d_cone] csv_root=${REPROJECT_GAZE_CSV_SAL3D_ROOT}"
+echo "[run_sal3d_cone] gaze_args=${GAZE_ARGS}"
 echo "[run_sal3d_cone] json_root=${REPROJECT_GAZE_JSON_SAL3D_ROOT}"
 echo "[run_sal3d_cone] output_dir=${OUTPUT_DIR}"
 echo "[run_sal3d_cone] smooth_gaze_dir=${SMOOTH_GAZE_DIR:-<disabled>}"
@@ -82,7 +94,7 @@ for MODEL in ${PILOT_MODELS}; do
   nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
     --model "${MODEL}" \
     --dataset-root    "${REPROJECT_DATASET_SAL3D_ROOT}" \
-    --csv-root        "${REPROJECT_GAZE_CSV_SAL3D_ROOT}" \
+    ${GAZE_ARGS} \
     --json-root       "${REPROJECT_GAZE_JSON_SAL3D_ROOT}" \
     --output-dir      "${OUTPUT_DIR}" \
     --sigma-deg       "${SIGMA_DEG}" \

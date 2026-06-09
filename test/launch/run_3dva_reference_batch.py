@@ -155,6 +155,22 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=_env_path("THREE_DVA_CSV_ROOT",
                           fallback="e.g. /path/to/csv_for_models/3DVA"),
+        help="CSV directory (only used with --csv-compat).",
+    )
+    parser.add_argument(
+        "--fixation-root",
+        type=Path,
+        default=_env_path(
+            "FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT",
+            "THREE_DVA_PROCESSED_FIXATIONS_ROOT",
+        ),
+        help="Root of processed_fixations_offset_2000/. Required unless --csv-compat.",
+    )
+    parser.add_argument(
+        "--csv-compat",
+        action="store_true",
+        default=False,
+        help="Use legacy CSV input (requires --csv-root).",
     )
     parser.add_argument(
         "--json-root",
@@ -207,8 +223,12 @@ def validate_args(args: argparse.Namespace) -> None:
     errors: list[str] = []
     if not args.dataset_root or not Path(str(args.dataset_root)).is_dir():
         errors.append(f"--dataset-root not found: {args.dataset_root}")
-    if not args.csv_root or not Path(str(args.csv_root)).is_dir():
-        errors.append(f"--csv-root not found: {args.csv_root}")
+    if args.csv_compat:
+        if not args.csv_root or not Path(str(args.csv_root)).is_dir():
+            errors.append(f"--csv-root not found (required with --csv-compat): {args.csv_root}")
+    else:
+        if not args.fixation_root or not Path(str(args.fixation_root)).is_dir():
+            errors.append(f"--fixation-root not found: {args.fixation_root}")
     if not args.json_root or not Path(str(args.json_root)).is_dir():
         errors.append(f"--json-root not found: {args.json_root}")
     if not args.combined_gt_dir or not Path(str(args.combined_gt_dir)).is_dir():
@@ -242,7 +262,7 @@ def load_explicit_models(args: argparse.Namespace) -> list[str] | None:
 
 
 def inventory_models(args: argparse.Namespace, explicit: list[str] | None) -> list[str]:
-    """Auto-discover models as intersection of combined_gt_dir ∩ csv_root ∩ json_root."""
+    """Auto-discover models as intersection of combined_gt_dir ∩ gaze_source ∩ json_root."""
     if explicit:
         return list(explicit)
 
@@ -254,18 +274,19 @@ def inventory_models(args: argparse.Namespace, explicit: list[str] | None) -> li
         for p in sorted(combined_gt_dir.glob("*_combined_gt.txt"))
     }
 
-    # Models with gaze CSV
-    csv_stems = {p.stem.lower() for p in sorted(Path(str(args.csv_root)).glob("*.csv"))}
-
-    # Models with JSON
-    json_stems = {
-        p.stem.lower().replace("3dva_", ""): p.stem
-        for p in sorted(Path(str(args.json_root)).glob("*.json"))
-    }
+    if args.csv_compat:
+        # Legacy: models with gaze CSV
+        gaze_set = {p.stem.lower() for p in sorted(Path(str(args.csv_root)).glob("*.csv"))}
+    else:
+        # Default: models with processed fixation JSON
+        gaze_set = {
+            p.parent.name[len("3DVA_"):].lower()
+            for p in sorted(Path(str(args.fixation_root)).glob("3DVA_*/fixations.json"))
+        }
 
     models = sorted(
         name for lc, name in gt_models.items()
-        if lc in csv_stems
+        if lc in gaze_set
     )
     return models
 
@@ -287,13 +308,16 @@ def build_command(args: argparse.Namespace, task: Task) -> list[str]:
     common = [
         "--model",           task.model,
         "--dataset-root",    str(args.dataset_root),
-        "--csv-root",        str(args.csv_root),
         "--json-root",       str(args.json_root),
         "--combined-gt-dir", str(args.combined_gt_dir),
         "--output-dir",      str(task_output_dir(args.batch_output_dir, task.method)),
         "--recenter-to-bbox-center",
         "--projection-fov-mode", "horizontal_to_vertical",
     ]
+    if args.csv_compat:
+        common += ["--csv-compat", "--csv-root", str(args.csv_root)]
+    else:
+        common += ["--fixation-root", str(args.fixation_root)]
 
     # A380 has a mixed CSV — filter to the correct video session
     if task.model in VIDEO_ID_OVERRIDES:
@@ -334,18 +358,34 @@ def classify_error(message: str) -> tuple[str, str]:
     return "runtime_error", message.strip()
 
 
+def _provenance_matches(report_path: Path, args: argparse.Namespace) -> bool:
+    """Return True only if the existing report was produced under the same participant/timing contract."""
+    try:
+        existing = json.loads(report_path.read_text(encoding="utf-8"))
+        prov = existing.get("participant_input", {})
+        current_mode = "csv_compat" if args.csv_compat else "processed_json"
+        return (
+            prov.get("input_mode") == current_mode
+            and abs(float(prov.get("crop_start_seconds", -1)) - 1.8) < 1e-6
+            and abs(float(prov.get("crop_end_seconds", -1)) - 0.2) < 1e-6
+        )
+    except Exception:
+        return False
+
+
 def run_task(args: argparse.Namespace, task: Task) -> dict[str, Any]:
     report_path = report_path_for_task(args.batch_output_dir, task)
     log_path    = task_log_path(args.batch_output_dir, task.method, task.model)
     log_path.parent.mkdir(parents=True, exist_ok=True)
 
     if args.resume and report_path.exists():
-        return collect_row_from_report(task, report_path, status="ok", stdout_log_path=log_path)
+        if _provenance_matches(report_path, args):
+            return collect_row_from_report(task, report_path, status="ok", stdout_log_path=log_path)
 
     # For "raycast" tasks, check if the cone report already exists (same script).
     if task.method == "raycast":
         cone_report = report_path_for_task(args.batch_output_dir, Task("cone", task.model))
-        if args.resume and cone_report.exists():
+        if args.resume and cone_report.exists() and _provenance_matches(cone_report, args):
             return collect_row_from_report(task, cone_report, status="ok", stdout_log_path=log_path)
 
     cmd = build_command(args, task)

@@ -37,10 +37,16 @@ PYTHON_BIN="${REPROJECT_PYTHON:-python3}"
 # ---------- required env var checks ----------
 MESHMAMBA_NON_TEXTURE_ROOT="${MESHMAMBA_NON_TEXTURE_ROOT:-${REPROJECT_DATASET_MESHMAMBA_ROOT:-}}"
 OUTPUT_ROOT="${OUTPUT_ROOT:-${REPROJECT_OUTPUT_ROOT:-}}"
+CSV_COMPAT="${CSV_COMPAT:-false}"
+FIXATION_ROOT="${FIXATION_ROOT:-${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${MESHMAMBA_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}"
 : "${MESHMAMBA_NON_TEXTURE_ROOT:?Set MESHMAMBA_NON_TEXTURE_ROOT (see configs/server_vg_intellect.env)}"
 : "${OUTPUT_ROOT:?Set OUTPUT_ROOT}"
-if [ -z "${MESHMAMBA_CSV_ROOT:-}" ]; then
-  : "${SIDE_INPUTS_ROOT:?Set SIDE_INPUTS_ROOT or MESHMAMBA_CSV_ROOT}"
+if [ "${CSV_COMPAT}" = "true" ]; then
+  if [ -z "${MESHMAMBA_CSV_ROOT:-}" ]; then
+    : "${SIDE_INPUTS_ROOT:?Set SIDE_INPUTS_ROOT or MESHMAMBA_CSV_ROOT when CSV_COMPAT=true}"
+  fi
+else
+  : "${FIXATION_ROOT:?Set FIXATION_ROOT (or set CSV_COMPAT=true for legacy CSV mode)}"
 fi
 
 # ---------- defaults ----------
@@ -56,14 +62,19 @@ OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
 PROJECTION_FOV_MODE="${PROJECTION_FOV_MODE:-horizontal_to_vertical}"
 TRANSFORM_ORDER="${TRANSFORM_ORDER:-blender_rig}"
 
-CSV_DIR="${MESHMAMBA_CSV_ROOT:-${SIDE_INPUTS_ROOT}/MeshMamba_non_texture/csv}"
+CSV_DIR="${MESHMAMBA_CSV_ROOT:-${SIDE_INPUTS_ROOT:-}/MeshMamba_non_texture/csv}"
 JSON_DIR="${MESHMAMBA_JSON_ROOT:-${REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT:-${REPO_ROOT}/jsons/object_placement/mamba_non_jsons}}"
+if [ "${CSV_COMPAT}" = "true" ]; then
+  GAZE_ARGS="--csv-compat --csv-root ${CSV_DIR}"
+else
+  GAZE_ARGS="--fixation-root ${FIXATION_ROOT}"
+fi
 OUTPUT_DIR="${OUTPUT_ROOT}/MeshMamba_non_texture/baseline_cone"
 mkdir -p "${OUTPUT_DIR}"
 
 echo "[run_meshmamba_baseline_cone] repo_root=${REPO_ROOT}"
 echo "[run_meshmamba_baseline_cone] dataset_root=${MESHMAMBA_NON_TEXTURE_ROOT}"
-echo "[run_meshmamba_baseline_cone] csv_dir=${CSV_DIR}"
+echo "[run_meshmamba_baseline_cone] gaze_args=${GAZE_ARGS}"
 echo "[run_meshmamba_baseline_cone] json_dir=${JSON_DIR}"
 echo "[run_meshmamba_baseline_cone] output_dir=${OUTPUT_DIR}"
 echo "[run_meshmamba_baseline_cone] python_bin=${PYTHON_BIN}"
@@ -86,7 +97,7 @@ fi
 nice -n "${NICE_LEVEL}" "${PYTHON_BIN}" "${EVAL_SCRIPT}" \
   --model "${PILOT_MODEL}" \
   --dataset-root "${MESHMAMBA_NON_TEXTURE_ROOT}" \
-  --csv-root "${CSV_DIR}" \
+  ${GAZE_ARGS} \
   --json-root "${JSON_DIR}" \
   --output-dir "${OUTPUT_DIR}" \
   --sigma-deg "${SIGMA_DEG}" \

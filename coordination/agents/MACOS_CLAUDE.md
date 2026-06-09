@@ -387,3 +387,326 @@ trash/*.md, md/archive/*, coordination/ (other agents' files)
 **Audit status: COMPLETE**. Awaiting BASE_REF publication by reviewer/controller
 before any implementation code edits. Will append milestone entries once worker
 branch is created from BASE_REF.
+
+---
+
+### Milestone A1 — 2026-06-09
+
+**Branch:** `agent/macos-ingestion-release`
+**Commit:** `b46dd1e`
+**BASE_REF:** `agent-base-2026-06-09` = `b232129`
+**git status --short after push:** clean (no modified or untracked files)
+
+#### Files changed
+
+New files:
+```
+utils/participant_loader.py        — shared processed-fixation and timing loader
+test/test_participant_loader.py    — 14 unit tests for all A1 required behaviors
+```
+
+No existing files modified in this milestone.
+
+#### Commands run
+
+```
+# Development
+python3 -m pytest test/test_participant_loader.py -v
+# All 14 tests pass; output: "14 passed in 0.39s"
+
+# Smoke test on real participant data (read-only, data from main repo path):
+# python3 smoke_script.py  (inline script, not committed)
+# Results below under "Actual results".
+
+# Commit and push
+git add utils/participant_loader.py test/test_participant_loader.py
+git commit -m "A1: Add shared processed-fixation and timing loader"
+git push origin agent/macos-ingestion-release
+```
+
+#### Input data version and model/track
+
+Real data smoke test used local participant_data from the main repo
+(`Mesh-Saliency-Projection`), not committed to git (517 MB payload).
+- 3DVA track: model `A380`, placement `3DVA_A380.json`
+- SAL3D track: model `horse`, placement `Sal3D_horse.json`
+- Blocker models: `jessi` (3DVA), `gorgoile` (SAL3D)
+
+#### Expected vs actual results
+
+| Test | Expected | Actual |
+| --- | --- | --- |
+| 3DVA A380 (processed JSON) | usable=450, start=54, end=504, 450 batches | ✓ all match |
+| SAL3D horse (processed JSON) | usable=660, start=54, end=714 | ✓ all match |
+| 3DVA jessi | `InvalidFixationError` (41 != 510) | ✓ raised, "fall back" in message |
+| SAL3D gorgoile | `MissingFixationError` | ✓ raised, "fall back" in message |
+| 3DVA A380 CSV compat | 450 in-window frames, drops out-of-window | ✓ 45684 dropped, 0 frames outside window |
+| Unit tests 14/14 | all pass | ✓ |
+
+**Significant finding:** CSV compat loader dropped 45,684 out-of-window gaze samples for A380 alone — samples the old evaluator was silently clamping to the last placement frame. This confirms the critical impact of the approved timing contract.
+
+#### Output paths
+
+No output directories (loader is a library module, not a script).
+
+#### Known limitations / open questions
+
+1. **No `__init__.py` in `utils/`**: The existing module `utils/path_defaults.py` is already imported without one (evaluators add REPO_ROOT to sys.path). Consistent with the existing convention.
+2. **Out-of-bounds pixel points in processed JSON**: The loader silently drops them (no error). The `validate_data_contract.py` already confirmed there are none in the valid dataset files. If a future file contains them they will be dropped and a comment in the code explains this.
+3. **CSV compat resolves CSV file naming itself**: The real CSVs are named `A380.csv` not `3DVA_A380.csv`. Callers must pass the correct path. This is intentional — the caller (evaluator or batch launcher) knows the naming convention for its dataset.
+4. **`GazeBatch` type replaces per-evaluator `FrameGazeBatch`**: Evaluators in A2 should import `GazeBatch` from `utils.participant_loader` and remove their local `FrameGazeBatch` definition. Both have identical fields (`x_norm`, `y_norm`).
+
+#### Confirmed clean push
+
+```
+git status --short  →  (empty, clean)
+git log --oneline -1  →  b46dd1e A1: Add shared processed-fixation and timing loader
+```
+
+---
+
+### A2 Pre-plan (no code changes — awaiting A1 review)
+
+Planning note only. No implementation until reviewer approves A1 and lifts
+the review gate.
+
+#### Evaluators to migrate (8 scripts)
+
+Each script needs the same three changes:
+1. Replace `--csv-root` default path with `--fixation-root` pointing to
+   `participant_data/processed_fixations_offset_2000/`; keep `--csv-root`
+   behind an explicit `--csv-compat` flag.
+2. Replace the local `FrameGazeBatch` dataclass definition + `load_gaze_batches()`
+   CSV function with a single call to `load_processed_track()` (or
+   `load_csv_compat_track()` when `--csv-compat` is set). Remove the
+   `min(..., total_frames - 1)` clamp.
+3. Inject `track.provenance` into the output report JSON under a
+   `"participant_input"` key alongside the existing metrics.
+
+Scripts:
+```
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py
+reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py
+reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py
+```
+
+#### Batch launchers to migrate (8 files)
+
+Python launchers: replace CSV-directory discovery with processed-JSON
+directory discovery; pass `--fixation-root` (or `--csv-compat --csv-root`)
+to evaluators; inject `input_mode` into per-model batch rows.
+
+Shell launchers: add `FIXATION_ROOT` env var; forward `--fixation-root` to
+evaluator; document `--csv-compat` flag.
+
+```
+test/launch/run_3dva_reference_batch.py
+test/launch/run_meshmamba_reference_batch.py
+test/launch/run_sal3d_reference_batch.py
+test/launch/run_3dva_screen_space.sh
+test/launch/run_3dva_raycast_cone.sh
+test/launch/run_meshmamba_baseline_screen_space.sh
+test/launch/run_meshmamba_baseline_cone.sh
+test/launch/run_sal3d_cone.sh
+```
+
+#### Key decisions needed from reviewer before A2 code
+
+1. **`canonical_name` resolution for MeshMamba**: processed JSON dirs are named
+   `MeshMamba_non_texture_<model>` and `MeshMamba_rgb_texture_<model>`. The
+   `canonical_name` passed to `load_processed_track` should be the full dir
+   name (e.g. `MeshMamba_non_texture_Ice_Cream_V1_L3`), with `dataset` =
+   `MeshMamba_non_texture` and `model` = `Ice_Cream_V1_L3`. Confirm this
+   is the intended naming for report output.
+
+2. **`--csv-compat` flag name**: confirm this is the approved name (vs
+   `--use-csv`, `--legacy-csv`, etc.) so all 8 evaluators + batch launchers
+   use the same flag.
+
+3. **Placement JSON lookup in evaluators**: currently evaluators accept
+   `--json-root` (3DVA) or similar. After migration `load_processed_track`
+   takes `placement_path` directly. Confirm that the existing `--json-root`
+   / `THREE_DVA_JSON_ROOT` env var convention is retained and the loader is
+   called with the resolved path (not a root dir).
+
+4. **Report key name for provenance**: confirm `"participant_input"` is the
+   agreed key name for the provenance dict in the output JSON report, or
+   specify another name.
+
+These are blocking for correct A2 implementation; will not start code until
+confirmed by reviewer.
+
+---
+
+### A1 fix — 2026-06-09
+
+**Branch:** `agent/macos-ingestion-release`
+**Commit:** `133c08f`
+**git status --short after push:** clean
+
+**Required fix from reviewer:** out-of-bounds pixel points in processed JSON
+must raise `InvalidFixationError`, not be silently dropped.
+
+**Rationale (reviewer's):** `validate_data_contract.py` already confirms no
+valid release file contains out-of-bounds points. An out-of-bounds point
+reaching the loader is a data-contract violation, not a normal condition.
+
+**Files changed:**
+```
+utils/participant_loader.py   — replace silent drop with InvalidFixationError;
+                                added comment explaining the rationale
+test/test_participant_loader.py — test_out_of_bounds_points_dropped renamed to
+                                  test_out_of_bounds_points_raises; now asserts
+                                  InvalidFixationError with "out-of-bounds" in message
+```
+
+**Result:** 14/14 tests pass. Branch pushed and clean.
+
+**A2 decisions confirmed by reviewer:**
+1. MeshMamba canonical_name = full processed dir stem (e.g.
+   `MeshMamba_non_texture_Ice_Cream_V1_L3`); report additionally stores
+   `dataset` and `model` split.
+2. CSV compat flag: `--csv-compat`.
+3. Evaluators retain `--json-root` / env convention; resolve placement_path
+   themselves before passing to loader.
+4. Report provenance key: `participant_input`.
+
+Waiting for reviewer to lift A2 gate.
+
+---
+
+### Milestone A2 — 2026-06-09
+
+**Branch:** `agent/macos-ingestion-release`
+**BASE_REF:** `agent-base-2026-06-09` = `b232129`
+**A1 commits:** `b46dd1e`, `133c08f` (fix: out-of-bounds raises InvalidFixationError)
+
+#### Files changed (16 total)
+
+Evaluators (8 scripts) — all now default to processed JSON via `--fixation-root`;
+legacy CSV behind explicit `--csv-compat`; no clamping path in processed/default
+mode; all reports include `"participant_input": track.provenance`:
+```
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py
+reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py
+reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py
+```
+
+Python batch launchers (3 scripts) — discover models from processed JSON
+(`<DATASET>_*/fixations.json`) by default; pass `--fixation-root` or
+`--csv-compat --csv-root` to evaluators; resume skips only when
+`participant_input` provenance matches current mode/timing contract:
+```
+test/launch/run_3dva_reference_batch.py
+test/launch/run_meshmamba_reference_batch.py
+test/launch/run_sal3d_reference_batch.py
+```
+
+Shell launchers (5 scripts) — accept `FIXATION_ROOT` / `CSV_COMPAT` env vars;
+default to `--fixation-root $FIXATION_ROOT`; `CSV_COMPAT=true` falls back to
+CSV with explicit `--csv-compat --csv-root`:
+```
+test/launch/run_3dva_screen_space.sh
+test/launch/run_3dva_raycast_cone.sh
+test/launch/run_meshmamba_baseline_screen_space.sh
+test/launch/run_meshmamba_baseline_cone.sh
+test/launch/run_sal3d_cone.sh
+```
+
+#### Key per-evaluator changes (shared pattern)
+
+- Removed local `@dataclass class FrameGazeBatch`; replaced with
+  `FrameGazeBatch = GazeBatch` alias imported from `utils.participant_loader`.
+- Removed `load_gaze_batches()` CSV function and all CSV imports (`ast`,
+  `defaultdict`, `dataclass`, `pandas`, `csv`).
+- Added `--fixation-root` and `--csv-compat` CLI args.
+- Added `_load_gaze_track(args, placement_path)` helper: routes to
+  `load_processed_track()` or `load_csv_compat_track()` based on flag.
+- Removed `"csv"` from `ensure_required_exist()` / `resolve_model_paths()`
+  return dicts in default mode.
+- Added `"participant_input": track.provenance` to every report dict.
+
+#### MeshMamba canonical_name
+
+`f"MeshMamba_{texture_type}_{model}"` — e.g. `MeshMamba_non_texture_Ice_Cream_V1_L3`.
+Consistent with approved A2 decision.
+
+#### Resume provenance contract (`_provenance_matches`)
+
+All three Python launchers check before reusing any existing report:
+- `input_mode` == `"processed_json"` (or `"csv_compat"` when `--csv-compat`)
+- `crop_start_seconds` ≈ 1.8 (±1e-6)
+- `crop_end_seconds` ≈ 0.2 (±1e-6)
+
+Reports with a different participant/timing contract trigger a rerun.
+
+#### Syntax checks
+
+```
+# All 8 evaluators
+python3 -c "import ast; ast.parse(...)"  →  all OK
+
+# All 5 shell launchers
+bash -n <script>  →  all OK
+```
+
+#### Known limitations
+
+1. **Smoke evidence not yet collected** — server execution is forbidden on
+   macOS worker. The A2 acceptance smoke tests (valid 3DVA model, MeshMamba
+   non+rgb, SAL3D, expected `jessi`/`gorgoile` failures) require server runs
+   that the reviewer/controller must authorize and execute.
+2. **MeshMamba rgb_texture batch launcher** — no dedicated `run_meshmamba_rgb_reference_batch.py`
+   was found in the repository; the existing `run_meshmamba_reference_batch.py`
+   handles both texture types via `--texture-type` arg. Migrated accordingly.
+3. **`eval_meshmamba_screen_space_v2.py`** — out-of-scope experimental variant;
+   not migrated per audit decision.
+
+#### Awaiting review
+
+Branch pushed. Requesting reviewer to:
+1. Verify all 16 changed files against A2 acceptance criteria.
+2. Run smoke tests on server (`jessi` expected failure, `gorgoile` expected
+   failure, one valid model each track/method).
+3. Confirm before A3 or any server jobs begin.
+
+---
+
+### A2 fix — env alias support — 2026-06-09
+
+**Branch:** `agent/macos-ingestion-release`
+**Blocking issue:** A2 code accepted only `FIXATION_ROOT`; server env files define
+`REPROJECT_PROCESSED_FIXATIONS_ROOT` and dataset-specific roots. Batch failed
+with `--fixation-root not found: None` after sourcing `configs/server_vg_intellect.env`.
+
+**Files changed (16):**
+
+All 8 evaluators — `--fixation-root` argparse default now checks env aliases in
+priority order via `next((...), None)`:
+- 3DVA (4 files): `FIXATION_ROOT` → `REPROJECT_PROCESSED_FIXATIONS_ROOT` → `THREE_DVA_PROCESSED_FIXATIONS_ROOT`
+- MeshMamba (2 files): `FIXATION_ROOT` → `REPROJECT_PROCESSED_FIXATIONS_ROOT` → `MESHMAMBA_PROCESSED_FIXATIONS_ROOT`
+- SAL3D (2 files): `FIXATION_ROOT` → `REPROJECT_PROCESSED_FIXATIONS_ROOT` → `SAL3D_PROCESSED_FIXATIONS_ROOT`
+
+Python batch launchers (3 files):
+- `run_3dva_reference_batch.py`: `_env_path()` call extended with 3DVA aliases
+- `run_meshmamba_reference_batch.py`: `resolve_fixation_root()` checks 3 keys; error message updated
+- `run_sal3d_reference_batch.py`: same pattern with SAL3D key
+
+Shell launchers (5 files): `FIXATION_ROOT` fallback chain extended:
+- 3DVA scripts: `…${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${THREE_DVA_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}`
+- MeshMamba scripts: `…${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${MESHMAMBA_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}`
+- SAL3D script: `…${REPROJECT_PROCESSED_FIXATIONS_ROOT:-${SAL3D_PROCESSED_FIXATIONS_ROOT:-${REPROJECT_FIXATION_ROOT:-}}}}`
+
+**Verified:** inline test confirms `REPROJECT_PROCESSED_FIXATIONS_ROOT` and
+dataset-specific env vars each resolve correctly; missing-all → `None` still
+triggers the existing validation error.
