@@ -363,8 +363,14 @@ def load_processed_track(
                 )
             x_px, y_px = float(point[0]), float(point[1])
             if x_px < 0 or x_px >= width or y_px < 0 or y_px >= height:
-                # Out-of-bounds: skip (do not clamp to edge).
-                continue
+                # Out-of-bounds in a validated release file is a data-contract
+                # violation (validate_data_contract.py confirms no valid release
+                # file contains such points).  Raise rather than silently drop.
+                raise InvalidFixationError(
+                    canonical_name,
+                    f"out-of-bounds pixel point at frame {gaze_idx}: "
+                    f"[{x_px}, {y_px}] outside {width}x{height}",
+                )
             xs.append(x_px / width)
             ys.append(y_px / height)
 

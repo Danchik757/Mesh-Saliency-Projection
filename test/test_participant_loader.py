@@ -294,9 +294,12 @@ def test_invalid_coordinate_raises():
             load_processed_track(fj, pj, dataset="3DVA", model="bad")
 
 
-# ── A1.4c: out-of-bounds points are silently dropped (not error) ──────────────
+# ── A1.4c: out-of-bounds points in processed JSON are a data-contract violation
 
-def test_out_of_bounds_points_dropped():
+def test_out_of_bounds_points_raises():
+    """An out-of-bounds pixel point in a processed fixation file is a data-contract
+    violation (validate_data_contract.py confirms no valid release file has any).
+    The loader must raise InvalidFixationError rather than silently dropping."""
     fps, duration = 30, 17
     total = fps * duration
     width, height = 1920, 1080
@@ -307,17 +310,14 @@ def test_out_of_bounds_points_dropped():
         fj = tmp / "fixations.json"
         _write_json(pj, _make_placement_json())
         data = _make_processed_fixations(total)
-        # Put one out-of-bounds point in usable frame 0 (placement frame 54)
+        # Inject an out-of-bounds point in usable frame 0 (processed index 0)
         data[0] = [[width + 10, height + 10], [100.0, 100.0]]
         _write_json(fj, data)
 
-        track = load_processed_track(fj, pj, dataset="3DVA", model="test")
+        with pytest.raises(InvalidFixationError) as exc_info:
+            load_processed_track(fj, pj, dataset="3DVA", model="test")
 
-    placement_start = track.placement_start  # 54
-    batch = track.gaze_batches[placement_start]
-    # Only the in-bounds point should be kept
-    assert len(batch.x_norm) == 1
-    assert abs(batch.x_norm[0] - 100.0 / width) < 1e-9
+    assert "out-of-bounds" in str(exc_info.value).lower()
 
 
 # ── A1.5: rotation-speed / full-turn validation ───────────────────────────────
