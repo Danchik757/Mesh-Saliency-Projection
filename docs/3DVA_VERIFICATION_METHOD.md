@@ -52,7 +52,11 @@
 - gaze CSV:
   `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA`
 - camera / animation JSON:
-  `/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/3DVA_json`
+  `/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons`
+
+Для benchmark-запусков canonical source now lives in the repository under
+`jsons/object_placement/3dva_jsons`. Внешний `GAZE_DATA/jsons_for_models/...`
+считается legacy source copy и нужен только для сравнительных диагностик.
 
 То есть проверка строилась так:
 

@@ -249,7 +249,7 @@ ls "$DATA3DVA/CombinedGT/" | grep combined_gt.txt | wc -l
 ```bash
 export VISUAL_ATTENTION_3D_SHAPES_ROOT="$DATA3DVA"
 export THREE_DVA_CSV_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA"
-export THREE_DVA_JSON_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/jsons_for_models/3DVA_json"
+export THREE_DVA_JSON_ROOT="$REPO/jsons/object_placement/3dva_jsons"
 export THREE_DVA_COMBINED_GT_DIR="$DATA3DVA/CombinedGT"
 
 "$PYTHON" "$REPO/test/launch/run_3dva_reference_batch.py" \
@@ -269,10 +269,10 @@ results/benchmark_runs/3dva_combined/2026-06-07_3dva_combined/
   3dva_combined_wide.csv       — одна строка на модель, методы рядом
   3dva_combined_summary.csv    — mean/median по методу
   baseline_screen_space/
-    bunny/sigpx49p0_recenter_fov35p9834_combined/bunny_report.json
+    bunny/sigpx49p0_recenter_fovh2v_combined/bunny_report.json
     ...
   baseline_cone/
-    bunny/recenter_fov35p9834_combined/bunny_report.json
+    bunny/recenter_fovh2v_combined/bunny_report.json
     ...
 ```
 
@@ -318,7 +318,7 @@ for method in ("screen_space", "cone", "raycast"):
 | Правило | Значение |
 |---------|---------|
 | OBJ: `3DModels-Simplif-up/` | ❌ Никогда `3DModels-Simplif/` (неправильные оси) |
-| FOV: `--override-fov-deg 35.9834` | ❌ Не `--projection-fov-mode h2v` (это MeshMamba/SAL3D) |
+| FOV: `--projection-fov-mode horizontal_to_vertical` | Для диагностики допустим эквивалент `--override-fov-deg 35.9834 --projection-fov-mode vertical` |
 | sigma: 49px | ❌ Не 26.3px (SAL3D) и не 96px (старый баг) |
 | Метрики: `metrics_covered_only` | ❌ Не `metrics_full` для итоговых таблиц |
 | A380: `--video-id 2365` | Без этого данные участников перемешаются |
@@ -330,7 +330,7 @@ for method in ("screen_space", "cone", "raycast"):
 |------|-------|
 | `trash/Claude.md` | Полная история сессий 1–19 (неприкосновенен) |
 | `docs/3DVA_COMBINED_GT_IMPLEMENTATION.md` | Полное описание GT и batch runner |
-| `docs/CHAT_HANDOFF.md` | Краткий справочник по всему проекту |
+| `docs/README.md` | Точка входа в актуальную документацию проекта |
 | `datasets/3DVA_DATASET.md` | Подробное описание 3DVA: структура, GT, paper |
 
 ### Вопрос к GPT (если нужна консультация)

@@ -179,7 +179,7 @@ python3 reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py 
   --output-dir     results/3dva_cone_combined \
   --sigma-deg 1.0 \
   --recenter-to-bbox-center \
-  --override-fov-deg 35.9834
+  --projection-fov-mode horizontal_to_vertical
 # A380 requires: --video-id 2365
 ```
 
@@ -221,7 +221,7 @@ python3 reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combin
   --output-dir     results/3dva_screen_space_combined \
   --sigma-px 49.0 \
   --recenter-to-bbox-center \
-  --override-fov-deg 35.9834
+  --projection-fov-mode horizontal_to_vertical
 # A380 requires: --video-id 2365
 ```
 
@@ -253,7 +253,7 @@ Parallel batch runner for all 32 models, both methods.
 # Set env vars first
 export VISUAL_ATTENTION_3D_SHAPES_ROOT=/path/to/3DVA
 export THREE_DVA_CSV_ROOT=/path/to/csv_for_models/3DVA
-export THREE_DVA_JSON_ROOT=/path/to/jsons_for_models/3DVA_json
+export THREE_DVA_JSON_ROOT=/path/to/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons
 export THREE_DVA_COMBINED_GT_DIR=/path/to/3DVA/CombinedGT  # or pass as CLI arg
 
 # Pilot: 3 models
@@ -283,10 +283,10 @@ batch-output-dir/
   3dva_combined_wide.csv      one row per model, methods side-by-side
   3dva_combined_summary.csv   mean/median per method
   baseline_screen_space/
-    bunny/sigpx49p0_recenter_fov35p9834_combined/bunny_report.json
+    bunny/sigpx49p0_recenter_fovh2v_combined/bunny_report.json
     ...
   baseline_cone/
-    bunny/recenter_fov35p9834_combined/bunny_report.json
+    bunny/recenter_fovh2v_combined/bunny_report.json
     ...
   _logs/
     screen_space/bunny.log
@@ -304,7 +304,7 @@ new scripts. Do not undo these fixes when extending or copying code.
 | Bug | Fixed in | What the fix is |
 |-----|----------|-----------------|
 | **Recenter order** | session 3 | `bbox_center` computed from ORIGINAL vertices BEFORE `base_rotate_z`. The new scripts implement this correctly in `apply_model_transform()`. |
-| **FOV for 3DVA** | session 9 | Use `--override-fov-deg 35.9834`. Do NOT add `--projection-fov-mode horizontal_to_vertical` — that flag exists in MeshMamba/SAL3D scripts but NOT in 3DVA scripts. |
+| **FOV for 3DVA** | current | Use `--projection-fov-mode horizontal_to_vertical` for new runs. `--override-fov-deg 35.9834 --projection-fov-mode vertical` remains equivalent for diagnostics. |
 | **sigma for screen_space** | session 17 | σ=49px at 1920×1080 (≈1° visual angle, 3DVA paper setup). v1 bug was σ=0.05×256=12.8px@256=96px@1920 (3.6× too wide). SAL3D uses σ=26.3px — different setup, do not mix. |
 | **Bilinear deposition** | session 17 | `bilinear_deposit()` function (not `np.add.at` nearest-neighbour). Already in v2 screen_space. |
 | **Back-face filter** | session 9 | `screen_xy[w_clip <= 0] = -1.0` — already in all screen_space scripts. |

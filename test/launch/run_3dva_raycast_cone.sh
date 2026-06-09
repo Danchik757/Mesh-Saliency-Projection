@@ -24,13 +24,14 @@
 #   RECENTER_TO_BBOX_CENTER=false
 #   BASE_ROTATE_Z_DEG=0    — optional static Z correction; keep 0 unless explicitly validated
 #   EXTRA_ROTATE_X_DEG=0.0
-#   OVERRIDE_FOV_DEG=35.9834 — authoritative vertical FOV for 60° horizontal on 16:9
+#   PROJECTION_FOV_MODE=horizontal_to_vertical
+#   OVERRIDE_FOV_DEG=""   — optional FOV override interpreted by PROJECTION_FOV_MODE
 #   VIDEO_ID=""            — optional CSV session filter, needed for mixed-session cases like A380
 #
 # Per-model geometry calibration notes:
 #   Per-model overrides must currently be applied by running the script once per
 #   model with the appropriate env vars set, or by calling eval_3dva_raycast_cone.py
-#   directly with --recenter-to-bbox-center / --extra-rotate-x-deg / --override-fov-deg.
+#   directly with --recenter-to-bbox-center / --extra-rotate-x-deg / --projection-fov-mode.
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -56,7 +57,8 @@ RADIUS_SIGMA_MULT="${RADIUS_SIGMA_MULT:-3.0}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
 BASE_ROTATE_Z_DEG="${BASE_ROTATE_Z_DEG:-0}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-0.0}"
-OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-35.9834}"
+PROJECTION_FOV_MODE="${PROJECTION_FOV_MODE:-horizontal_to_vertical}"
+OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
 VIDEO_ID="${VIDEO_ID:-}"
 
 OUTPUT_DIR="${OUTPUT_ROOT}/3DVA/raycast_cone"
@@ -70,7 +72,7 @@ echo "[run_3dva_raycast_cone] output_dir=${OUTPUT_DIR}"
 echo "[run_3dva_raycast_cone] python_bin=${PYTHON_BIN}"
 echo "[run_3dva_raycast_cone] workers=${WORKERS}  nice=${NICE_LEVEL}"
 echo "[run_3dva_raycast_cone] sigma_deg=${SIGMA_DEG}  radius_sigma_mult=${RADIUS_SIGMA_MULT}"
-echo "[run_3dva_raycast_cone] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  override_fov=${OVERRIDE_FOV_DEG}  video_id=${VIDEO_ID:-<all>}"
+echo "[run_3dva_raycast_cone] recenter=${RECENTER_TO_BBOX_CENTER}  base_rotate_z=${BASE_ROTATE_Z_DEG}  extra_rotate_x=${EXTRA_ROTATE_X_DEG}  projection_fov_mode=${PROJECTION_FOV_MODE}  override_fov=${OVERRIDE_FOV_DEG:-<json/default>}  video_id=${VIDEO_ID:-<all>}"
 echo "[run_3dva_raycast_cone] objects=${PILOT_OBJECTS}"
 
 build_recenter_flag() {
@@ -83,7 +85,7 @@ build_recenter_flag() {
 
 run_model() {
   local model="$1"
-  local extra_args=()
+  local extra_args=(--projection-fov-mode "${PROJECTION_FOV_MODE}")
 
   if [ -n "${OVERRIDE_FOV_DEG}" ]; then
     extra_args+=(--override-fov-deg "${OVERRIDE_FOV_DEG}")

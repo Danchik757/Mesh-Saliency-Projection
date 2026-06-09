@@ -2,9 +2,14 @@
 
 Last updated: 2026-05-30 (videos reorganized)
 
+> **Historical reference only.** Server paths in this file are stale and must
+> not be used for new agent work. The only allowed server working root is
+> `/mnt/ssd1/29d_kon/acm_2026` on both servers. Use
+> `coordination/SERVER_GIT_POLICY.md` and `coordination/DATA_CONTRACT.md`.
+
 This file is the path reference for where every type of file lives.
 For authoritative eval recipes and transform/FOV policy, use
-`trash/EVAL_RUNBOOK.md` instead of this file.
+`docs/EVAL_RUNBOOK.md` instead of this file.
 
 ---
 

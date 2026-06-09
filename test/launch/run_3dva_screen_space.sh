@@ -22,7 +22,8 @@
 #   SIGMA_PX               — Gaussian sigma in pixels at 1920×1080 (default: 49.0)
 #   RECENTER_TO_BBOX_CENTER— true/false (default: true)
 #   EXTRA_ROTATE_X_DEG     — extra X rotation in degrees (default: 0)
-#   OVERRIDE_FOV_DEG       — authoritative vertical FOV; default 35.9834
+#   PROJECTION_FOV_MODE    — vertical | horizontal_to_vertical | json (default: horizontal_to_vertical)
+#   OVERRIDE_FOV_DEG       — optional FOV override interpreted by PROJECTION_FOV_MODE
 #   VIDEO_ID               — optional CSV session filter, e.g. A380
 #   WORKERS                — parallel workers (default: 4)
 #   NICE_LEVEL             — nice priority (default: 10)
@@ -46,7 +47,8 @@ PILOT_OBJECTS="${PILOT_OBJECTS:-${ALL_MODELS}}"
 SIGMA_PX="${SIGMA_PX:-49.0}"
 RECENTER_TO_BBOX_CENTER="${RECENTER_TO_BBOX_CENTER:-true}"
 EXTRA_ROTATE_X_DEG="${EXTRA_ROTATE_X_DEG:-0}"
-OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-35.9834}"
+PROJECTION_FOV_MODE="${PROJECTION_FOV_MODE:-horizontal_to_vertical}"
+OVERRIDE_FOV_DEG="${OVERRIDE_FOV_DEG:-}"
 VIDEO_ID="${VIDEO_ID:-}"
 WORKERS="${WORKERS:-4}"
 NICE_LEVEL="${NICE_LEVEL:-10}"
@@ -61,10 +63,10 @@ else
     RECENTER_FLAG="--no-recenter-to-bbox-center"
 fi
 
-# Build override-fov/video-id flags
-FOV_FLAG=""
+# Build projection/video-id flags
+PROJECTION_FLAGS=(--projection-fov-mode "${PROJECTION_FOV_MODE}")
 if [ -n "${OVERRIDE_FOV_DEG}" ]; then
-    FOV_FLAG="--override-fov-deg ${OVERRIDE_FOV_DEG}"
+    PROJECTION_FLAGS+=(--override-fov-deg "${OVERRIDE_FOV_DEG}")
 fi
 VIDEO_ID_FLAG=""
 if [ -n "${VIDEO_ID}" ]; then
@@ -80,7 +82,8 @@ echo "  python_bin   : ${PYTHON_BIN}"
 echo "  sigma_px     : ${SIGMA_PX}  (v2: absolute px at 1920px; 49=1° viz angle)"
 echo "  recenter     : ${RECENTER_TO_BBOX_CENTER}"
 echo "  extra_rot_x  : ${EXTRA_ROTATE_X_DEG}"
-echo "  override_fov : ${OVERRIDE_FOV_DEG}"
+echo "  projection_fov_mode : ${PROJECTION_FOV_MODE}"
+echo "  override_fov        : ${OVERRIDE_FOV_DEG:-<json/default>}"
 echo "  video_id     : ${VIDEO_ID:-<all>}"
 echo "  workers      : ${WORKERS}  nice : ${NICE_LEVEL}"
 echo "  models       : ${PILOT_OBJECTS}"
@@ -99,7 +102,7 @@ run_one() {
         --sigma-px "${SIGMA_PX}" \
         ${RECENTER_FLAG} \
         --extra-rotate-x-deg "${EXTRA_ROTATE_X_DEG}" \
-        ${FOV_FLAG} \
+        "${PROJECTION_FLAGS[@]}" \
         ${VIDEO_ID_FLAG} \
         >> "${log}" 2>&1
     echo "[$(date +%H:%M:%S)] DONE  ${model}" | tee -a "${log}"
@@ -107,19 +110,33 @@ run_one() {
 
 export -f run_one
 export OUT_DIR EVAL_SCRIPT PYTHON_BIN VISUAL_ATTENTION_3D_SHAPES_ROOT THREE_DVA_CSV_ROOT \
-       THREE_DVA_JSON_ROOT SIGMA_SCREEN RECENTER_FLAG FOV_FLAG VIDEO_ID_FLAG EXTRA_ROTATE_X_DEG NICE_LEVEL
+       THREE_DVA_JSON_ROOT SIGMA_PX RECENTER_FLAG VIDEO_ID_FLAG EXTRA_ROTATE_X_DEG \
+       PROJECTION_FOV_MODE OVERRIDE_FOV_DEG NICE_LEVEL
 
 # Parallel pool
 active=0
+failures=0
 for model in ${PILOT_OBJECTS}; do
     run_one "${model}" &
     active=$((active + 1))
     if [ "${active}" -ge "${WORKERS}" ]; then
-        wait -n 2>/dev/null || wait
+        if ! wait -n; then
+            failures=$((failures + 1))
+        fi
         active=$((active - 1))
     fi
 done
-wait
+while [ "${active}" -gt 0 ]; do
+    if ! wait -n; then
+        failures=$((failures + 1))
+    fi
+    active=$((active - 1))
+done
+
+if [ "${failures}" -ne 0 ]; then
+    echo "ERROR: ${failures} model run(s) failed. Inspect ${OUT_DIR}/*_run.log." >&2
+    exit 1
+fi
 
 echo ""
 echo "=== All done. Logs in ${OUT_DIR}/*_run.log ==="

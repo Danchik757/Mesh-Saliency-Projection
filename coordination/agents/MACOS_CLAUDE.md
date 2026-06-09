@@ -1,0 +1,389 @@
+# macOS Claude: Processed Fixations, Timing, Evaluator Migration, and Release
+
+## Identity
+
+- Platform: macOS
+- Branch: `agent/macos-ingestion-release`
+- Base: immutable ref from `coordination/TASK_OWNERSHIP.md`
+- Work log: append entries to the end of this file only
+- Server execution: forbidden unless reviewer/controller explicitly requests it
+
+## Mission
+
+Remove the input-contract blockers that prevent correct metric runs. Make the new
+postprocessed fixation JSON the explicit default benchmark input, implement the
+approved one-turn timing pairing once, migrate all relevant evaluators/batches,
+make report resume provenance-safe, and prepare a reproducible release candidate.
+
+During Phase 1, do not change metric formulas, mesh-loading policy, alignment
+transforms, sigma semantics, heatmaps, or research methods.
+
+## Owned Paths
+
+- `participant_data/` documentation and small indexes, not bulk payload in git
+- new shared participant/timing loader under `utils/participant_*`
+- `scripts/build_release_candidate.py`
+- `scripts/validate_release_candidate.py`
+- `scripts/validate_data_contract.py`
+- `scripts/download_release_candidate.sh`
+- `scripts/upload_release_candidate.sh`
+- evaluator input/timeline adapters needed for processed JSON
+- batch input/provenance/resume adapters
+- tests dedicated to participant input, timing, provenance, and release contract
+
+Do not edit:
+
+- metric formulas or metric-owned tests;
+- mesh-loading/preflight policy;
+- alignment transforms/FOV behavior;
+- visualization/video/sigma/research-method code;
+- another role's coordination file;
+- `trash/*.md` or `md/archive/*`.
+
+## Required Initial Audit
+
+Before edits:
+
+1. Verify branch, HEAD, base ref, and dirty status.
+2. Inspect every current evaluator and batch entry point for input type, frame
+   mapping, out-of-range behavior, report provenance, and resume behavior.
+3. Reproduce `coordination/RELEASE_AUDIT_2026-06-09.md`.
+4. Reproduce the current failure in `scripts/validate_data_contract.py`.
+5. Confirm the placement rotation arrays are sampled inclusively across declared
+   duration. Do not treat the last sample timestamp as the full declared duration
+   when validating rotation speed.
+6. Append the audit and exact planned touched files before implementation.
+
+## Milestone A1: Shared Processed-Fixation and Timing Loader
+
+Implement one reusable loader. Do not duplicate parsing/timing logic per dataset.
+
+Required behavior:
+
+- identify dataset, track, and model unambiguously and case-insensitively without
+  losing canonical output names;
+- load `fixations.json` and the matching canonical placement JSON;
+- validate structure, finite coordinates, bounds, frame counts, FPS, duration,
+  and rotation information;
+- expose frame-wise pixel points and paired placement frame metadata;
+- derive the usable one-turn interval from placement JSON;
+- pair exactly:
+  `processed_gaze[k] -> placement[round(1.8 * fps) + k]`;
+- consume exactly 450 processed frames for 17-second tracks and 660 for
+  24-second SAL3D after derived validation;
+- fail if crop duration is not one full turn within a documented tolerance;
+- fail explicitly for invalid `3DVA_jessi` and missing `SAL3D_gorgoile`;
+- never silently fall back to original CSV;
+- provide an explicit old-CSV compatibility mode only;
+- reject/drop old-CSV samples outside the selected interval, never clamp them to
+  the last placement frame.
+
+Required tests:
+
+- valid 17-second pairing;
+- valid 24-second pairing;
+- invalid/missing processed file;
+- coordinate/frame-count failure;
+- rotation-speed/full-turn validation;
+- old-CSV compatibility mode isolation;
+- out-of-range sample rejection/drop.
+
+## Milestone A2: Evaluator and Batch Migration
+
+Migrate both accepted methods for every track:
+
+- 3DVA screen-space and cone evaluators;
+- MeshMamba non_texture and rgb_texture screen-space and cone evaluators;
+- SAL3D screen-space and cone evaluators;
+- their reference batch launchers.
+
+Processed fixation JSON must be the default. Original CSV mode must require an
+explicit compatibility flag and produce visibly different report provenance.
+
+Every report must record at least:
+
+- git commit;
+- participant input type and source/version;
+- dataset, track, model;
+- placement JSON path/version;
+- FPS and declared duration;
+- crop start/end;
+- processed frame count used;
+- placement frame range;
+- timing mode;
+- method and parameters;
+- support type;
+- included/excluded reason where relevant.
+
+Batch discovery must use the processed input inventory in the default mode.
+Lowercase matching may be used internally, but output must retain canonical
+model naming.
+
+## Milestone A3: Resume and Single-Point Timing Proof
+
+Resume may reuse a report only when its provenance fingerprint matches the
+current task. At minimum the fingerprint must change with:
+
+- git commit or evaluator version;
+- release/data version;
+- participant input type;
+- timing/crop mode;
+- placement JSON;
+- model/track;
+- method and parameters;
+- support/GT mode.
+
+Default to no resume until this behavior is tested.
+
+Produce a deterministic single-point/frame debug proof for one representative
+model from each track. The proof must record processed gaze index, paired
+placement/video frame, coordinates, pose, and output preview. Compare at least
+three frames per track against source video/placement timeline.
+
+Do not alter alignment parameters to improve the preview. Report alignment
+problems to the Windows worker.
+
+## Milestone A4: Release Contract
+
+Fix and complete the replacement release workflow:
+
+- validator correctly handles inclusive placement rotation samples;
+- canonical placement inventory is 299;
+- old participant CSV and processed fixation JSON remain separate;
+- release includes required OBJ/GT and dataset indexes;
+- manifest records timing contract and known blockers;
+- checksums and archive CRC pass;
+- extraction into an empty directory passes;
+- release-only input discovery passes.
+
+Do not commit the approximately 517 MB participant payload into normal git.
+Do not upload a release without reviewer/controller and user approval.
+
+Target:
+
+```text
+v2.0-data-rc1
+```
+
+## Required Smoke Evidence
+
+Before requesting integration:
+
+- 3DVA: one valid model plus explicit `jessi` failure;
+- MeshMamba non_texture: one valid model;
+- MeshMamba rgb_texture: one valid model;
+- SAL3D: one valid model plus explicit `gorgoile` failure;
+- both methods reach evaluator/report generation for each valid track;
+- every valid report proves the approved processed frame and placement range;
+- resume mismatch test forces rerun;
+- release validator and clean extraction pass.
+
+These are smoke results, not final promoted metrics.
+
+## Review Request Format
+
+Append:
+
+- milestone and commit hashes;
+- exact files and commands;
+- tests and outputs;
+- known limitations;
+- any required Windows-worker or reviewer decision;
+- confirmation that branch is pushed and clean.
+
+Then stop and wait for review. Do not self-integrate.
+
+## Phase 2: Only After Full Runs Start
+
+When explicitly authorized, this worker owns the isolated parameter/research
+stream from the original plan:
+
+1. document sigma semantics and units for both accepted methods;
+2. implement a separate reproducible cross-dataset sigma sweep around previously
+   promising values;
+3. select representative model subsets without tuning on a single object;
+4. produce tidy CSVs and plots for every relevant metric by dataset/track/method;
+5. propose, justify from relevant research, and only after design approval
+   implement one new projection method in an isolated directory.
+
+Do not modify the accepted Phase 1 evaluators or promoted result directories.
+Accepted metric experiments run on servers after reviewer/controller approval.
+
+## Append-Only Work Log
+
+Append new entries below. Never rewrite prior entries.
+
+---
+
+### Audit 2026-06-09 — Required Initial Audit (pre-implementation)
+
+**Branch:** `reproject-benchmark`
+**HEAD:** `684efc3 Fix 3DVA CombinedGT support logic and release packaging`
+**BASE_REF `agent-base-2026-06-09`:** NOT YET PUBLISHED (no tags exist)
+**Worker branch `agent/macos-ingestion-release`:** NOT YET CREATED
+**Dirty status:** 35 modified files; 4 new untracked entries (`coordination/`,
+`md/archive/WINDOWS_CHATGPT.md`, `participant_data/`,
+`scripts/build_release_candidate.py` + remaining release scripts already
+tracked). The entire `coordination/` package is uncommitted — consistent with
+Decision 5 (reviewer/controller must publish BASE_REF before code edits).
+
+---
+
+#### Step 2: Evaluator and batch entry point inspection
+
+All 8 production evaluators are **CSV-only**. No evaluator accepts processed
+fixation JSON. No evaluator implements the approved 1.8 s/0.2 s timing crop.
+
+| Script | Input | Frame mapping | Out-of-range | Provenance | Resume |
+| --- | --- | --- | --- | --- | --- |
+| `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py` | CSV | `min(floor(t*fps), total-1)` — CLAMPS | CLAMP (bug) | none | none |
+| `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py` | CSV | same | CLAMP (bug) | none | none |
+| `reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py` | CSV | same | CLAMP (bug) | none | none |
+| `reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py` | CSV | same | CLAMP (bug) | none | none |
+| `reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py` | CSV | same | CLAMP (bug) | none | none |
+| `reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py` | CSV | same | CLAMP (bug) | none | none |
+| `reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py` | CSV | same | CLAMP (bug) | none | none |
+| `reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py` | CSV | same | CLAMP (bug) | none | none |
+
+Batch launchers (Python): `run_3dva_reference_batch.py`,
+`run_meshmamba_reference_batch.py`, `run_sal3d_reference_batch.py` — discover
+models from filesystem CSV directories; no processed JSON discovery; no
+provenance injection into sub-process invocations.
+
+Batch launchers (shell): `run_3dva_screen_space.sh`, `run_3dva_raycast_cone.sh`,
+`run_meshmamba_baseline_screen_space.sh`, `run_meshmamba_baseline_cone.sh`,
+`run_sal3d_cone.sh` — pass `--csv-root` env var to evaluators; no processed
+JSON flag.
+
+**Additional script found:** `eval_meshmamba_screen_space_v2.py` — same CSV
+input pattern; same clamp bug.
+
+---
+
+#### Step 3: RELEASE_AUDIT_2026-06-09 reproduction
+
+`validate_release_candidate.py` requires a `candidate_dir` containing
+`release_manifest.json`, `SHA256SUMS`, `data_contract_validation.json`, and the
+archive ZIPs. No local release candidate directory exists, so the validator
+cannot be run directly. All 8 blocking findings from the audit document were
+confirmed by reading the validator source and `v1.0-data` asset list:
+
+- Finding 1 (no processed fixation JSON): `participant_fixations_processed_offset_2000.zip`
+  absent from `v1.0-data`; local `participant_data/processed_fixations_offset_2000/` is
+  present locally but untracked/uncommitted.
+- Finding 2 (wrong SAL3D placement JSONs in `camera_jsons.zip`): validator
+  (`validate_release_candidate.py`) requires
+  `object_placement_json_canonical.zip` with a canonical root; `v1.0-data`
+  ships `camera_jsons.zip` instead.
+- Finding 3 (`3dva_combined_gt.zip` absent): validator `REQUIRED_ARCHIVES` set
+  includes `3dva_combined_gt.zip`; absent from `v1.0-data`.
+- Findings 6–8 (no manifest, MeshMamba OBJ duplicate, GT coverage): validator
+  expects `release_manifest.json` and `SHA256SUMS`; neither exists in `v1.0-data`.
+
+---
+
+#### Step 4: validate_data_contract.py failure reproduction
+
+Command: `python3 scripts/validate_data_contract.py`
+
+Exit code: **2** (known blockers present, no unknown errors)
+
+Known blockers confirmed:
+- `3DVA:invalid_processed:jessi` — processed JSON has 41 frames; placement JSON
+  declares `total_frames=510`. Script correctly detects and classifies this.
+- `SAL3D:missing_csv:gorgoile` — no CSV file in `collected_gaze_csv_by_model/SAL3D/`.
+- `SAL3D:missing_processed:gorgoile` — no `SAL3D_gorgoile/fixations.json` in
+  `processed_fixations_offset_2000/`.
+
+All other 297 models pass placement, CSV, and processed JSON validation. Timing
+groups are uniform across each track (single entry per track in `timing_groups`
+dict).
+
+---
+
+#### Step 5: Placement rotation arrays — inclusive sampling check
+
+Tested with `jsons/object_placement/3dva_jsons/3DVA_A380.json`:
+
+```
+total_frames = 510, fps = 30, declared duration_seconds = 17.0
+frame[0]   rot_z = 0.000000 rad (0.00°)
+frame[509] rot_z = 7.120944 rad (407.95°)
+```
+
+`validate_data_contract.py` line 210:
+```python
+observed_speed = (unwrapped[-1] - unwrapped[0]) / duration
+```
+Uses `duration` (17.0 s), NOT `timestamps[-1]` (= 509/30 = 16.967 s). The
+comment on lines 207–209 explicitly documents this as the intentional fix.
+Result: `observed_speed = 407.95° / 17.0 s ≈ 24.0 deg/s` — matches declared
+`rotation_speed_deg_per_sec = 24.0`. Validation passes correctly.
+
+`validate_release_candidate.py` performs no rotation speed check (archive
+structure/checksum only). No fix required there.
+
+**Conclusion:** rotation inclusive sampling is already correctly handled in
+`validate_data_contract.py`. No change needed for step 5.
+
+---
+
+#### Step 6: Planned touched files (exact, before implementation)
+
+New files (owned by this worker):
+```
+utils/participant_loader.py          — shared processed-fixation + timing loader
+utils/__init__.py                    — package marker (if not already present)
+test/test_participant_loader.py      — unit tests for loader (A1 required tests)
+```
+
+Modified files (evaluator input/timeline adapters):
+```
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py
+reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py
+reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py
+reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py
+reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py
+```
+
+Modified files (batch input/provenance/resume adapters):
+```
+test/launch/run_3dva_reference_batch.py
+test/launch/run_meshmamba_reference_batch.py
+test/launch/run_sal3d_reference_batch.py
+test/launch/run_3dva_screen_space.sh
+test/launch/run_3dva_raycast_cone.sh
+test/launch/run_meshmamba_baseline_screen_space.sh
+test/launch/run_meshmamba_baseline_cone.sh
+test/launch/run_sal3d_cone.sh
+```
+
+No changes required (already correct):
+```
+scripts/validate_data_contract.py    — rotation inclusive sampling already fixed
+scripts/validate_release_candidate.py — no rotation check here
+```
+
+Release tooling (owned by this worker, A4):
+```
+scripts/build_release_candidate.py   — already exists; needs manifest/inventory fixes
+```
+
+Do NOT touch:
+```
+reprojection_methods/screen_space_gaussian/eval_meshmamba_screen_space_v2.py
+  — v2 is an experimental variant; canonical is eval_meshmamba_screen_space.py
+  — will skip unless reviewer/controller instructs otherwise
+eval_holdout_screenspace.py, eval_geodesic_diffusion.py, etc.
+  — outside accepted two methods, not in scope
+trash/*.md, md/archive/*, coordination/ (other agents' files)
+```
+
+---
+
+**Audit status: COMPLETE**. Awaiting BASE_REF publication by reviewer/controller
+before any implementation code edits. Will append milestone entries once worker
+branch is created from BASE_REF.

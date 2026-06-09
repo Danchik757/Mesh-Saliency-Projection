@@ -1,22 +1,24 @@
 {
-  "purpose": "summary of repository-local JSON organization and dataset model indexes",
+  "purpose": "platform-independent summary of repository and release data organization",
   "object_placement_root": "jsons/object_placement",
   "dataset_model_info_root": "jsons/dataset_model_info",
-  "participant_data_location": {
-    "format": "csv",
-    "local_roots": {
-      "3DVA:3dva": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/3DVA",
-      "MeshMamba:non_texture": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/MeshMamba_non_texture",
-      "MeshMamba:rgb_texture": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/MeshMamba_rgb_texture",
-      "SAL3D:sal3d": "/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA/csv_for_models/SAL3D"
+  "participant_data_contract": {
+    "default": "processed_fixations_json",
+    "compatibility_only": "original_csv",
+    "automatic_fallback_allowed": false,
+    "repository_staging_roots": {
+      "processed_fixations_json": "participant_data/processed_fixations_offset_2000",
+      "original_csv": "participant_data/collected_gaze_csv_by_model"
     },
-    "server_roots": {
-      "3DVA:3dva": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/3DVA/csv",
-      "MeshMamba:non_texture": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/MeshMamba_non_texture/csv",
-      "MeshMamba:rgb_texture": "/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/MeshMamba_rgb_texture/csv",
-      "SAL3D:sal3d": "/home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/reproject_release_v1/gaze_csv/SAL3D"
-    },
-    "note": "There are no participant-observation JSONs in the repo; repo JSONs describe camera/object placement."
+    "release_roots": {
+      "processed_fixations_json": "participant_fixations_processed_offset_2000",
+      "original_csv": "participant_gaze_csv_original"
+    }
+  },
+  "timing_contract": {
+    "crop_start_seconds": 1.8,
+    "crop_end_seconds": 0.2,
+    "derive_full_turn_from_placement_json": true
   },
   "datasets": [
     {

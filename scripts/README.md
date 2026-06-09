@@ -2,13 +2,46 @@
 
 Utility scripts for dataset management and method comparison.
 
+The current GitHub Release `v1.0-data` is a historical release and is not
+approved for the next benchmark generation. Read
+[`coordination/RELEASE_AUDIT_2026-06-09.md`](../coordination/RELEASE_AUDIT_2026-06-09.md)
+before using the lifecycle scripts below. Release-contract corrections are owned
+by the macOS Claude workstream.
+
 ## Dataset lifecycle
 
 | Script | When to run | What it does |
 |--------|-------------|--------------|
+| `validate_data_contract.py` | Before packaging or benchmark migration | Separately validates canonical placement JSON, original participant CSV, and processed fixation JSON |
+| `build_release_candidate.py` | Build the next versioned benchmark input | Creates explicit v2 archives, manifest, and SHA-256 checksums |
+| `validate_release_candidate.py` | Before upload and after download | Validates manifest, checksums, ZIP CRC, and participant data separation |
+| `upload_release_candidate.sh` | After coordinator approval | Creates a new prerelease and uploads a validated candidate |
+| `download_release_candidate.sh` | On each agent/server clone | Downloads, validates, and extracts a candidate into an isolated data root |
 | `package_datasets.sh` | Once on the data machine | Zips all local datasets into `release_assets/*.zip` |
 | `upload_release.sh` | Once after packaging | Creates GitHub Release `v1.0-data` and uploads all ZIPs |
 | `download_datasets.sh` | On every new machine | Downloads ZIPs from the release and extracts them |
+
+The last three scripts are retained for the historical `v1.0-data` workflow.
+New work must use the release-candidate scripts.
+
+### v2 release candidate
+
+```bash
+python3 scripts/validate_data_contract.py --allow-known-blockers
+python3 scripts/build_release_candidate.py \
+    --include-videos \
+    --include-sal3d-smooth-gaze
+python3 scripts/validate_release_candidate.py release_assets/v2.0-data-rc1
+```
+
+Participant archives are intentionally separate:
+
+```text
+participant_gaze_csv_original.zip
+participant_fixations_processed_offset_2000.zip
+```
+
+There is no automatic fallback between them.
 
 ### package_datasets.sh
 

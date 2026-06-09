@@ -4238,3 +4238,89 @@ but those are SAME-CONDITION comparisons (everyone watching same static images).
    but cone results are correct. v2 re-run is desirable but not urgent.
 3. SAL3D full run still pending (50 models × 2 methods)
 
+---
+
+## 2026-06-07 MSK (session 20 fixes — code audit + bug fixes)
+Role: Claude
+Commit: UNCOMMITTED
+Scope: Code audit of all 3DVA eval scripts + 4 targeted fixes applied.
+
+### Findings from audit
+
+1. **JSON projection_matrix bug (CONFIRMED numerically)**
+   `P[0,0]=0.9743, P[1,1]=1.7321` → encodes vertical 60° FOV (WRONG).
+   Correct matrix (horizontal_to_vertical): `P[0,0]=1.7321, P[1,1]=3.0792`.
+   Max diff = 1.347. Already fixed by h2v default. Warning added to all 4 scripts.
+
+2. **Blender preview renderer — WORKBENCH → EEVEE (A1)**
+   Root cause of bunny canonical IoU=0.6268 (session 20) vs 0.978 (session 5):
+   WORKBENCH engine with `film_transparent=True` on macOS does NOT write
+   alpha channel — all zeros. Mask extraction falls back to RGB distance from
+   corner background. Mesh renders same grey as background → wrong mask.
+   Fix: switched to EEVEE engine + emission material (shadeless, no lights needed).
+   With EEVEE, alpha channel is valid (mesh=1, background=0) → correct mask.
+
+3. **Recenter order inconsistency (B1) — fixed in `eval_3dva_screen_space.py`**
+   Old: `recenter → base_rotZ → scale → rotZ_anim → ...` (wrong order)
+   New: `base_rotZ → recenter (using original bbox) → scale → rotZ_anim → ...`
+   Matches `apply_model_transform` in cone/raycast scripts and Blender render pipeline.
+   Pass `0.0` to `_apply_transform_no_recenter` since base_rotZ already applied.
+   NOTE: `eval_3dva_screen_space_combined.py` was already correct — not changed.
+
+4. **Warnings for `--projection-fov-mode json` (B2)**
+   Added stderr warning in `main()` of all 4 eval scripts.
+
+5. **Cone method optimization (C1) in both cone scripts**
+   - `mesh.copy()` (deep copy) → `trimesh.Trimesh(vertices=verts_t, faces=mesh.faces, process=False)`
+   - `vtree.query_ball_point` now called once per frame with `sigma_med` (batch)
+     instead of N individual calls; per-point weight still uses individual sigma.
+
+### Files changed
+- `test/blender_canonical/render_preview_from_manifest_blender.py` (A1)
+- `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py` (B1, B2)
+- `reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py` (B2, C1)
+- `reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py` (B2, C1)
+- `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py` (B2)
+
+### Verification
+- `py_compile` passed for all 5 files.
+- json-mode warning confirmed printed for `eval_3dva_raycast_cone.py --projection-fov-mode json`.
+- Functional smoke tests for bunny (screen_space + cone) running in background.
+
+### CRITICAL FINDING: Wrong local -up OBJ files (2026-06-07 session 20)
+
+The local `3DModels-Simplif-up/` directory contained WRONG OBJ files (different from server).
+The correct server files were provided as `/Users/admin/Downloads/3dva_obj.zip` (dated 2020-09-18).
+
+**Evidence:**
+- Local bunny.obj MD5: a77b5bda3568ea32f13953a35aa5f9ab
+- Server bunny.obj MD5: b60a2a50df05db8d71db0a83ea1eea92
+- First vertex: local=(0.211, 0.238, 0.368) vs server=(0.215, 0.437, 0.016) — completely different
+
+**Impact:**
+- With wrong OBJ: Blender preview IoU = 0.627 for bunny; cone CC_view300 = −0.085
+- With correct OBJ: Blender preview IoU = 0.993; cone CC_view300 = +0.635
+
+**Fix applied:** All 32 `-up` OBJ files replaced from ZIP. Old files backed up to `3DModels-Simplif-up_backup_old/`.
+
+**Full 32-model Blender canonical batch after fix:**
+- 32/32 ✅ all ≥ 0.90
+- Mean IoU = 0.9729
+- Min: igea-100K 0.9002, dinosaur-40K 0.9145
+- Max: fandisk 0.9936, casting 0.9929
+
+**Note:** The eval scripts also use this same OBJ directory, so all previous 3DVA eval
+results (both screen_space and cone) were computed with wrong OBJ files and are INVALID.
+A full 3DVA re-run is now needed with the correct OBJ files.
+
+**Blender 4.1 finding:** `bpy.ops.wm.obj_import` ignores `forward_axis` and `up_axis` 
+parameters entirely — bbox is identical for all axis settings. The render script 
+(`3dva_render_1.py`) used `forward_axis='X', up_axis='Z'` which worked on the server 
+(older Blender), baking the rotation into the video. The correct server OBJ files 
+already encode the correct vertex positions for Blender 4.1's default import.
+
+### Next steps
+1. Re-run 3DVA eval (all 32 models) with correct OBJ files — both screen_space and cone.
+2. Commit all changes (A1 renderer fix + B1/B2/C1 eval fixes + OBJ path note).
+3. Server also needs updated OBJ files if 3DVA server runs are planned.
+

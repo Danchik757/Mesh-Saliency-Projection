@@ -1,8 +1,14 @@
 # Eval Runbook — Correct Evaluation Pipeline
-Last updated: 2026-06-01
+Last updated: 2026-06-09
 
 This document describes the **correct** way to run gaze-to-mesh saliency evaluation
 for all three datasets. Read this before running any eval on the server.
+
+> **Current migration gate:** commands below describe the validated geometry/FOV
+> baseline, but existing evaluators still consume original participant CSVs.
+> They are diagnostic-only until the shared processed-fixation loader and the
+> approved `processed[k] -> placement[round(1.8*fps)+k]` timing rule are
+> integrated. Do not start final full benchmarks from these commands yet.
 
 ---
 
@@ -12,7 +18,7 @@ for all three datasets. Read this before running any eval on the server.
 |---|---|---|---|
 | MeshMamba non_texture | `eval_meshmamba_cone.py` | `--texture-type non_texture --recenter-to-bbox-center --projection-fov-mode horizontal_to_vertical --transform-order blender_rig --extra-rotate-x-deg 90` | per-face CSV |
 | MeshMamba rgb_texture | same | `--texture-type rgb_texture` + different `--csv-root --json-root` | per-face CSV |
-| 3DVA | `eval_3dva_raycast_cone.py` | `--recenter-to-bbox-center --override-fov-deg 35.9834` + optional `--video-id` | per-vertex TXT (3 views) |
+| 3DVA | `eval_3dva_raycast_cone.py` | `--recenter-to-bbox-center --projection-fov-mode horizontal_to_vertical` + optional `--video-id` | per-vertex TXT (3 views) |
 | SAL3D | `eval_sal3d_cone.py` | defaults already correct | per-vertex from Gaze/*.txt col.6 |
 
 ---
@@ -24,7 +30,7 @@ for all three datasets. Read this before running any eval on the server.
 OBJ:   GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/MeshFile/non_texture/<model>/
 GT:    GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/SaliencyMap/non_texture/<model>.csv
 CSV:   GAZE_DATA/csv_for_models/MeshMamba_non_texture/<model>.csv
-JSON:  GAZE_DATA/jsons_for_models/Mamba_non_textured/MeshMamba_non_texture_<model>.json
+JSON:  jsons/object_placement/mamba_non_jsons/MeshMamba_non_texture_<model>.json
 ```
 
 ### Correct command
@@ -37,7 +43,7 @@ REPO="/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-
     --texture-type non_texture \
     --dataset-root "GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency" \
     --csv-root "GAZE_DATA/csv_for_models/MeshMamba_non_texture" \
-    --json-root "GAZE_DATA/jsons_for_models/Mamba_non_textured" \
+    --json-root "$REPO/jsons/object_placement/mamba_non_jsons" \
     --output-dir "/tmp/results_mamba" \
     --recenter-to-bbox-center \
     --extra-rotate-x-deg 90.0 \
@@ -82,7 +88,7 @@ Penguin_V2_L3, Moai_v3_L3, SeaHorse_v2_L3, Rhinoceros_v1_L3
 OBJ:   GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/MeshFile/rgb_texture/<model>/
 GT:    GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency/SaliencyMap/rgb_texture/<model>.csv
 CSV:   GAZE_DATA/csv_for_models/MeshMamba_rgb_texture/<model>.csv
-JSON:  GAZE_DATA/jsons_for_models/Mamba_rgb_textured/MeshMamba_rgb_texture_<model>.json
+JSON:  jsons/object_placement/mamba_rgb_jsons/MeshMamba_rgb_texture_<model>.json
 ```
 
 ### Correct command
@@ -92,7 +98,7 @@ JSON:  GAZE_DATA/jsons_for_models/Mamba_rgb_textured/MeshMamba_rgb_texture_<mode
     --texture-type rgb_texture \                # ← KEY DIFFERENCE
     --dataset-root "GAZE_DATA/datasets/MeshMamba/MeshMambaSaliency" \
     --csv-root "GAZE_DATA/csv_for_models/MeshMamba_rgb_texture" \       # ← different CSV dir
-    --json-root "GAZE_DATA/jsons_for_models/Mamba_rgb_textured" \       # ← different JSON dir
+    --json-root "$REPO/jsons/object_placement/mamba_rgb_jsons" \        # ← different JSON dir
     --output-dir "/tmp/results_mamba_rgb" \
     --recenter-to-bbox-center \
     --extra-rotate-x-deg 90.0 \
@@ -114,7 +120,7 @@ JSON:  GAZE_DATA/jsons_for_models/Mamba_rgb_textured/MeshMamba_rgb_texture_<mode
 OBJ:   GAZE_DATA/datasets/3DVA/3DModels-Simplif-up/<model>.obj   ← MUST use -up version
 GT:    GAZE_DATA/datasets/3DVA/FixationMaps/<model>_300norm.txt   (+ 413, 599)
 CSV:   GAZE_DATA/csv_for_models/3DVA/<model>.csv
-JSON:  GAZE_DATA/jsons_for_models/3DVA_json/3DVA_<model>.json
+JSON:  jsons/object_placement/3dva_jsons/3DVA_<model>.json
 ```
 
 ### Correct command
@@ -123,16 +129,30 @@ JSON:  GAZE_DATA/jsons_for_models/3DVA_json/3DVA_<model>.json
     --model bunny \
     --dataset-root "GAZE_DATA/datasets/3DVA" \
     --csv-root "GAZE_DATA/csv_for_models/3DVA" \
-    --json-root "GAZE_DATA/jsons_for_models/3DVA_json" \
+    --json-root "$REPO/jsons/object_placement/3dva_jsons" \
     --output-dir "/tmp/results_3dva" \
     --recenter-to-bbox-center \
-    --override-fov-deg 35.9834    # ← h2v(60°, 16:9) = correct vertical FOV
+    --projection-fov-mode horizontal_to_vertical
 ```
 
-### Why --override-fov-deg 35.9834
-The 3dva eval script does NOT have --projection-fov-mode. Use --override-fov-deg
-with the pre-computed correct vertical FOV: h2v(60°, 16:9) = 35.9834°.
-Do NOT omit this flag (JSON matrix uses wrong FOV convention → bad metrics).
+### Why horizontal_to_vertical for 3DVA
+The current 3DVA evaluators support the same FOV resolution modes as the other
+datasets. The recommended mode is:
+
+```text
+--projection-fov-mode horizontal_to_vertical
+```
+
+This treats the JSON `fov_degrees ≈ 60` as a horizontal FOV and converts it to
+the effective vertical FOV for the current aspect ratio:
+
+```text
+h2v(60°, 16:9) = 35.9834°
+```
+
+`--override-fov-deg 35.9834 --projection-fov-mode vertical` remains valid for
+diagnostics, but new batch runs should use the explicit `horizontal_to_vertical`
+path because that is what the current launchers and reference batch runner use.
 
 ### CRITICAL: OBJ version
 Always use 3DModels-Simplif-up/ (pre-rotated by render script).
@@ -152,13 +172,14 @@ This mismatch is expected and all three GT variants should be reported.
 Use:
 - `recenter=True`
 - `extra_rotate_x=0°`
-- `override_fov_deg=35.9834`
+- `projection_fov_mode=horizontal_to_vertical`
 
 Reason:
 - JSON exports contain `fov_degrees ≈ 60` and `projection_matrix[1,1] ≈ 1.732`, which means
   the stored matrix is using **vertical 60°**.
 - On 16:9, that implies **horizontal ≈ 122.55°**, which is not the intended render setup.
-- Therefore eval must override to the correct vertical FOV for `horizontal 60°`, namely `35.9834°`.
+- Therefore eval must reinterpret the JSON FOV as **horizontal 60°** and convert it
+  to the correct effective vertical FOV, namely `35.9834°`.
 
 NOTE: 3DVA render script uses forward='X', up='Z' → no extra rotation needed with -up OBJ.
 
@@ -176,7 +197,7 @@ they still process all rows, but the report records the mixed `video_ids_present
 OBJ:   GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Meshes/<model>.obj
 GT:    GAZE_DATA/datasets/SAL3D/SAL3D_Dataset/Gaze/<model>.txt  (col 6 = smooth_saliency)
 CSV:   GAZE_DATA/csv_for_models/SAL3D/<model>.csv
-JSON:  GAZE_DATA/jsons_for_models/SAL3D_json/Sal3D_<model>.json
+JSON:  jsons/object_placement/sal3d_jsons/Sal3D_<model>.json
 ```
 
 ### Correct command
@@ -185,7 +206,7 @@ JSON:  GAZE_DATA/jsons_for_models/SAL3D_json/Sal3D_<model>.json
     --model bunny \
     --dataset-root "GAZE_DATA/datasets/SAL3D/SAL3D_Dataset" \
     --csv-root "GAZE_DATA/csv_for_models/SAL3D" \
-    --json-root "GAZE_DATA/jsons_for_models/SAL3D_json" \
+    --json-root "$REPO/jsons/object_placement/sal3d_jsons" \
     --output-dir "/tmp/results_sal3d"
     # All other flags are correct by default: h2v, blender_rig, recenter, rotX=90°
 ```
@@ -258,15 +279,16 @@ wait && echo "All done"
 ## Server paths (vg-intellect)
 
 ```
-Repo:    /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/Mesh-Saliency-Projection
-Env:     /home/29d_kon@lab.graphicon.ru/ssd1_link/environments/reproject-benchmark/bin/python3
-Dataset: /home/29d_kon@lab.graphicon.ru/ssd1_link/datasets/
-Side inputs: /home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/side_inputs/
+Allowed root: /mnt/ssd1/29d_kon/acm_2026
+Repo:         /mnt/ssd1/29d_kon/acm_2026/agents/<workspace>/Mesh-Saliency-Projection
+Env:          /mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python
+Release data: /mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc1/extracted
+Outputs:      /mnt/ssd1/29d_kon/acm_2026/outputs/<workspace>
 ```
 
 Before server run: push commits to GitHub, then on server:
 ```bash
-cd .../Mesh-Saliency-Projection
-git pull
+cd /mnt/ssd1/29d_kon/acm_2026/agents/<workspace>/Mesh-Saliency-Projection
+git fetch origin
 source configs/server_vg_intellect.env
 ```

@@ -151,8 +151,24 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--override-fov-deg",
         type=float,
-        default=35.9834,
-        help="Override projection vertical FOV in degrees. Default 35.9834 corresponds to 60° horizontal on 16:9.",
+        default=None,
+        help=(
+            "Override projection FOV in degrees. Interpretation depends on "
+            "--projection-fov-mode."
+        ),
+    )
+    parser.add_argument(
+        "--projection-fov-mode",
+        choices=("vertical", "horizontal_to_vertical", "json"),
+        default="horizontal_to_vertical",
+        help=(
+            "How to resolve the projection matrix: "
+            "'horizontal_to_vertical' converts the JSON horizontal FOV to the effective "
+            "vertical FOV for the current aspect ratio; "
+            "'vertical' treats --override-fov-deg as vertical FOV or falls back to the "
+            "JSON projection matrix when no override is provided; "
+            "'json' uses the projection matrix from JSON verbatim."
+        ),
     )
     parser.add_argument(
         "--video-id",
@@ -314,6 +330,69 @@ def build_projection_matrix_from_fov(
         ],
         dtype=np.float64,
     )
+
+
+def horizontal_to_vertical_fov_deg(horizontal_fov_deg: float, aspect_ratio: float) -> float:
+    return math.degrees(
+        2.0 * math.atan(math.tan(math.radians(horizontal_fov_deg) * 0.5) / float(aspect_ratio))
+    )
+
+
+def resolve_projection_matrix(
+    camera_data: dict,
+    override_fov_deg: float | None,
+    projection_fov_mode: str,
+) -> tuple[np.ndarray, dict[str, float | str | None]]:
+    cam = camera_data["camera_static"]
+    vi = camera_data["video_info"]
+
+    if projection_fov_mode == "json":
+        if override_fov_deg is not None:
+            raise ValueError("--projection-fov-mode json cannot be combined with --override-fov-deg")
+        return np.asarray(cam["projection_matrix"], dtype=np.float64).reshape(4, 4), {
+            "projection_fov_mode": "json",
+            "projection_fov_source": "json_projection_matrix",
+            "input_fov_deg": None,
+            "effective_vertical_fov_deg": None,
+        }
+
+    if projection_fov_mode == "vertical":
+        if override_fov_deg is None:
+            return np.asarray(cam["projection_matrix"], dtype=np.float64).reshape(4, 4), {
+                "projection_fov_mode": "vertical",
+                "projection_fov_source": "json_projection_matrix",
+                "input_fov_deg": None,
+                "effective_vertical_fov_deg": None,
+            }
+        effective_fov = float(override_fov_deg)
+        return build_projection_matrix_from_fov(
+            effective_fov, vi["aspect_ratio"], cam["clip_start"], cam["clip_end"]
+        ), {
+            "projection_fov_mode": "vertical",
+            "projection_fov_source": "override_fov_deg",
+            "input_fov_deg": effective_fov,
+            "effective_vertical_fov_deg": effective_fov,
+        }
+
+    if projection_fov_mode == "horizontal_to_vertical":
+        if override_fov_deg is not None:
+            horizontal_fov_deg, source = float(override_fov_deg), "override_fov_deg"
+        elif "fov_degrees" in cam:
+            horizontal_fov_deg, source = float(cam["fov_degrees"]), "json_fov_degrees"
+        else:
+            horizontal_fov_deg = math.degrees(float(cam["fov_radians"]))
+            source = "json_fov_radians"
+        effective_fov = horizontal_to_vertical_fov_deg(horizontal_fov_deg, float(vi["aspect_ratio"]))
+        return build_projection_matrix_from_fov(
+            effective_fov, vi["aspect_ratio"], cam["clip_start"], cam["clip_end"]
+        ), {
+            "projection_fov_mode": "horizontal_to_vertical",
+            "projection_fov_source": source,
+            "input_fov_deg": horizontal_fov_deg,
+            "effective_vertical_fov_deg": effective_fov,
+        }
+
+    raise ValueError(f"Unknown projection_fov_mode: {projection_fov_mode}")
 
 
 def _apply_transform_no_recenter(
@@ -525,38 +604,42 @@ def run_screen_space(
     extra_rotate_x_deg: float,
     extra_rotate_y_deg: float,
     override_fov_deg: float | None,
+    projection_fov_mode: str,
 ) -> tuple[np.ndarray, dict]:
     """Project gaze density onto mesh vertices and return per-vertex saliency."""
     n_verts  = len(mesh.vertices)
     vert_sal = np.zeros(n_verts, dtype=np.float64)
 
     cam = camera_data["camera_static"]
-    vi  = camera_data["video_info"]
     frames_list = camera_data["frames"]
-
-    if override_fov_deg is not None:
-        proj_mat = build_projection_matrix_from_fov(
-            override_fov_deg, vi["aspect_ratio"], cam["clip_start"], cam["clip_end"]
-        )
-    else:
-        proj_mat = np.asarray(cam["projection_matrix"], dtype=np.float64).reshape(4, 4)
+    proj_mat, projection_info = resolve_projection_matrix(
+        camera_data=camera_data,
+        override_fov_deg=override_fov_deg,
+        projection_fov_mode=projection_fov_mode,
+    )
 
     view_matrix = np.asarray(cam["view_matrix"], dtype=np.float64).reshape(4, 4)
 
-    # Precompute vertex positions once: apply bbox recentering if requested,
-    # outside the per-frame loop so we avoid re-computing it N_frames times.
+    # Canonical 3DVA pre-transform order: base_rotate_z → recenter → (per-frame ops).
+    # bbox_center is taken from ORIGINAL vertices before base_rotate_z so it matches
+    # apply_model_transform in the cone/raycast scripts (session-3 bug fix).
     base_verts = np.asarray(mesh.vertices, dtype=np.float64).copy()
+    bbox_center = 0.5 * (base_verts.min(axis=0) + base_verts.max(axis=0))
+    rz0 = math.radians(base_rotate_z_deg)
+    if abs(rz0) > 1e-12:
+        cz0, sz0 = math.cos(rz0), math.sin(rz0)
+        x0 = cz0 * base_verts[:, 0] - sz0 * base_verts[:, 1]
+        y0 = sz0 * base_verts[:, 0] + cz0 * base_verts[:, 1]
+        base_verts[:, 0], base_verts[:, 1] = x0, y0
     if recenter_to_bbox_center:
-        bbox_center = 0.5 * (base_verts.min(axis=0) + base_verts.max(axis=0))
-        base_verts -= bbox_center
+        base_verts -= bbox_center  # uses ORIGINAL bbox_center
 
     # Camera world position (static for 3DVA: camera never moves, only model rotates).
     camera_world_pos = np.linalg.inv(view_matrix)[:3, 3]
 
-    # Precompute base normals with base_rotate_z applied once (same as base_verts).
-    # Normal transform = rotation only (no scale for uniform scale, no translate).
+    # Precompute base normals with base_rotate_z already baked in (consistent with
+    # base_verts above). Normal transform = rotation only (uniform scale, no translate).
     base_normals = np.asarray(mesh.vertex_normals, dtype=np.float64).copy()
-    rz0 = math.radians(base_rotate_z_deg)
     if abs(rz0) > 1e-12:
         cz0, sz0 = math.cos(rz0), math.sin(rz0)
         nx0 = cz0 * base_normals[:, 0] - sz0 * base_normals[:, 1]
@@ -587,9 +670,10 @@ def run_screen_space(
 
         total_points += n
         rot_z = float(frames_list[frame]["rotation_z_radians"])
+        # base_rotate_z_deg already applied to base_verts above → pass 0.0 here.
         verts_w = _apply_transform_no_recenter(
             base_verts, camera_data, rot_z,
-            base_rotate_z_deg, extra_rotate_x_deg, extra_rotate_y_deg,
+            0.0, extra_rotate_x_deg, extra_rotate_y_deg,
         )
 
         screen_xy, w_clip = world_to_screen(verts_w, view_matrix, proj_mat)
@@ -632,6 +716,7 @@ def run_screen_space(
         "nonzero_vertices":      int(np.count_nonzero(vert_sal)),
         "deposition":            "bilinear",
         "culled_back_verts":     culled_back,
+        **projection_info,
     }
     return vert_sal, stats
 
@@ -640,6 +725,14 @@ def run_screen_space(
 
 def main() -> None:
     args  = parse_args()
+    if args.projection_fov_mode == "json":
+        print(
+            "[WARN] --projection-fov-mode json для 3DVA даёт НЕВЕРНЫЕ лучи: "
+            "JSON projection_matrix кодирует vertical 60° (P[1,1]=1.732), "
+            "тогда как физическая камера имеет horizontal 60° → vertical 35.98°. "
+            "Используйте --projection-fov-mode horizontal_to_vertical (default).",
+            file=sys.stderr,
+        )
     paths = resolve_model_paths(args)
     ensure_required_exist(paths)
 
@@ -665,7 +758,14 @@ def main() -> None:
         tag_parts.append(f"rotx{args.extra_rotate_x_deg}".replace(".", "p"))
     if abs(args.extra_rotate_y_deg) > 1e-12:
         tag_parts.append(f"roty{args.extra_rotate_y_deg}".replace(".", "p"))
-    if args.override_fov_deg is not None:
+    if args.projection_fov_mode == "json":
+        tag_parts.append("fovjson")
+    elif args.projection_fov_mode == "horizontal_to_vertical":
+        if args.override_fov_deg is None:
+            tag_parts.append("fovh2v")
+        else:
+            tag_parts.append(f"fovh{args.override_fov_deg}_h2v".replace(".", "p"))
+    elif args.override_fov_deg is not None:
         tag_parts.append(f"fov{args.override_fov_deg}".replace(".", "p"))
     tag = args.tag or "_".join(tag_parts)
 
@@ -679,6 +779,7 @@ def main() -> None:
         extra_rotate_x_deg=args.extra_rotate_x_deg,
         extra_rotate_y_deg=args.extra_rotate_y_deg,
         override_fov_deg=args.override_fov_deg,
+        projection_fov_mode=args.projection_fov_mode,
     )
 
     # Load GT and visibility maps.
@@ -737,6 +838,7 @@ def main() -> None:
             "extra_rotate_x_deg":      args.extra_rotate_x_deg,
             "extra_rotate_y_deg":      args.extra_rotate_y_deg,
             "override_fov_deg":        args.override_fov_deg,
+            "projection_fov_mode":     args.projection_fov_mode,
             "video_id":                args.video_id,
             "transform_order": (
                 "base_rotate_z -> recenter -> scale -> rotation_z "

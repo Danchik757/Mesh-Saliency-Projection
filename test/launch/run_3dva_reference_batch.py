@@ -16,7 +16,7 @@ Reads metrics from: metrics_vs_gt_combined.{method}.metrics_covered_only
 Usage example (local):
   export VISUAL_ATTENTION_3D_SHAPES_ROOT=/path/to/3DVA
   export THREE_DVA_CSV_ROOT=/path/to/csv_for_models/3DVA
-  export THREE_DVA_JSON_ROOT=/path/to/jsons_for_models/3DVA_json
+  export THREE_DVA_JSON_ROOT=/path/to/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons
   export THREE_DVA_COMBINED_GT_DIR=/path/to/3DVA/CombinedGT
   python3 test/launch/run_3dva_reference_batch.py \\
       --methods screen_space cone \\
@@ -58,8 +58,8 @@ CONE_SCRIPT   = REPO_ROOT / "reprojection_methods" / "cone_projection_on_mesh"  
 ALL_METHODS = ("screen_space", "cone", "raycast")
 
 # Fixed tags — must match what the eval scripts auto-generate when these params are passed
-SCREEN_TAG = "sigpx49p0_recenter_fov35p9834_combined"
-CONE_TAG   = "recenter_fov35p9834_combined"
+SCREEN_TAG = "sigpx49p0_recenter_fovh2v_combined"
+CONE_TAG   = "recenter_fovh2v_combined"
 
 # A380 has multiple video_ids in the CSV — filter to the correct session
 VIDEO_ID_OVERRIDES: dict[str, int] = {
@@ -160,7 +160,7 @@ def parse_args() -> argparse.Namespace:
         "--json-root",
         type=Path,
         default=_env_path("THREE_DVA_JSON_ROOT",
-                          fallback="e.g. /path/to/jsons_for_models/3DVA_json"),
+                          fallback="e.g. /path/to/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons"),
     )
     parser.add_argument(
         "--combined-gt-dir",
@@ -188,8 +188,11 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--resume",
         action=argparse.BooleanOptionalAction,
-        default=True,
-        help="Skip tasks with an existing report JSON.",
+        default=False,
+        help=(
+            "Skip tasks with an existing report JSON. Disabled by default because "
+            "reports created with old CSV/no-crop inputs are not valid after input-contract changes."
+        ),
     )
     parser.add_argument("--nice-level", type=int, default=10)
     parser.add_argument(
@@ -289,7 +292,7 @@ def build_command(args: argparse.Namespace, task: Task) -> list[str]:
         "--combined-gt-dir", str(args.combined_gt_dir),
         "--output-dir",      str(task_output_dir(args.batch_output_dir, task.method)),
         "--recenter-to-bbox-center",
-        "--override-fov-deg", "35.9834",
+        "--projection-fov-mode", "horizontal_to_vertical",
     ]
 
     # A380 has a mixed CSV — filter to the correct video session

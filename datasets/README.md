@@ -1,7 +1,12 @@
 # Datasets Reference
 
-Datasets are **not stored in this repository**. They are distributed as ZIP archives
-attached to the [GitHub Release `v1.0-data`](https://github.com/Danchik757/Mesh-Saliency-Projection/releases/tag/v1.0-data).
+Datasets are distributed as ZIP archives attached to GitHub Releases.
+
+`v1.0-data` is retained as a historical release but is **not approved for the
+next benchmark generation**. It does not include the new processed fixation
+JSONs and contains outdated SAL3D placement JSONs. See
+[`coordination/RELEASE_AUDIT_2026-06-09.md`](../coordination/RELEASE_AUDIT_2026-06-09.md)
+before downloading or packaging data.
 
 Reference spreadsheet: [Dataset table (Google Sheets)](https://docs.google.com/spreadsheets/d/1UpTHzfqAma46_czqMvlA_15AVIm5T2Em6d_BmskiCkQ/edit?gid=881515507#gid=881515507)
 

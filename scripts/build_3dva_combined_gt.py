@@ -115,6 +115,7 @@ def _discover_models(fixation_dir: Path, views: list[str]) -> list[str]:
 
 
 def _load_gt(fixation_dir: Path, model: str, view: str) -> np.ndarray | None:
+    # Fast path: exact name, then lowercase variant.
     candidates = [
         fixation_dir / f"{model}_{view}norm.txt",
         fixation_dir / f"{model.lower()}_{view}norm.txt",
@@ -122,16 +123,27 @@ def _load_gt(fixation_dir: Path, model: str, view: str) -> np.ndarray | None:
     for path in candidates:
         if path.is_file():
             return np.loadtxt(str(path), dtype=np.float64)
+    # Fallback: case-insensitive scan (handles --models max-planck → Max-Planck).
+    target = f"{model.lower()}_{view}norm.txt"
+    for path in fixation_dir.glob("*.txt"):
+        if path.name.lower() == target:
+            return np.loadtxt(str(path), dtype=np.float64)
     return None
 
 
 def _load_visibility(vis_dir: Path, model: str, view: str) -> np.ndarray | None:
+    # Fast path: exact name, then lowercase variant.
     candidates = [
         vis_dir / f"{model}_{view}_visibility.txt",
         vis_dir / f"{model.lower()}_{view}_visibility.txt",
     ]
     for path in candidates:
         if path.is_file():
+            return np.loadtxt(str(path), dtype=np.float64).astype(bool)
+    # Fallback: case-insensitive scan.
+    target = f"{model.lower()}_{view}_visibility.txt"
+    for path in vis_dir.glob("*.txt"):
+        if path.name.lower() == target:
             return np.loadtxt(str(path), dtype=np.float64).astype(bool)
     return None
 
@@ -189,14 +201,20 @@ def build_combined_gt(
             )
             continue
         if len(vis) != n_verts:
-            # Tolerance: accept off-by-one differences (e.g. turbine OBJ=20000, GT=19999).
-            # Truncate visibility to GT length so both arrays align.
+            # Tolerance: accept off-by-≤5 differences (e.g. turbine OBJ=20000, GT=19999).
+            # Truncate if vis is longer; pad with False if vis is shorter.
             if abs(len(vis) - n_verts) <= 5:
                 original_vis_len = len(vis)
-                vis = vis[:n_verts]
+                if len(vis) > n_verts:
+                    vis = vis[:n_verts]
+                else:
+                    vis = np.concatenate(
+                        [vis, np.zeros(n_verts - len(vis), dtype=bool)]
+                    )
                 warnings.append(
                     f"view {view} visibility length {original_vis_len} "
-                    f"truncated to {n_verts} to match GT length"
+                    f"{'truncated' if original_vis_len > n_verts else 'padded'} "
+                    f"to {n_verts} to match GT length"
                 )
             else:
                 warnings.append(

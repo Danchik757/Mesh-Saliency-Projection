@@ -1,16 +1,18 @@
 # Dataset Model Info
 
-This directory contains generated JSON indexes that describe how each dataset
-model connects to:
+This directory contains generated, platform-independent JSON indexes that
+describe how each dataset model connects to:
 
 - the canonical object-placement JSON in `jsons/object_placement/`;
-- participant gaze CSV files;
-- mesh files;
-- GT/saliency files;
+- the new processed fixation JSON used by default;
+- the old participant CSV retained for explicit compatibility diagnostics;
+- release-relative mesh and GT/saliency paths;
 - compact camera, model, animation, and video metadata.
 
-The raw participant observations are not stored here as JSON. They are stored as
-CSV files in the paths listed in each index under `participant_data`.
+The indexes never contain machine-specific macOS, WSL, or server paths. Both
+participant formats are listed separately and automatic fallback is forbidden.
+The large participant payloads are staged under `participant_data/` and
+distributed through GitHub Release assets.
 
 Regenerate these files with:
 

@@ -8,10 +8,20 @@ results/**/*.png
 results/**/*.jpg
 results/**/*.mp4
 results/**/*.npy
+results/**/*.log
+
+# Historical 3DVA outputs from the old-CSV/no-common-crop checkpoint.
+# Preserve locally, but do not present them as current benchmark results.
+results/benchmark_runs/3dva/2026-06-07_*/
 
 # Local preview outputs (generated artifacts, may contain local absolute paths)
 test/output_local/
 test/output_local_*/
+video_creation/gaze_heatmap_overlays/output/
 
 # Dataset ZIPs (large binary assets — distributed via GitHub Releases, not committed)
 release_assets/
+
+# Participant payloads are staged here locally but distributed through releases.
+participant_data/collected_gaze_csv_by_model/
+participant_data/processed_fixations_offset_2000/

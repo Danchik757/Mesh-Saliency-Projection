@@ -2125,3 +2125,205 @@ The strongest evidence now points to a combination of:
 
 5. After that, rerun a clean benchmark with only promoted variants.
    - Do not mix diagnostic-only variants into the final benchmark table.
+
+## Update 2026-06-07
+
+### Scope of this update
+
+Focused on the `3DVA` benchmark track only, specifically:
+
+1. validating whether `CombinedGT` is built correctly
+2. fixing the `covered_only` evaluation domain
+3. aligning the `3DVA` FOV/projection policy with the already-correct logic used in
+   `SAL3D` and `MeshMamba`
+4. checking whether low `CC` is still likely a code bug or already mostly a dataset /
+   alignment mismatch
+
+### CombinedGT validation result
+
+Full local validation was run against all `32` 3DVA models.
+
+Artifact:
+`results/benchmark_runs/3dva/2026-06-07_gt_validation/combined_gt_validation.json`
+
+Result:
+
+1. `bad_count = 0`
+2. `max_abs_diff = 4.9999964943110015e-11`
+3. `max_sum_delta = 8.20522005895441e-09`
+
+Interpretation:
+
+1. current `build_3dva_combined_gt.py` reproduces the stored `CombinedGT` files
+2. remaining numeric deltas are float-format / serialization level only
+3. the current investigation should no longer treat the builder as the primary bug source
+
+### CombinedGT support-domain fix already in place
+
+The important semantic fix was:
+
+```text
+support(view) = visibility OR (gt > 0)
+```
+
+instead of only `visibility`.
+
+This removed the earlier evaluation bias where valid visible negatives and GT-positive
+boundary vertices were dropped from the benchmark domain.
+
+### 3DVA FOV/projection refactor
+
+The main architectural inconsistency was that `3DVA` scripts were still using a
+hardcoded effective vertical FOV (`35.9834`) while `SAL3D` and `MeshMamba` already
+used the cleaner policy:
+
+```text
+horizontal JSON FOV -> horizontal_to_vertical -> effective vertical FOV
+```
+
+The following files were updated locally:
+
+1. `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py`
+2. `reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py`
+3. `test/launch/run_3dva_reference_batch.py`
+4. `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py`
+5. `reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py`
+6. `test/launch/run_3dva_screen_space.sh`
+7. `test/launch/run_3dva_raycast_cone.sh`
+
+Common changes:
+
+1. added `--projection-fov-mode {vertical,horizontal_to_vertical,json}`
+2. made `horizontal_to_vertical` the default for `3DVA`
+3. changed `--override-fov-deg` default from hardcoded `35.9834` to `None`
+4. added reusable `horizontal_to_vertical_fov_deg(...)`
+5. added reusable `resolve_projection_matrix(...)`
+6. recorded FOV provenance into reports:
+   - `projection_fov_mode`
+   - `projection_fov_source`
+   - `input_fov_deg`
+   - `effective_vertical_fov_deg`
+
+This brings `3DVA` in line with the other dataset evaluators instead of keeping a
+special-case projection policy only in its launch scripts.
+
+### Local validation after FOV fix
+
+#### Combined screen-space, bunny
+
+Report:
+`/private/tmp/3dva_eval_fix_screen_direct/bunny/sigpx49p0_recenter_fovh2v_combined/bunny_report.json`
+
+Important fields:
+
+1. `projection_fov_mode = horizontal_to_vertical`
+2. `projection_fov_source = json_fov_degrees`
+3. `input_fov_deg = 60.000001669652114`
+4. `effective_vertical_fov_deg = 35.98339890412515`
+
+Key metrics:
+
+1. `metrics_full.CC = 0.10508755272083471`
+2. `metrics_covered_only.CC = 0.033187908137741653`
+3. `metrics_covered_only.SIM = 0.5127992427647579`
+4. `metrics_covered_only.KLD = 0.9792396155458926`
+
+#### Combined cone, bunny
+
+Report:
+`/private/tmp/3dva_eval_fix_cone/bunny/recenter_fovh2v_combined/bunny_report.json`
+
+Important fields:
+
+1. `projection_fov_mode = horizontal_to_vertical`
+2. `projection_fov_source = json_fov_degrees`
+3. `input_fov_deg = 60.000001669652114`
+4. `effective_vertical_fov_deg = 35.98339890412515`
+
+Key metrics:
+
+1. `cone_gaussian_on_mesh.metrics_covered_only.CC = 0.04246144334271445`
+2. `cone_gaussian_on_mesh.metrics_covered_only.KLD = 1.3442834260764642`
+3. `raycast_nearest_vertex.metrics_covered_only.CC = 0.023282732947132977`
+
+### What this means
+
+After the projection-policy cleanup:
+
+1. reports now prove the code is using the correct `60°` horizontal JSON FOV and
+   converting it to the expected vertical equivalent
+2. low `CC` on bunny remains, but it is less likely to be caused by a hidden hardcoded
+   projection mismatch inside the evaluator
+3. the next strongest suspect is still geometry / manifest alignment, not GT math
+
+### Canonical alignment problem is still open
+
+Canonical Blender validation for `bunny_up` still reports low IoU:
+
+Artifact:
+`test/output_local/blender_mask_batch_3dva_bunny_up/summary.json`
+
+Value:
+
+1. `IoU = 0.6268855573835067`
+
+That means:
+
+1. `CombinedGT` is not the problem
+2. evaluator FOV policy is now in a better state
+3. but `bunny` preview / manifest alignment is still not trustworthy enough
+
+The local diagnostic search still found a better non-canonical heuristic:
+
+Artifact:
+`results/benchmark_runs/3dva/2026-06-07_bunny_preview/alignment_search_report.json`
+
+Best fast search candidate:
+
+1. `rotX = -70`
+2. `FOV = 34`
+3. `IoU = 0.7244983429840853`
+
+This is only diagnostic guidance, not canonical ground truth.
+
+### Important interpretation note
+
+Some negative or weak `CC` is expected even without bugs because the original 3DVA
+per-view GTs themselves partially anticorrelate across views. Examples already checked:
+
+1. `bunny`: `300 vs 599 = -0.20574217004681192`
+2. `bunny`: `413 vs 599 = -0.1221411807523814`
+3. `dragon`: `300 vs 599 = -0.09319320721329179`
+4. `flowerpot`: `300 vs 599 = -0.09346976571533269`
+
+Therefore low `CC` should now be interpreted as a mix of:
+
+1. rotating-video vs static-view mismatch
+2. remaining preview / manifest calibration error
+3. method quality
+
+not automatically as a broken evaluator.
+
+### Current local uncommitted state
+
+Modified files:
+
+1. `reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py`
+2. `reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py`
+3. `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space.py`
+4. `reprojection_methods/screen_space_gaussian/eval_3dva_screen_space_combined.py`
+5. `test/launch/run_3dva_raycast_cone.sh`
+6. `test/launch/run_3dva_reference_batch.py`
+7. `test/launch/run_3dva_screen_space.sh`
+
+Untracked:
+
+1. `video_creation/gaze_heatmap_overlays/output/`
+
+### Next recommended step
+
+1. commit the current FOV/projection refactor
+2. validate canonical preview IoU on at least `dragon` and `flowerpot`
+3. determine whether `bunny` is a local outlier or the `_up` manifest set is
+   systematically undercalibrated
+4. only then continue with broader server-side metric runs

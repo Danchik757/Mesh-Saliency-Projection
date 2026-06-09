@@ -34,7 +34,10 @@ def load_manifest(path: Path) -> dict:
 
 
 def configure_render(scene, width: int, height: int, output_path: Path) -> None:
-    scene.render.engine = "BLENDER_WORKBENCH"
+    # EEVEE renders emission materials with transparent background → alpha channel is
+    # valid (mesh alpha=1, background alpha=0), which is required for extract_preview_mask
+    # to use the alpha path instead of the unreliable RGB-distance fallback.
+    scene.render.engine = "BLENDER_EEVEE"
     scene.render.image_settings.file_format = "PNG"
     scene.render.image_settings.color_mode = "RGBA"
     scene.render.film_transparent = True
@@ -42,9 +45,6 @@ def configure_render(scene, width: int, height: int, output_path: Path) -> None:
     scene.render.resolution_y = int(height)
     scene.render.resolution_percentage = 100
     scene.render.filepath = str(output_path)
-    scene.display.shading.light = "FLAT"
-    scene.display.shading.color_type = "OBJECT"
-    scene.display.shading.show_backface_culling = False
 
 
 def reset_scene(bpy) -> None:
@@ -121,14 +121,24 @@ def apply_object_transform(bpy, obj, metadata: dict, manifest: dict, frame_idx: 
 
 
 def set_object_color(obj) -> None:
-    if not obj.data.materials:
-        import bpy
+    import bpy
 
-        mat = bpy.data.materials.new(name="PreviewMaterial")
+    mat = bpy.data.materials.new(name="PreviewMaterial")
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+    nodes.clear()
+    # Emission gives a flat (shadeless) blue silhouette — no lights needed in the scene.
+    # This works reliably with EEVEE + film_transparent=True.
+    emission = nodes.new("ShaderNodeEmission")
+    emission.inputs["Color"].default_value = (0.18, 0.55, 0.86, 1.0)
+    emission.inputs["Strength"].default_value = 1.0
+    output = nodes.new("ShaderNodeOutputMaterial")
+    links.new(emission.outputs["Emission"], output.inputs["Surface"])
+    if not obj.data.materials:
         obj.data.materials.append(mat)
     else:
-        mat = obj.data.materials[0]
-    mat.diffuse_color = (0.18, 0.55, 0.86, 1.0)
+        obj.data.materials[0] = mat
 
 
 def main() -> None:

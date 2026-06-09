@@ -39,7 +39,10 @@ export MESHMAMBA_RGB_TEXTURE_JSON_ROOT="${REPROJECT_OBJECT_PLACEMENT_JSON_ROOT}/
 export SAL3D_JSON_ROOT="${REPROJECT_OBJECT_PLACEMENT_JSON_ROOT}/sal3d_jsons"
 ```
 
-CSV gaze files and dataset meshes/GT still live outside the repository.
+Old participant CSVs and new processed fixation JSONs are staged under
+`participant_data/`. They are separate from the placement JSONs in this
+directory. Large data payloads are distributed through versioned GitHub Release
+assets.
 
 ## Validation
 
@@ -69,5 +72,10 @@ python3 test/tools/generate_dataset_model_info.py
 ```
 
 The participant gaze observations are not stored here as JSON. They are stored
-as CSV files under `GAZE_DATA/csv_for_models/...` locally and under the
-corresponding server side-input/release CSV roots.
+under `participant_data/`:
+
+- `collected_gaze_csv_by_model/` contains the old participant CSV format;
+- `processed_fixations_offset_2000/` contains the new frame-wise gaze JSON
+  format used by future benchmark evaluators.
+
+See `coordination/DATA_CONTRACT.md` before changing input or timing logic.

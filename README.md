@@ -4,6 +4,10 @@ Repository for the main codebase of the mesh saliency projection project.
 Implements multiple methods for transferring screen-space gaze data onto 3D mesh vertices/faces
 and evaluating the result against ground-truth saliency maps.
 
+Multi-agent work must start from [coordination/README.md](./coordination/README.md).
+It defines the current data contract, server paths, release audit, ownership
+boundaries, and review gates.
+
 ## Current focus
 
 - Benchmark pipeline for 3DVA and MeshMamba datasets (all 32+16 models);
@@ -38,38 +42,38 @@ Alignment validation details: [test/README.md](./test/README.md)
 | [docs/](./docs/EVAL_RUNBOOK.md) | Eval runbook and project architecture notes |
 | [video_creation/](./video_creation/README.md) | Scripts for generating render videos |
 | [requirements/](./requirements/README.md) | Per-environment dependency lists |
+| [coordination/](./coordination/README.md) | Current multi-agent instructions, data/release contract, and review gates |
 | [PIPELINE.md](./PIPELINE.md) | Benchmark pipeline design options |
 | [DATA_PATHS.md](./DATA_PATHS.md) | Reference: all local and server file paths |
 
 ## Getting the datasets
 
-Datasets are distributed as ZIP archives attached to a GitHub release.
+Datasets are distributed as ZIP archives attached to a GitHub release. The
+historical `v1.0-data` release is not approved for the next benchmark generation;
+read [the current release audit](./coordination/RELEASE_AUDIT_2026-06-09.md)
+first.
 On a new machine:
 
 ```bash
-# 1. Download and extract all core data (~1.8 GB without videos)
-bash scripts/download_datasets.sh --data-root /path/to/data
+# 1. Download, validate, and extract the approved v2 candidate into an empty path
+TAG=v2.0-data-rc1 bash scripts/download_release_candidate.sh /path/to/v2.0-data-rc1
 
 # 2. Configure env vars
 cp test/env/new_machine.env.sh.template test/env/local_paths.sh
-# edit DATA_ROOT in local_paths.sh
+# edit RELEASE_DATA_ROOT in local_paths.sh
 source test/env/local_paths.sh
 ```
 
-Optional flags for `download_datasets.sh`:
-
-| Flag | What it adds |
-|------|-------------|
-| `--with-smooth-gaze` | SAL3D smooth-gaze neighbour lists (~2 GB, auxiliary only) |
-| `--with-videos` | Rendered videos for all datasets (~256 MB, needed for alignment check) |
-| `--only PATTERN` | Download only matching ZIPs (e.g. `--only "3dva*"`) |
-| `--list` | Print all available release assets and exit |
-
 To create a new release from local data (maintainer only):
 ```bash
-bash scripts/package_datasets.sh          # creates release_assets/*.zip
-bash scripts/upload_release.sh            # uploads to GitHub release v1.0-data
+python3 scripts/validate_data_contract.py --allow-known-blockers
+python3 scripts/build_release_candidate.py --include-videos --include-sal3d-smooth-gaze
+python3 scripts/validate_release_candidate.py release_assets/v2.0-data-rc1
+bash scripts/upload_release_candidate.sh
 ```
+
+The historical `download_datasets.sh`, `package_datasets.sh`, and
+`upload_release.sh` scripts are retained only to reproduce `v1.0-data`.
 
 ---
 
