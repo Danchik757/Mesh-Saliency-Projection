@@ -61,6 +61,8 @@ LONG_BASE_COLUMNS = [
     "stdout_log_path",
     "gt_file",
     "gt_match_type",
+    "gt_domain",
+    "fixed_gt_file",
     "n_vertices",
     "n_gt_covered",
     "gt_coverage_pct",
@@ -153,6 +155,18 @@ def parse_args() -> argparse.Namespace:
         type=Path,
         default=_env_path("SAL3D_SMOOTH_GAZE_DIR", "REPROJECT_SAL3D_SMOOTH_GAZE_ROOT"),
         help="Directory with <model>_neighbors.txt for GT smoothing.",
+    )
+    parser.add_argument(
+        "--fixed-gt-dir",
+        type=Path,
+        default=_env_path("SAL3D_FIXED_GT_DIR"),
+        help="Directory with <model>_faces.txt per-face fixed GT files.",
+    )
+    parser.add_argument(
+        "--sal3d-manifest",
+        type=Path,
+        default=None,
+        help="Path to sal3d_manifest.csv (optional, recorded in provenance).",
     )
     parser.add_argument(
         "--smooth-ratio",
@@ -315,16 +329,26 @@ def build_command(args: argparse.Namespace, task: Task) -> list[str]:
     if args.smooth_gaze_dir and Path(str(args.smooth_gaze_dir)).is_dir():
         smooth_args = ["--smooth-gaze-dir", str(args.smooth_gaze_dir)]
 
+    fixed_gt_args: list[str] = []
+    fixed_gt_dir = getattr(args, "fixed_gt_dir", None)
+    if fixed_gt_dir and fixed_gt_dir.is_dir():
+        fixed_gt_args = ["--fixed-gt-dir", str(fixed_gt_dir)]
+        sal3d_manifest = getattr(args, "sal3d_manifest", None)
+        if sal3d_manifest:
+            fixed_gt_args += ["--sal3d-manifest", str(sal3d_manifest)]
+
     if task.method == "screen_space":
         cmd = [str(args.python_bin), str(SCREEN_SCRIPT)]
         cmd += common
         cmd += ["--sigma-px", "26.3", "--tag", SCREEN_TAG]
         cmd += smooth_args
+        cmd += fixed_gt_args
     else:
         cmd = [str(args.python_bin), str(CONE_SCRIPT)]
         cmd += common
         cmd += ["--sigma-deg", "1.0", "--radius-sigma-mult", "3.0", "--tag", CONE_TAG]
         cmd += smooth_args
+        cmd += fixed_gt_args
 
     return cmd
 
@@ -342,7 +366,12 @@ def classify_error(message: str) -> tuple[str, str]:
     return "runtime_error", message.strip()
 
 
-def preflight_status(task: Task, *, csv_compat: bool = False) -> tuple[str, str]:
+def preflight_status(
+    task: Task,
+    *,
+    csv_compat: bool = False,
+    fixed_gt_dir: Path | None = None,
+) -> tuple[str, str]:
     try:
         dataset_root = resolve_dataset_root()
         json_root    = resolve_json_root()
@@ -353,8 +382,17 @@ def preflight_status(task: Task, *, csv_compat: bool = False) -> tuple[str, str]
     mesh_dir = dataset_root / "Meshes"
     model_lc = task.model.lower()
 
-    if not any(p.stem.lower() == model_lc for p in gaze_dir.glob("*.txt")):
-        return "missing_gt", f"Gaze GT not found for '{task.model}' in {gaze_dir}"
+    if fixed_gt_dir and fixed_gt_dir.is_dir():
+        if not any(
+            p.stem.lower() == f"{model_lc}_faces"
+            for p in fixed_gt_dir.glob("*_faces.txt")
+        ):
+            return "missing_gt", (
+                f"Fixed face GT not found for '{task.model}' in {fixed_gt_dir}"
+            )
+    else:
+        if not any(p.stem.lower() == model_lc for p in gaze_dir.glob("*.txt")):
+            return "missing_gt", f"Gaze GT not found for '{task.model}' in {gaze_dir}"
     if not any(p.stem.lower() == model_lc for p in mesh_dir.glob("*.obj")):
         return "missing_obj", f"OBJ not found for '{task.model}' in {mesh_dir}"
     if csv_compat:
@@ -404,7 +442,11 @@ def run_task(args: argparse.Namespace, task: Task) -> dict[str, Any]:
     if args.resume and report_path.exists() and _provenance_matches(report_path, args):
         return collect_row_from_report(task, report_path, status="ok", stdout_log_path=log_path)
 
-    preflight_error, preflight_message = preflight_status(task, csv_compat=args.csv_compat)
+    preflight_error, preflight_message = preflight_status(
+        task,
+        csv_compat=args.csv_compat,
+        fixed_gt_dir=getattr(args, "fixed_gt_dir", None),
+    )
     if preflight_error:
         return base_row(task, status=preflight_error, error_type=preflight_error,
                         error_message=preflight_message, stdout_log_path=log_path, report_path=report_path)
@@ -489,14 +531,26 @@ def collect_row_from_report(
     row["input_fov_deg"]             = proj.get("input_fov_deg", "")
     row["effective_vertical_fov_deg"] = proj.get("effective_vertical_fov_deg", "")
 
-    # Always read from the covered-only section (the valid benchmark domain)
-    covered = report.get("metrics_vs_gt_covered_only", {})
+    # Prefer fixed-face GT metrics when present; fall back to covered-only vertex metrics.
+    fixed_section = report.get("metrics_vs_fixed_face_gt")
+    if fixed_section:
+        row["gt_domain"]    = fixed_section.get("gt_domain", "face")
+        row["fixed_gt_file"] = Path(fixed_section.get("gt_path", "")).name if fixed_section.get("gt_path") else ""
+        method_key = "screen_space_gaussian" if task.method == "screen_space" else "cone_gaussian_on_mesh"
+        metrics = fixed_section.get(method_key) or {}
+    else:
+        row["gt_domain"]    = "vertex"
+        row["fixed_gt_file"] = ""
+        covered = report.get("metrics_vs_gt_covered_only") or {}
+        if task.method == "screen_space":
+            metrics = covered.get("screen_space_gaussian") or {}
+        else:
+            metrics = covered.get("cone_gaussian_on_mesh") or {}
+
     if task.method == "screen_space":
-        metrics = covered.get("screen_space_gaussian", {})
         row["nonzero_verts_or_faces"] = run_stats.get("nonzero_vertices", "")
         row["culled_back"]            = run_stats.get("culled_back_verts", "")
     else:
-        metrics = covered.get("cone_gaussian_on_mesh", {})
         row["hit_rate"]               = run_stats.get("hit_rate", "")
         row["successful_hits"]        = run_stats.get("successful_hits", "")
         row["total_gaze_points"]      = run_stats.get("total_gaze_points", "")

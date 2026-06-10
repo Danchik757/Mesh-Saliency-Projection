@@ -878,3 +878,60 @@ colormap:              jet
 When `--global-scale-per-model` is active, `input_min`/`input_max` reflect
 the shared scale across all three map types for that model, and
 `display_normalization` is set to `global_minmax_per_model`.
+
+---
+
+## Work Log — SAL3D Fixed-Face GT Integration
+
+**Branch:** agent/sal3d-fixed-face-gt
+**Base:** 8f3293c (agent/macos-fixation-format-v2 HEAD)
+
+### Task
+
+Add `--fixed-gt-dir` support to both SAL3D evaluators and the batch runner so
+that per-face fixed GT (from `sal3d_fixed_face_gt/<model>_faces.txt`) can be
+used instead of raw `Gaze/*.txt` vertex-index matching.
+
+### Files Changed
+
+**`utils/sal3d_fixed_gt.py`** (new)
+- Shared `load_fixed_face_gt(fixed_gt_dir, model, n_faces)` utility.
+- Case-insensitive model name lookup.
+- Raises `FileNotFoundError` if `<model>_faces.txt` not found.
+- Raises `ValueError` if `len(gt) != n_faces`.
+
+**`reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py`**
+- Added `--fixed-gt-dir` arg (env: `SAL3D_FIXED_GT_DIR`, default None).
+- Added `--sal3d-manifest` arg (optional, recorded in provenance).
+- `resolve_model_paths()`: Gaze GT now optional when `--fixed-gt-dir` is set.
+- `ensure_exists()`: skips None paths (gt may be None with fixed-GT path).
+- `main()`: old GT loading wrapped in try/except; ValueError caught when
+  `--fixed-gt-dir` is set, allowing MaxPlanck/meca/sofa to run.
+- When `--fixed-gt-dir` is set and directory exists:
+  - `face_sal = vert_sal[mesh.faces].mean(axis=1)` — convert to face domain
+  - Adds `metrics_vs_fixed_face_gt` section to report with provenance fields:
+    `sal3d_gt_source`, `gt_domain=face`, `gt_path`, `manifest_path`, `n_faces`.
+
+**`reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py`**
+- Same changes as screen_space evaluator.
+- Face-domain section uses both `face_raycast` and `face_cone` predictions.
+
+**`test/launch/run_sal3d_reference_batch.py`**
+- Added `--fixed-gt-dir` and `--sal3d-manifest` args.
+- Added `gt_domain` and `fixed_gt_file` to `LONG_BASE_COLUMNS`.
+- `preflight_status()` gains `fixed_gt_dir` parameter; checks
+  `<model>_faces.txt` in fixed GT dir when flag is present.
+- `build_command()` passes `--fixed-gt-dir` and `--sal3d-manifest` through.
+- `collect_row_from_report()` prefers `metrics_vs_fixed_face_gt` when present,
+  falls back to `metrics_vs_gt_covered_only`.
+
+**`test/test_sal3d_fixed_face_gt.py`** (new)
+- 16 tests covering: correct length, wrong length, missing file, problem models
+  (MaxPlanck/meca/sofa/turbine synthetic fixtures), known mismatch documentation.
+
+### Test Results
+
+```
+210 passed in 3.15s
+compileall: clean
+```

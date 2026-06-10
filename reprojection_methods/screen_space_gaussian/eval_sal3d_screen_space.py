@@ -54,6 +54,7 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from utils.participant_loader import GazeBatch, load_processed_track, load_csv_compat_track  # noqa: E402
+from utils.sal3d_fixed_gt import load_fixed_face_gt  # noqa: E402
 
 _IMG_W = 1920
 _IMG_H = 1080
@@ -198,6 +199,25 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help="Output sub-directory tag. Auto-derived from params if omitted.",
     )
+    parser.add_argument(
+        "--fixed-gt-dir",
+        type=Path,
+        default=next(
+            (Path(os.environ[k]) for k in ("SAL3D_FIXED_GT_DIR",) if k in os.environ),
+            None,
+        ),
+        help=(
+            "Directory with <model>_faces.txt per-face fixed GT files "
+            "(sal3d_fixed_face_gt/). When provided, metrics_vs_fixed_face_gt is "
+            "added to the report using face-domain predictions."
+        ),
+    )
+    parser.add_argument(
+        "--sal3d-manifest",
+        type=Path,
+        default=None,
+        help="Path to sal3d_manifest.csv (optional, recorded in provenance).",
+    )
     return parser.parse_args()
 
 
@@ -233,7 +253,7 @@ def _resolve(directory: Path, names: list[str], suffix: str) -> Path | None:
     return None
 
 
-def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
+def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path | None]:
     names = _candidate_model_names(args.model)
 
     obj_path = _resolve(args.dataset_root / "Meshes", names, ".obj")
@@ -243,7 +263,8 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
         )
 
     gt_path = _resolve(args.dataset_root / "Gaze", names, ".txt")
-    if gt_path is None:
+    fixed_gt_dir = getattr(args, "fixed_gt_dir", None)
+    if gt_path is None and not (fixed_gt_dir and Path(str(fixed_gt_dir)).is_dir()):
         raise FileNotFoundError(
             f"Gaze GT not found for '{args.model}' in {args.dataset_root / 'Gaze'}"
         )
@@ -258,8 +279,8 @@ def resolve_model_paths(args: argparse.Namespace) -> dict[str, Path]:
     return {"obj": obj_path, "gt": gt_path, "json": json_path}
 
 
-def ensure_exists(paths: dict[str, Path]) -> None:
-    missing = [f"{k}: {v}" for k, v in paths.items() if not v.exists()]
+def ensure_exists(paths: dict[str, Path | None]) -> None:
+    missing = [f"{k}: {v}" for k, v in paths.items() if v is not None and not v.exists()]
     if missing:
         raise SystemExit("Missing inputs:\n" + "\n".join(missing))
 
@@ -905,21 +926,40 @@ def main() -> None:
         if smooth_gaze_data is not None:
             smooth_gaze_path_used = str(smooth_gaze_dir)
 
-    gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
-        paths["gt"],
-        np.asarray(mesh.vertices),
-        args.gt_column,
-        smooth_gaze=smooth_gaze_data,
-        smooth_ratio=args.smooth_ratio,
-    )
+    old_gt_ok = False
+    gt: np.ndarray | None = None
+    gt_mask: np.ndarray | None = None
+    gt_was_smoothed = False
+    old_gt_load_error: str | None = None
+
+    if paths["gt"] is not None:
+        try:
+            gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
+                paths["gt"],
+                np.asarray(mesh.vertices),
+                args.gt_column,
+                smooth_gaze=smooth_gaze_data,
+                smooth_ratio=args.smooth_ratio,
+            )
+            old_gt_ok = True
+        except ValueError as exc:
+            if not (args.fixed_gt_dir and args.fixed_gt_dir.is_dir()):
+                raise
+            old_gt_load_error = str(exc)
+
     gt_col_name = "fixation_density" if args.gt_column == 6 else "binary_fixation"
     if gt_was_smoothed:
         gt_col_name += "_smoothed"
 
-    n_verts      = len(mesh.vertices)
-    n_gt_covered = int(gt_mask.sum())
-    gt_coverage  = n_gt_covered / n_verts if n_verts > 0 else 0.0
-    match_type   = "direct" if n_gt_covered == n_verts else "subset"
+    n_verts = len(mesh.vertices)
+    if old_gt_ok:
+        n_gt_covered = int(gt_mask.sum())
+        gt_coverage  = n_gt_covered / n_verts if n_verts > 0 else 0.0
+        match_type   = "direct" if n_gt_covered == n_verts else "subset"
+    else:
+        n_gt_covered = 0
+        gt_coverage  = 0.0
+        match_type   = "none"
 
     tag_parts = []
     tag_parts.append(f"sigmapx{args.sigma_px}".replace(".", "p"))
@@ -955,14 +995,19 @@ def main() -> None:
     out_dir.mkdir(parents=True, exist_ok=True)
     np.savetxt(out_dir / f"{args.model}_screen_space_vertices.txt", vert_sal, fmt="%.10f")
 
-    results_full   = {"screen_space_gaussian": compute_metrics(vert_sal, gt)}
-    results_masked = {"screen_space_gaussian": compute_metrics(vert_sal[gt_mask], gt[gt_mask])}
+    if old_gt_ok:
+        results_full   = {"screen_space_gaussian": compute_metrics(vert_sal, gt)}
+        results_masked = {"screen_space_gaussian": compute_metrics(vert_sal[gt_mask], gt[gt_mask])}
+    else:
+        results_full   = None
+        results_masked = None
 
     report = {
         "model":      args.model,
         "tag":        tag,
         "dataset":    "SAL3D",
-        "gt_file":    str(paths["gt"].name),
+        "gt_file":    str(paths["gt"].name) if paths["gt"] is not None else None,
+        "gt_load_error":         old_gt_load_error,
         "gt_column":  args.gt_column,
         "gt_type":    gt_col_name,
         "gt_smoothed":           gt_was_smoothed,
@@ -991,6 +1036,20 @@ def main() -> None:
         "metrics_vs_gt_full_mesh":    results_full,
         "metrics_vs_gt_covered_only": results_masked,
     }
+
+    if args.fixed_gt_dir and args.fixed_gt_dir.is_dir():
+        n_faces = len(mesh.faces)
+        face_sal = vert_sal[mesh.faces].mean(axis=1)
+        fixed_gt, fixed_gt_path = load_fixed_face_gt(args.fixed_gt_dir, args.model, n_faces)
+        manifest_path = str(args.sal3d_manifest) if args.sal3d_manifest else None
+        report["metrics_vs_fixed_face_gt"] = {
+            "sal3d_gt_source": "fixed_face_gt",
+            "gt_domain": "face",
+            "gt_path": str(fixed_gt_path),
+            "manifest_path": manifest_path,
+            "n_faces": n_faces,
+            "screen_space_gaussian": compute_metrics(face_sal, fixed_gt),
+        }
 
     report_path = out_dir / f"{args.model}_report.json"
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
