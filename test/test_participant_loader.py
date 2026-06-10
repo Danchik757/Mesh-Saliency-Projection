@@ -868,3 +868,140 @@ def test_guard_delay_mismatch():
                 timing_contract=TIMING_CONTRACT_ONE_TURN,
                 delay_frames=6,
             )
+
+
+def test_guard_missing_fixation_data_tag():
+    """guard_report_compatible raises when report lacks fixation_data_tag but caller provides one."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        # Produce a report WITHOUT fixation_data_tag
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            fixation_data_tag=None,
+        )
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Caller passes a tag → existing report is missing it → mismatch for one_turn
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                fixation_data_tag="processed_fixations_offset0_full_cleaned",
+            )
+
+
+def test_guard_turn_frame_count_mismatch():
+    """guard_report_compatible raises when turn_frame_count differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+        )
+        real_turn_count = track.provenance["turn_frame_count"]
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Same value → no error
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            turn_frame_count=real_turn_count,
+        )
+        # Different value → error
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                turn_frame_count=real_turn_count + 1,
+            )
+
+
+def test_guard_gaze_start_frame_mismatch():
+    """guard_report_compatible raises when gaze_start_frame differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        # delay=0 → gaze_start_frame=0
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+        )
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            gaze_start_frame=0,
+        )
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                gaze_start_frame=6,
+            )
+
+
+def test_guard_placement_start_frame_mismatch():
+    """guard_report_compatible raises when placement_start_frame differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        # delay=0 → placement_start_frame=0
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+        )
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            placement_start_frame=0,
+        )
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                placement_start_frame=6,
+            )

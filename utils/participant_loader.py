@@ -623,6 +623,8 @@ def guard_report_compatible(
     fixation_data_tag: str | None = None,
     delay_frames: int | None = None,
     turn_frame_count: int | None = None,
+    gaze_start_frame: int | None = None,
+    placement_start_frame: int | None = None,
 ) -> None:
     """Raise ResumeContractMismatchError if an existing report has incompatible provenance.
 
@@ -631,8 +633,12 @@ def guard_report_compatible(
     if it were produced under the one_turn_from_start contract (and vice-versa),
     or with a different delay or dataset tag.
 
-    Checked fields (any mismatch raises):
-      timing_contract, fixation_data_tag, delay_frames, turn_frame_count.
+    Checked fields: timing_contract, fixation_data_tag, delay_frames,
+    turn_frame_count, gaze_start_frame, placement_start_frame.
+
+    For one_turn_from_start: if the expected value is provided and the existing
+    report is missing that field, it is treated as a mismatch.
+    For cropped_reset: only raises when the field exists in the report and differs.
     """
     if not report_path.is_file():
         return
@@ -642,22 +648,25 @@ def guard_report_compatible(
         return
 
     prov = report.get("participant_input", {})
+    strict = (timing_contract == TIMING_CONTRACT_ONE_TURN)
 
     def _check(field: str, expected: Any) -> None:
+        if expected is None:
+            return
         existing = prov.get(field)
-        if existing is not None and existing != expected:
-            raise ResumeContractMismatchError(report_path, field, existing, expected)
+        if strict:
+            if existing != expected:
+                raise ResumeContractMismatchError(report_path, field, existing, expected)
+        else:
+            if existing is not None and existing != expected:
+                raise ResumeContractMismatchError(report_path, field, existing, expected)
 
     _check("timing_contract", timing_contract)
-
-    if fixation_data_tag is not None:
-        _check("fixation_data_tag", fixation_data_tag)
-
-    if delay_frames is not None:
-        _check("delay_frames", delay_frames)
-
-    if turn_frame_count is not None:
-        _check("turn_frame_count", turn_frame_count)
+    _check("fixation_data_tag", fixation_data_tag)
+    _check("delay_frames", delay_frames)
+    _check("turn_frame_count", turn_frame_count)
+    _check("gaze_start_frame", gaze_start_frame)
+    _check("placement_start_frame", placement_start_frame)
 
 
 # ── old-CSV compatibility loader ──────────────────────────────────────────────

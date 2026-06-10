@@ -925,6 +925,15 @@ def main() -> None:
     }
 
     report_path = out_dir / f"{args.model}_report.json"
+    guard_report_compatible(
+        report_path,
+        timing_contract=getattr(args, "timing_contract", TIMING_CONTRACT_CROPPED_RESET),
+        fixation_data_tag=track.provenance.get("fixation_data_tag"),
+        delay_frames=track.provenance.get("delay_frames"),
+        turn_frame_count=track.provenance.get("turn_frame_count"),
+        gaze_start_frame=track.provenance.get("gaze_start_frame"),
+        placement_start_frame=track.provenance.get("placement_start_frame"),
+    )
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps(report, indent=2))
     print(f"\nSaved: {report_path}", flush=True)

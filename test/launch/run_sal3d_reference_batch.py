@@ -544,13 +544,19 @@ def _provenance_matches(report_path: Path, args: argparse.Namespace) -> bool:
                 return prov.get("fixation_format") == "cropped_reset_offset_2000"
         if current_contract == "one_turn_from_start":
             expected_delay = round(getattr(args, "delay_seconds", 0.0) * float(prov.get("fps", 30.0)))
-            existing_delay = prov.get("delay_frames")
-            if existing_delay is not None and existing_delay != expected_delay:
-                return False
             current_tag = getattr(args, "fixation_data_tag", None)
-            existing_tag = prov.get("fixation_data_tag")
-            if current_tag and existing_tag and current_tag != existing_tag:
-                return False
+            for field, expected in [
+                ("delay_frames",          expected_delay),
+                ("fixation_data_tag",     current_tag),
+                ("gaze_start_frame",      prov.get("gaze_start_frame")),
+                ("placement_start_frame", prov.get("placement_start_frame")),
+                ("turn_frame_count",      prov.get("turn_frame_count")),
+            ]:
+                existing_val = prov.get(field)
+                if existing_val is None:
+                    return False
+                if expected is not None and existing_val != expected:
+                    return False
         return True
     except Exception:
         return False
