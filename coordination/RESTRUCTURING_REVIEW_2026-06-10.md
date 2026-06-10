@@ -9,6 +9,7 @@ tooling that can later become a separate submodule or companion repository.
 ```text
 branch: reproject-benchmark
 known HEAD during this review: 15eb036
+review update HEAD: 51c232e
 release data: v2.0-data-rc2
 ```
 
@@ -39,11 +40,16 @@ server runbooks and launchers:
 
 ```text
 configs/
+conftest.py
 jsons/
 metrics/
+participant_data/
+pytest.ini
 reprojection_methods/
 scripts/
 test/launch/
+test/kld_parameter_sweep/
+tests/
 utils/
 requirements/
 coordination/
@@ -67,6 +73,16 @@ validation/alignment_preview/
 video_creation/
 visualization/
 ```
+
+Important exception:
+
+```text
+test/kld_parameter_sweep/
+```
+
+This path is under `test/`, but it is not auxiliary alignment/debug tooling. It
+is the benchmark parameter-sweep driver and must stay with the production tree
+until the rc2-compatible sigma sweep has been completed and archived.
 
 Recommended future target name:
 
@@ -96,6 +112,30 @@ Before moving any candidate path, add one of the following:
 
 For this project, wrappers are preferred until the full rc2 metrics and sigma
 sweep runs are complete.
+
+Known hard references that require wrappers or coordinated updates before a
+physical move:
+
+```text
+test/launch/run_preview_manifest.sh
+  -> test/tools/render_preview_from_manifest.py
+
+test/launch/run_saliency3d_clear_pilot.sh
+  -> video_creation/transfer_visualizations/make_transfer_visualizations.py
+```
+
+Known documentation/comment references that must be updated together with a
+move:
+
+```text
+reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py
+reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py
+validation/alignment_preview/check_alignment.py
+visualization/heatmap_six_view/render_six_view_heatmaps.py
+```
+
+Current decision: do not move auxiliary code before the full rc2 metric run is
+verified and the sigma sweep runner is updated to the rc2 contract.
 
 ## Current untracked files to classify
 

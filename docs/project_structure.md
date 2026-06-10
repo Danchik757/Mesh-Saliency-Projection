@@ -14,6 +14,7 @@
 - `utils/`
 - `configs/`
 - `experiments/`
+- `test/`
 - `tests/`
 
 ## Why this structure
@@ -42,8 +43,11 @@
   - reproducible run configurations
 - `experiments/`
   - one-off or exploratory scripts before they are promoted into stable modules
+- `test/`
+  - active batch launchers, regression tests, and legacy alignment/debug tools
 - `tests/`
-  - smoke tests and regression checks
+  - reserved compatibility test directory; keep it documented so it is not
+    accidentally swept into a future visualization/helper submodule
 
 ## Good next folders to add later
 
@@ -66,6 +70,9 @@ Keep stable logic in:
 - `reprojection_methods/`
 - `utils/`
 - `test/launch/`
+- `test/kld_parameter_sweep/`
+- `conftest.py`
+- `pytest.ini`
 
 Keep experimental logic in:
 
