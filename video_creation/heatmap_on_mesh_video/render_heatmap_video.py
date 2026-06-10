@@ -50,6 +50,16 @@ except ImportError as _exc:
 CROP_START_S = 1.8
 CROP_END_S   = 0.2
 
+# Timing contract (rc2 / A3 cropped-reset format):
+#   start_idx = round(1.8 * fps)          # 54 for all 30-fps datasets
+#   end_idx   = total_frames - round(0.2 * fps)   # 504 (MeshMamba) / 714 (SAL3D)
+#   Renderer iterates placement[start_idx : end_idx] for object rotation.
+#
+#   Evaluators consume processed_gaze[0 : usable_count] where
+#   processed_gaze[k] corresponds to placement[start_idx + k].
+#   The renderer does NOT index processed_gaze directly; it only reads the
+#   pre-aggregated saliency map produced by the evaluator.
+
 
 # ── OBJ ──────────────────────────────────────────────────────────────────────
 

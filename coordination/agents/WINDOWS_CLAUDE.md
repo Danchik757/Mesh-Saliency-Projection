@@ -405,3 +405,73 @@ Pending reviewer/controller approval to SSH to vg-iai and run the smoke script.
 ```
 
 git status --short: see commit below.
+
+---
+
+## 2026-06-09 — Phase 2 renderer: post-review fixes
+
+Branch: agent/windows-geometry-metrics
+Commits: dce9f77 (original renderer) + dc327d1 (fixes)
+Also cherry-picked onto reproject-benchmark @ b6ff18a
+
+### Fixes applied
+
+| Issue | Fix |
+| --- | --- |
+| Transform order: location added before frame rotation | Removed +location from precompute_base_transform; added after apply_frame_rotation in render_frames via model_location param. Matches evaluator blender_rig: recenter→scale→rotX→rotZ(frame)→+location |
+| Release root | Corrected to shared_release_data/v2.0-data-rc1/extracted |
+| Conda in smoke script | Replaced with source ${SERVER_ROOT}/environments/reproject-benchmark/bin/activate |
+| SAL3D bunny OBJ path | Corrected from datasets/SAL3D/OBJ/bunny/bunny.obj to datasets/SAL3D/Meshes/bunny.obj per jsons/dataset_model_info/sal3d_models.json |
+| find_map tied to method subdir | Now searches full smoke tree via find + grep, layout-agnostic |
+
+### Validation
+
+```
+py_compile: OK
+180 passed in 2.00s  (141 B3 + 39 renderer)
+```
+
+### reproject-benchmark state after cherry-picks
+
+```
+b6ff18a Fix renderer transform order, release root, venv, and SAL3D OBJ path
+ee88379 Add heatmap-on-mesh video renderer (Phase 2)
+49f685a Merge (A2 + windows B3) — A1/A2 intact
+```
+
+Server smoke on vg-iai pending reviewer/controller approval.
+
+---
+
+## 2026-06-10 — Merge A3/A4 + rc2 smoke script update
+
+Branch: agent/windows-geometry-metrics
+Merged: origin/reproject-benchmark @ 1065e28 (A3 cropped-reset fixations, A4 SAL3D fixed GT)
+
+### Changes in this commit
+
+| Item | Change |
+| --- | --- |
+| Merge conflict | Kept our WINDOWS_CLAUDE.md work-log entry (HEAD); reproject-benchmark had no competing Windows log content |
+| Smoke script | Sources configs/server_vg_intellect.env; uses MESHMAMBA_NON_TEXTURE_ROOT, SAL3D_DATASET_ROOT, SAL3D_JSON_ROOT, MESHMAMBA_JSON_ROOT, OUTPUT_ROOT from env file; REPROJECT_RELEASE_TAG overridable for rc2-staging/final |
+| Timing contract | Added comment to render_heatmap_video.py: processed_gaze[0:usable_count] maps to placement[start_idx:end_idx]; renderer iterates placement[54:504/714] directly; does NOT index into processed_gaze |
+| Renderer logic | No logic changes needed; placement[54:504/714] crop was already correct |
+
+### rc2 path migration
+
+All hardcoded paths removed from smoke script. Paths now flow from:
+- RELEASE_DATA_ROOT = ${REPROJECT_SERVER_ROOT}/shared_release_data/${REPROJECT_RELEASE_TAG}/extracted
+- MESHMAMBA_NON_TEXTURE_ROOT = ${RELEASE_DATA_ROOT}/datasets/MeshMamba
+- SAL3D_DATASET_ROOT = ${RELEASE_DATA_ROOT}/datasets/SAL3D
+- MESHMAMBA_JSON_ROOT / SAL3D_JSON_ROOT = ${REPROJECT_CANONICAL_JSON_ROOT}/mamba_non_jsons / sal3d_jsons
+
+Override: REPROJECT_RELEASE_TAG=v2.0-data-rc2-staging bash run_server_heatmap_video_smoke.sh
+
+### Validation
+
+```
+py_compile: OK
+221 passed in 2.18s  (141 B3 + 39 renderer + 41 A3/A4)
+compileall: OK (video_creation test metrics utils reprojection_methods)
+no conflict markers
+```
