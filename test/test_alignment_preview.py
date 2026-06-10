@@ -41,6 +41,8 @@ from validation.alignment_preview.check_alignment import (
     extract_video_mask,
     compute_iou,
     _find_file_casefold,
+    _normalise_lookup_name,
+    _find_obj,
     _model_output_dir,
     write_manifest,
     write_summary_csv,
@@ -620,6 +622,84 @@ class TestFindFileCasefold:
 # _model_output_dir
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# _normalise_lookup_name
+# ---------------------------------------------------------------------------
+
+class TestNormaliseLookupName:
+    def test_strips_underscores(self):
+        assert _normalise_lookup_name("Starfruit_L3") == "starfruitl3"
+
+    def test_strips_dashes(self):
+        assert _normalise_lookup_name("Starfruit-L3") == "starfruitl3"
+
+    def test_lowercases(self):
+        assert _normalise_lookup_name("PEAR") == "pear"
+
+    def test_mixed_separators(self):
+        assert _normalise_lookup_name("Pear_L3") == _normalise_lookup_name("pear-l3")
+
+    def test_no_separator_unchanged(self):
+        assert _normalise_lookup_name("bunny") == "bunny"
+
+
+# ---------------------------------------------------------------------------
+# _find_obj — nested / fuzzy MeshMamba layout
+# ---------------------------------------------------------------------------
+
+class TestFindObj:
+    def test_exact_flat(self, tmp_path):
+        (tmp_path / "bunny.obj").write_text("")
+        assert _find_obj(tmp_path, "bunny") == tmp_path / "bunny.obj"
+
+    def test_casefold_flat(self, tmp_path):
+        (tmp_path / "BUNNY.OBJ").write_text("")
+        result = _find_obj(tmp_path, "bunny")
+        assert result is not None and result.name.upper() == "BUNNY.OBJ"
+
+    def test_nested_exact_name(self, tmp_path):
+        # Starfruit_L3/Starfruit_L3.obj
+        sub = tmp_path / "Starfruit_L3"
+        sub.mkdir()
+        (sub / "Starfruit_L3.obj").write_text("")
+        assert _find_obj(tmp_path, "Starfruit_L3") == sub / "Starfruit_L3.obj"
+
+    def test_nested_dash_variant(self, tmp_path):
+        # Starfruit_L3/Starfruit-L3.obj  (dash, not underscore)
+        sub = tmp_path / "Starfruit_L3"
+        sub.mkdir()
+        (sub / "Starfruit-L3.obj").write_text("")
+        result = _find_obj(tmp_path, "Starfruit_L3")
+        assert result is not None
+        assert result.name == "Starfruit-L3.obj"
+
+    def test_nested_short_name(self, tmp_path):
+        # Pear_L3/Pear.obj  (stem shorter than model name)
+        sub = tmp_path / "Pear_L3"
+        sub.mkdir()
+        (sub / "Pear.obj").write_text("")
+        # "pear" != "pearl3", so it won't match normalised — but it IS the only file
+        result = _find_obj(tmp_path, "Pear_L3")
+        assert result is not None
+        assert result.name == "Pear.obj"
+
+    def test_nested_single_obj_fallback(self, tmp_path):
+        # Any single .obj in the subdir is returned if nothing else matches
+        sub = tmp_path / "MyModel_v2"
+        sub.mkdir()
+        (sub / "totally_different_name.obj").write_text("")
+        result = _find_obj(tmp_path, "MyModel_v2")
+        assert result is not None
+
+    def test_returns_none_for_missing(self, tmp_path):
+        assert _find_obj(tmp_path, "ghost") is None
+
+    def test_returns_none_empty_subdir(self, tmp_path):
+        (tmp_path / "MyModel").mkdir()
+        assert _find_obj(tmp_path, "MyModel") is None
+
+
+# ---------------------------------------------------------------------------
 class TestModelOutputDir:
     def test_with_texture_type(self):
         p = _model_output_dir(Path("/out"), "meshmamba", "non_texture", "Starfruit_L3")

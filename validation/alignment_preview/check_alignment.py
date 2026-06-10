@@ -481,6 +481,10 @@ def _find_file_casefold(directory: Path, stem: str, suffix: str) -> Path | None:
     return None
 
 
+def _normalise_lookup_name(value: str) -> str:
+    return value.lower().replace("_", "").replace("-", "")
+
+
 def _find_video(video_root: Path, prefix: str, model: str) -> Path | None:
     """Case-insensitive search for {prefix}{model}.mp4 in video_root."""
     if video_root is None or not video_root.is_dir():
@@ -490,11 +494,36 @@ def _find_video(video_root: Path, prefix: str, model: str) -> Path | None:
 
 
 def _find_obj(obj_dir: Path, model: str) -> Path | None:
-    """Case-insensitive OBJ lookup (exact name or stem match)."""
+    """Case-insensitive OBJ lookup with MeshMamba nested/fuzzy name handling."""
     exact = obj_dir / f"{model}.obj"
     if exact.exists():
         return exact
-    return _find_file_casefold(obj_dir, model, ".obj")
+    direct = _find_file_casefold(obj_dir, model, ".obj")
+    if direct is not None:
+        return direct
+
+    # MeshMamba stores meshes as MeshFile/{texture_type}/{model}/{obj_stem}.obj
+    # where obj_stem may differ from model by underscores/dashes, e.g.
+    # Starfruit_L3 -> Starfruit-L3.obj, Pear_L3 -> Pear.obj.
+    model_dir = None
+    if obj_dir.is_dir():
+        for p in obj_dir.iterdir():
+            if p.is_dir() and p.name.lower() == model.lower():
+                model_dir = p
+                break
+    if model_dir is None or not model_dir.is_dir():
+        return None
+
+    exact_nested = _find_file_casefold(model_dir, model, ".obj")
+    if exact_nested is not None:
+        return exact_nested
+
+    wanted = _normalise_lookup_name(model)
+    candidates = sorted(model_dir.glob("*.obj"))
+    for p in candidates:
+        if _normalise_lookup_name(p.stem) == wanted:
+            return p
+    return candidates[0] if len(candidates) == 1 else None
 
 
 def _find_json(json_root: Path, prefix: str, model: str) -> Path | None:
@@ -945,7 +974,7 @@ def main(argv=None):
             iou  = row.get("iou")
             note = row.get("iou_note", "")
             iou_str = f"  iou={iou:.3f}" if isinstance(iou, float) else ""
-            print(f"    k={k:>4s}  {st}{iou_str}  {note}", flush=True)
+            print(f"    k={k:>4}  {st}{iou_str}  {note}", flush=True)
         all_rows.extend(rows)
 
     manifest_path = write_manifest(

@@ -1099,3 +1099,13 @@ absent).
 341 passed in 2.88s   (+85 new, 0 regressions)
 py_compile validation/alignment_preview/check_alignment.py: OK
 ```
+
+### Fixes applied from live run
+
+- **Print format bug**: `{k:>4s}` → `{k:>4}` (`gaze_k` is int; `s` spec crashes)
+- **MeshMamba nested OBJ**: `_find_obj` now descends into `{model}/` subdirectory
+  and falls back to normalised name matching (strip `_`/`-`, lowercase) for cases
+  like `Starfruit_L3/Starfruit-L3.obj` and `Pear_L3/Pear.obj` (single-file
+  fallback).
+- Added `_normalise_lookup_name` helper + 13 new tests (`TestNormaliseLookupName`,
+  `TestFindObj`); 354 passed total, 0 regressions.
