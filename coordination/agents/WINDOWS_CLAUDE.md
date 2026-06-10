@@ -545,3 +545,7 @@ compileall: OK
 ```
 
 Smoke not yet run — awaiting server approval and rc3 source_videos availability.
+
+Post-review fix: added --limit N to run_batch_gaze_overlay.py (applied after --models filter).
+Full batch without --models or --limit would process all 297 non-excluded models — --limit is
+the intended safety gate for smoke runs.

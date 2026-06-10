@@ -116,13 +116,17 @@ def run_batch(
     drop_audio: bool,
     dry_run: bool,
     nice: bool,
+    limit: int | None = None,
 ) -> None:
     entries = discover_models(fixation_root, video_root, filter_models, excluded)
     if not entries:
         print("[ERROR] No models found.", file=sys.stderr)
         sys.exit(1)
 
-    print(f"[INFO] mode={mode}  models={len(entries)}  dry_run={dry_run}")
+    if limit is not None:
+        entries = entries[:limit]
+
+    print(f"[INFO] mode={mode}  models={len(entries)}  dry_run={dry_run}  limit={limit}")
     for e in entries:
         video_status = str(e["video_path"]) if e["video_path"] else "VIDEO_NOT_FOUND"
         print(f"  {e['model_key']:45s}  video={video_status}")
@@ -245,6 +249,8 @@ def _build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--drop-audio", action="store_true")
     ap.add_argument("--dry-run", action="store_true",
                     help="List models and videos only; do not render")
+    ap.add_argument("--limit", type=int, default=None,
+                    help="Process at most N models (applied after --models filter; use for smoke)")
     ap.add_argument("--nice", action="store_true",
                     help="(ignored; use 'nice -n 18 ionice -c2 -n7' in the shell wrapper)")
     return ap
@@ -275,6 +281,7 @@ def main() -> None:
         drop_audio=args.drop_audio,
         dry_run=args.dry_run,
         nice=args.nice,
+        limit=args.limit,
     )
 
 
