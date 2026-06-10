@@ -935,3 +935,48 @@ used instead of raw `Gaze/*.txt` vertex-index matching.
 210 passed in 3.15s
 compileall: clean
 ```
+
+---
+
+## Work Log — SAL3D Batch Inventory Fix (A4 follow-up)
+
+**Branch:** agent/sal3d-fixed-face-gt (same branch, follow-up commit)
+
+### Task
+
+`inventory_models()` in `run_sal3d_reference_batch.py` always discovered models
+from `dataset_root/Gaze/*.txt`, which fails for the compact fixed-GT package
+that has no `Gaze/` directory. Fix model discovery for `--fixed-gt-dir` mode.
+
+### Changes
+
+**`test/launch/run_sal3d_reference_batch.py`**
+- Added `_read_manifest_model_names(manifest_path)` helper: reads first `model`
+  column from `sal3d_manifest.csv`.
+- `inventory_models()` gains `fixed_gt_dir` and `sal3d_manifest` parameters.
+  - Fixed-GT mode: discovers from manifest CSV (if `--sal3d-manifest`) or
+    from `*_faces.txt` glob; intersects with `Meshes/*.obj` and fixation JSONs.
+    Does NOT require `Gaze/`.
+  - Classic mode: unchanged.
+- `gorgoile` auto-excluded if `SAL3D_gorgoile/fixations.json` is absent.
+- `main()` passes `fixed_gt_dir` and `sal3d_manifest` to `inventory_models()`.
+- `collect_row_from_report()`: sets `gt_match_type = "fixed_face"` for rows
+  where `metrics_vs_fixed_face_gt` section is present.
+- `write_summary_csv()`: adds `n_fixed_face` column (count of fixed-face rows);
+  `n_direct`/`n_subset` are now zero for pure fixed-GT runs, as expected.
+
+**`test/test_sal3d_batch_inventory.py`** (new, 9 tests)
+- compact package without Gaze/ works
+- gorgoile excluded when fixation JSON missing
+- model with GT file but no OBJ excluded
+- manifest-based discovery with and without unlisted models
+- explicit `--models` bypasses inventory
+- empty `sal3d_fixed_face_gt/` returns empty list
+- classic mode still uses Gaze/*.txt and raises on missing Gaze dir
+
+### Test Results
+
+```
+219 passed in 3.20s
+compileall: clean
+```

@@ -259,32 +259,104 @@ def load_explicit_models(args: argparse.Namespace) -> list[str] | None:
     return deduped
 
 
-def inventory_models(explicit_models: list[str] | None, *, csv_compat: bool = False) -> list[str]:
-    """Build model list as intersection of Gaze/*.txt ∩ gaze_source."""
+def _read_manifest_model_names(manifest_path: Path) -> list[str]:
+    """Read model names from the first 'model' column of sal3d_manifest.csv."""
+    with manifest_path.open("r", encoding="utf-8", newline="") as fh:
+        reader = csv.reader(fh)
+        header = next(reader, None)
+        if header is None:
+            return []
+        try:
+            model_col = [h.strip().lower() for h in header].index("model")
+        except ValueError:
+            raise RuntimeError(
+                f"sal3d_manifest.csv has no 'model' column. Headers: {header}"
+            )
+        return [
+            row[model_col].strip()
+            for row in reader
+            if len(row) > model_col and row[model_col].strip()
+        ]
+
+
+def inventory_models(
+    explicit_models: list[str] | None,
+    *,
+    csv_compat: bool = False,
+    fixed_gt_dir: Path | None = None,
+    sal3d_manifest: Path | None = None,
+) -> list[str]:
+    """Build model list from available GT and participant gaze data.
+
+    Fixed-GT mode (--fixed-gt-dir provided):
+      GT source: sal3d_manifest.csv (if --sal3d-manifest given) or *_faces.txt files.
+      Intersected with: Meshes/*.obj and participant fixation JSONs.
+      Does NOT require dataset_root/Gaze/.
+
+    Classic mode (--fixed-gt-dir not provided):
+      GT source: dataset_root/Gaze/*.txt.
+      Intersected with: participant fixation JSONs.
+    """
     if explicit_models is not None:
         return list(explicit_models)
 
-    dataset_root = resolve_dataset_root()
-    gaze_dir = dataset_root / "Gaze"
-    if not gaze_dir.is_dir():
-        raise RuntimeError(f"Gaze directory not found: {gaze_dir}")
+    if fixed_gt_dir and fixed_gt_dir.is_dir():
+        # --- fixed-GT mode ---
+        if sal3d_manifest and sal3d_manifest.exists():
+            raw_names = _read_manifest_model_names(sal3d_manifest)
+        else:
+            raw_names = [
+                p.stem[: -len("_faces")]
+                for p in sorted(fixed_gt_dir.glob("*_faces.txt"))
+            ]
+        gt_stems: dict[str, str] = {}
+        for name in raw_names:
+            if name.lower() not in gt_stems:
+                gt_stems[name.lower()] = name
 
-    # Models with GT
-    gt_stems = {p.stem.lower(): p.stem for p in sorted(gaze_dir.glob("*.txt"))}
+        # Intersect with available Meshes/*.obj
+        try:
+            dataset_root = resolve_dataset_root()
+            mesh_dir = dataset_root / "Meshes"
+            if mesh_dir.is_dir():
+                obj_set = {p.stem.lower() for p in sorted(mesh_dir.glob("*.obj"))}
+                gt_stems = {k: v for k, v in gt_stems.items() if k in obj_set}
+        except RuntimeError:
+            pass  # no dataset_root configured; skip OBJ filter
 
-    if csv_compat:
-        csv_root = resolve_csv_root()
-        gaze_set = {p.stem.lower() for p in sorted(csv_root.glob("*.csv"))}
+        # Intersect with participant gaze source
+        if csv_compat:
+            csv_root = resolve_csv_root()
+            gaze_set = {p.stem.lower() for p in sorted(csv_root.glob("*.csv"))}
+        else:
+            fixation_root = resolve_fixation_root()
+            gaze_set = {
+                p.parent.name[len("SAL3D_"):].lower()
+                for p in sorted(fixation_root.glob("SAL3D_*/fixations.json"))
+            }
+
+        return [name for key, name in sorted(gt_stems.items()) if key in gaze_set]
+
     else:
-        fixation_root = resolve_fixation_root()
-        gaze_set = {
-            p.parent.name[len("SAL3D_"):].lower()
-            for p in sorted(fixation_root.glob("SAL3D_*/fixations.json"))
-        }
+        # --- classic mode: discover from Gaze/*.txt ---
+        dataset_root = resolve_dataset_root()
+        gaze_dir = dataset_root / "Gaze"
+        if not gaze_dir.is_dir():
+            raise RuntimeError(f"Gaze directory not found: {gaze_dir}")
 
-    # Intersection (case-insensitive, preserve GT name)
-    models = [name for key, name in sorted(gt_stems.items()) if key in gaze_set]
-    return models
+        gt_stems = {p.stem.lower(): p.stem for p in sorted(gaze_dir.glob("*.txt"))}
+
+        if csv_compat:
+            csv_root = resolve_csv_root()
+            gaze_set = {p.stem.lower() for p in sorted(csv_root.glob("*.csv"))}
+        else:
+            fixation_root = resolve_fixation_root()
+            gaze_set = {
+                p.parent.name[len("SAL3D_"):].lower()
+                for p in sorted(fixation_root.glob("SAL3D_*/fixations.json"))
+            }
+
+        return [name for key, name in sorted(gt_stems.items()) if key in gaze_set]
 
 
 def task_output_dir(batch_output_dir: Path, method: str) -> Path:
@@ -534,8 +606,12 @@ def collect_row_from_report(
     # Prefer fixed-face GT metrics when present; fall back to covered-only vertex metrics.
     fixed_section = report.get("metrics_vs_fixed_face_gt")
     if fixed_section:
-        row["gt_domain"]    = fixed_section.get("gt_domain", "face")
-        row["fixed_gt_file"] = Path(fixed_section.get("gt_path", "")).name if fixed_section.get("gt_path") else ""
+        row["gt_match_type"] = "fixed_face"
+        row["gt_domain"]     = fixed_section.get("gt_domain", "face")
+        row["fixed_gt_file"] = (
+            Path(fixed_section.get("gt_path", "")).name
+            if fixed_section.get("gt_path") else ""
+        )
         method_key = "screen_space_gaussian" if task.method == "screen_space" else "cone_gaussian_on_mesh"
         metrics = fixed_section.get(method_key) or {}
     else:
@@ -609,7 +685,7 @@ def write_summary_csv(rows: list[dict[str, Any]], path: Path) -> None:
         groups.setdefault(row["method"], []).append(row)
 
     fieldnames = ["method", "n_total", "n_ok", "n_failed",
-                  "n_direct", "n_subset", "n_smoothed_gt"]
+                  "n_direct", "n_subset", "n_fixed_face", "n_smoothed_gt"]
     for metric in SUMMARY_METRICS:
         fieldnames.extend([f"{metric}_mean", f"{metric}_median"])
 
@@ -624,9 +700,10 @@ def write_summary_csv(rows: list[dict[str, Any]], path: Path) -> None:
                 "n_total":        len(group_rows),
                 "n_ok":           len(ok_rows),
                 "n_failed":       len(group_rows) - len(ok_rows),
-                "n_direct":       sum(1 for r in ok_rows if r.get("gt_match_type") == "direct"),
-                "n_subset":       sum(1 for r in ok_rows if r.get("gt_match_type") == "subset"),
-                "n_smoothed_gt":  sum(1 for r in ok_rows if str(r.get("gt_smoothed", "")).lower() == "true"),
+                "n_direct":      sum(1 for r in ok_rows if r.get("gt_match_type") == "direct"),
+                "n_subset":      sum(1 for r in ok_rows if r.get("gt_match_type") == "subset"),
+                "n_fixed_face":  sum(1 for r in ok_rows if r.get("gt_match_type") == "fixed_face"),
+                "n_smoothed_gt": sum(1 for r in ok_rows if str(r.get("gt_smoothed", "")).lower() == "true"),
             }
             for metric in SUMMARY_METRICS:
                 values = [float(r[metric]) for r in ok_rows if r.get(metric) not in ("", None)]
@@ -640,7 +717,12 @@ def main() -> int:
     args.batch_output_dir.mkdir(parents=True, exist_ok=True)
     explicit_models = load_explicit_models(args)
 
-    models = inventory_models(explicit_models, csv_compat=args.csv_compat)
+    models = inventory_models(
+        explicit_models,
+        csv_compat=args.csv_compat,
+        fixed_gt_dir=getattr(args, "fixed_gt_dir", None),
+        sal3d_manifest=getattr(args, "sal3d_manifest", None),
+    )
     tasks: list[Task] = [
         Task(method=method, model=model)
         for method in args.methods
