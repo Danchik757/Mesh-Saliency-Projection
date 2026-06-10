@@ -1052,3 +1052,50 @@ SAL3D (GT + screen_space + cone) and MeshMamba.
 compileall: clean
 py_compile visualization/heatmap_six_view/render_six_view_heatmaps.py: OK
 ```
+
+---
+
+## Work log — 2026-06-10 — Alignment validation preview
+
+Branch: `agent/heatmap-six-view`
+
+Alignment gate tool before any full heatmap batch run.
+For each dataset/model at 5 canonical frame indices, renders the mesh
+silhouette using the exact same transform pipeline as the metric evaluators,
+overlays the edge contour on the corresponding real video frame, and computes
+silhouette IoU via background subtraction (gracefully omitted when video is
+absent).
+
+### Files created
+
+- `validation/alignment_preview/check_alignment.py` — main CLI
+- `test/test_alignment_preview.py` — 85 unit tests (no server data required)
+
+### Key design decisions
+
+- **Transform fidelity:** `precompute_base_verts` + `apply_frame_transform`
+  implement the exact same split the batch runners use: 3dva order (base_rz →
+  scale → frame_rz → extra_rx → extra_ry → translate) and blender_rig order
+  (scale → extra_rx → extra_ry → base_rz → frame_rz → translate).
+- **FOV:** `horizontal_to_vertical_fov_deg` applied for all datasets, matching
+  evaluator behaviour.
+- **Timing contract:** gaze index k → placement[CROP_START + k] → video frame
+  (CROP_START + k).  No use of processed_gaze offsets.
+- **Silhouette rasterisation:** PIL `ImageDraw.polygon` fill; all triangles
+  whose three vertices have `w_clip > 0` are drawn.
+- **Video mask:** corner-pixel median background subtraction (same algorithm as
+  `test/tools/debug_single_gaze_projection.py`).  IoU flagged unreliable when
+  video absent or extraction fails; overlays are still saved.
+- **`--video-root` optional:** missing → IoU = null, overlays not generated,
+  silhouette masks still saved.
+- **Output structure:** `{output_root}/{DATASET[_tt]}/{model}/frame_{k:04d}_p{p:04d}/`
+  → `silhouette_mask.png`, `raw_video_frame.png`, `overlay_edge.png`,
+  `video_mask.png`, `result.json`; plus top-level `manifest.json` +
+  `summary.csv`.
+
+### Test results
+
+```
+341 passed in 2.88s   (+85 new, 0 regressions)
+py_compile validation/alignment_preview/check_alignment.py: OK
+```
