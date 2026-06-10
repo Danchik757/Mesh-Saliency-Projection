@@ -40,6 +40,7 @@ from utils.participant_loader import (
     TimingValidationError,
     load_csv_compat_track,
     load_processed_track,
+    resolve_processed_fixation_path,
 )
 
 
@@ -248,6 +249,17 @@ def test_missing_fixation_raises():
 
     assert "gorgoile" in str(exc_info.value)
     assert "fall back" in str(exc_info.value).lower()
+
+
+def test_processed_fixation_path_case_insensitive_parent_fallback():
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        exact = tmp / "3DVA_rockerArm" / "fixations.json"
+        actual = tmp / "3DVA_rockerarm" / "fixations.json"
+        actual.parent.mkdir()
+        actual.write_text("[]", encoding="utf-8")
+
+        assert resolve_processed_fixation_path(exact) == actual
 
 
 # ── A1.4: wrong frame count (jessi-style) ─────────────────────────────────────

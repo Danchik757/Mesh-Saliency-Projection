@@ -83,6 +83,36 @@ class TimingValidationError(ParticipantLoaderError):
     """Placement JSON fails timing or full-turn validation."""
 
 
+def resolve_processed_fixation_path(fixation_path: Path) -> Path:
+    """Resolve fixations.json with a case-insensitive parent fallback.
+
+    Release archives should use canonical directory names, but some historical
+    model ids differ only by case, for example `3DVA_rockerarm` vs
+    `3DVA_rockerArm`. This keeps the processed-fixation contract intact while
+    avoiding a false missing-data error for case-only directory mismatches.
+    """
+    parent = fixation_path.parent
+    root = parent.parent
+    if root.is_dir():
+        target = parent.name.lower()
+        matches = [
+            candidate / fixation_path.name
+            for candidate in root.iterdir()
+            if candidate.is_dir()
+            and candidate.name.lower() == target
+            and (candidate / fixation_path.name).is_file()
+        ]
+        exact_matches = [p for p in matches if p.parent.name == parent.name]
+        if exact_matches:
+            return exact_matches[0]
+        if len(matches) == 1:
+            return matches[0]
+
+    if fixation_path.is_file():
+        return fixation_path
+    return fixation_path
+
+
 # ── data types ────────────────────────────────────────────────────────────────
 
 @dataclass
@@ -312,6 +342,7 @@ def load_processed_track(
     if canonical_name is None:
         canonical_name = f"{dataset}_{model}"
 
+    fixation_path = resolve_processed_fixation_path(fixation_path)
     if not fixation_path.is_file():
         raise MissingFixationError(canonical_name, fixation_path)
 
