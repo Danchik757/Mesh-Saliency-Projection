@@ -1008,3 +1008,47 @@ compileall: clean
 221 passed in 2.43s
 compileall: clean
 ```
+
+---
+
+## Work Log — Six-view heatmap renderer (preview)
+
+**Branch:** agent/heatmap-six-view (from origin/reproject-benchmark @ 1065e28)
+
+### Task
+
+Small preview renderer: per-model jet heatmaps from 6 canonical views for
+SAL3D (GT + screen_space + cone) and MeshMamba.
+
+### Files created
+
+- `visualization/heatmap_six_view/render_six_view_heatmaps.py` — main CLI renderer
+- `test/test_six_view_heatmaps.py` — 35 unit tests (pure-logic, no pyvista required)
+
+### Key design decisions
+
+- **Normalization:** true min-max per map `(v - vmin) / (vmax - vmin)`, NOT
+  percentile clipping. Constant maps → all-zero with warning recorded.
+- **Domain detection:** `len == n_faces` → face; `len == n_verts` → vertex
+  (converted via `vals[faces].mean(axis=1)`); otherwise fail that row.
+- **SAL3D predictions are per-vertex** (`*_screen_space_vertices.txt`,
+  `*_cone_vertices.txt`). GT is per-face (`*_faces.txt`). Both handled.
+- **MeshMamba predictions are per-face** (`*_screen_space_faces.txt`,
+  `*_cone_faces.txt`). GT is per-face CSV.
+- Tags match batch-runner constants exactly (SAL3D_SCREEN_TAG,
+  SAL3D_CONE_TAG, MM_SCREEN_TAG, MM_CONE_TAG).
+- `_find_file_casefold()` for case-insensitive OBJ/GT lookups.
+- `--limit N` for preview runs. `--models` for explicit selection.
+- manifest.json: one entry per (dataset, model, map_type) with `input_min`,
+  `input_max`, `display_normalization=minmax_per_map`, `colormap`, domain,
+  commit hash, hostname, created_at.
+- summary.csv: one row per (dataset, texture_type, model, map_type) with
+  per-view PNG paths and montage path.
+
+### Test Results
+
+```
+256 passed in 2.50s   (+35 new, 0 regressions)
+compileall: clean
+py_compile visualization/heatmap_six_view/render_six_view_heatmaps.py: OK
+```
