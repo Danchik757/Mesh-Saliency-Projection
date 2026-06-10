@@ -1109,3 +1109,179 @@ py_compile validation/alignment_preview/check_alignment.py: OK
   fallback).
 - Added `_normalise_lookup_name` helper + 13 new tests (`TestNormaliseLookupName`,
   `TestFindObj`); 354 passed total, 0 regressions.
+
+---
+
+## Work log — 2026-06-10 — Independent restructuring review
+
+Branch: `reproject-benchmark` @ `d61be84`
+
+Read: `README.md`, `coordination/README.md`, `coordination/PROJECT_STATE_2026-06-10.md`,
+`coordination/RESTRUCTURING_REVIEW_2026-06-10.md`, `docs/project_structure.md`.
+Verified by grep and directory listing; no code was modified.
+
+---
+
+### Q1 — Is the production path list complete?
+
+The production path list in `RESTRUCTURING_REVIEW_2026-06-10.md` is:
+
+```
+configs/  jsons/  metrics/  reprojection_methods/
+scripts/  test/launch/  utils/  requirements/  coordination/
+```
+
+**Gaps found:**
+
+| Missing | Reason it is production |
+|---------|------------------------|
+| `participant_data/` | `README.md` lists it explicitly; holds release metadata required by data-contract validation |
+| `conftest.py` + `pytest.ini` | Required for `pytest` to discover `test/` tests at all |
+| `tests/` | Currently contains only a reserved `README.md`, but the directory is tracked and reserved for smoke/regression checks; needs to appear in the list so it is not accidentally moved with the candidate tools |
+
+`gt_visualizations/` is **not** missing from the production list — it is correctly in the
+candidate list for the future submodule. However, it is referenced by `README.md`'s
+*"Visual verification"* section as a recommended pre-metric step with concrete server
+commands. If it is moved before those README sections are updated, new agents will run
+commands against paths that no longer exist. This is a doc-update dependency, not a
+blocker to moving the code.
+
+`docs/project_structure.md` calls the test folder `tests/` throughout, but the real
+folder in the repo is `test/`. Minor inconsistency; does not affect production but will
+confuse new readers.
+
+---
+
+### Q2 — Is the candidate path list for the future submodule correct?
+
+```
+gt_visualizations/          test/blender_canonical/     test/overlay_alignment/
+test/tools/                 validation/alignment_preview/
+video_creation/             visualization/
+```
+
+**Yes — all of these are auxiliary.** No production evaluator imports from any of
+them at the Python level (confirmed: `grep -rn "from validation\|from visualization\|from video_creation\|from gt_visualizations"` in `reprojection_methods/`, `utils/`, `metrics/` returns nothing).
+
+One clarification: `test/kld_parameter_sweep/` (the sigma sweep package) lives under
+`test/` but is **not** auxiliary — it is the benchmark sweep driver. It should stay in
+the production tree. `test/launch/run_kld_parameter_sweep.py` already wraps it
+correctly with a `runpy` compatibility shim (see Q4 below).
+
+---
+
+### Q3 — Hardcoded references to candidate paths in production launchers
+
+**Two live references found:**
+
+| Production launcher | Hardcoded candidate path |
+|--------------------|--------------------------|
+| `test/launch/run_preview_manifest.sh` | `test/tools/render_preview_from_manifest.py` |
+| `test/launch/run_saliency3d_clear_pilot.sh` | `video_creation/transfer_visualizations/make_transfer_visualizations.py` |
+
+Both are shell scripts that construct the path as `$REPO_ROOT/<candidate-path>` and
+call it directly. Moving the target without adding a compatibility stub would silently
+break the launcher.
+
+**Additional references (docs / agent files, non-executable):**
+
+- `README.md` structure table references `test/tools/`, `validation/`, `visualization/`,
+  `video_creation/` by path with clickable Markdown links.
+- `test/README.md` has runnable example commands using `test/tools/render_preview_from_manifest.py`.
+- `test/blender_canonical/search_blender_alignment.py` and
+  `test/blender_canonical/evaluate_blender_mask_batch.py` reference
+  `test/tools/render_preview_from_manifest.py` at runtime (both are themselves in
+  the candidate list, so this is an intra-candidate dependency, not a blocker).
+- `test/overlay_alignment/search_preview_alignment.py` also references it (same —
+  intra-candidate).
+- Comments in `reprojection_methods/cone_projection_on_mesh/eval_3dva_cone_combined.py`
+  (line 448) and `eval_3dva_raycast_cone.py` (line 380) cite
+  `render_preview_from_manifest.py` as the canonical reference implementation.
+  These are comments only, not imports, but they will become stale after a move.
+
+---
+
+### Q4 — Files that need compatibility wrappers before moving
+
+**Must have a wrapper (called by a production launcher):**
+
+1. `test/tools/render_preview_from_manifest.py`
+   — called by `test/launch/run_preview_manifest.sh`
+   — wrapper pattern: leave a shim at `test/tools/render_preview_from_manifest.py`
+   that does `runpy.run_path(new_location)` (same pattern already used by
+   `test/launch/run_kld_parameter_sweep.py` → `test/kld_parameter_sweep/`).
+
+2. `video_creation/transfer_visualizations/make_transfer_visualizations.py`
+   — called by `test/launch/run_saliency3d_clear_pilot.sh`
+   — wrapper pattern: same `runpy` shim or a one-line shell forwarder.
+
+**Should have a wrapper or coordinated doc update (referenced in server runbooks):**
+
+3. `validation/alignment_preview/check_alignment.py`
+   — server commands and agent instructions document the path explicitly.
+   — could move with a wrapper OR with a single coordinated commit that updates all
+   agent instruction files, README, and server command examples simultaneously.
+
+4. `visualization/heatmap_six_view/render_six_view_heatmaps.py`
+   — same as above; server commands and `MACOS_HEATMAP_SIX_VIEW_TASK.md` reference
+   the current path.
+
+---
+
+### Q5 — Remote branches safe to delete
+
+The review doc already notes that the following were **locally** removed.
+The corresponding remote refs still exist:
+
+| Remote branch | Status | Safe to delete? |
+|---------------|--------|----------------|
+| `origin/agent/heatmap-six-view` | Merged to `reproject-benchmark` @ `f0dddb4` | **Yes** — after confirming no active worktree |
+| `origin/agent/macos-fixation-format-v2` | Merged | **Yes** |
+| `origin/agent/sal3d-fixed-face-gt` | Merged | **Yes** |
+| `origin/agent/macos-ingestion-release` | Active worktree (`+` in `git branch -a`) | **No — keep** |
+| `origin/agent/windows-geometry-metrics` | Windows worker state unresolved | **No — do not touch** |
+| `origin/main` | Integration base | **No — keep** |
+| `origin/reproject-benchmark` | Primary benchmark branch | **No — keep** |
+
+All three deletions require reviewer/controller approval first; this note only
+identifies which are candidates.
+
+---
+
+### Q6 — Keep video/heatmap/alignment tools in main repo until sigma sweep completes?
+
+**Yes — all candidate paths should stay in the main repo until the sigma sweep is done
+and verified.** Specific reasons:
+
+1. **`validation/alignment_preview/`** is the alignment gate used before every metric
+   run. If it moves before the sigma sweep gate pass, the gate commands break.
+
+2. **`visualization/heatmap_six_view/`** will be needed to render comparison heatmaps
+   once sigma sweep confirms the optimal parameters. Moving it mid-work creates churn.
+
+3. **`video_creation/transfer_visualizations/`** is called by a production launcher
+   (see Q3/Q4). Cannot move until the wrapper is in place.
+
+4. **Sigma sweep is NOT rc2-compliant** (confirmed by code inspection):
+   `test/kld_parameter_sweep/run_kld_parameter_sweep.py` resolves fixation paths via
+   `SAL3D_CSV_ROOT` / `REPROJECT_GAZE_CSV_SAL3D_ROOT` (the old CSV roots) and has no
+   `--fixation-root` argument for the processed-JSON format, and no `--fixed-gt-dir`
+   for SAL3D. The sweep must be updated to pass the rc2 fixation root and SAL3D fixed
+   GT before it can be run. Restructuring auxiliary tools during that update adds
+   unnecessary risk.
+
+5. **Tests for auxiliary tools** (`test_alignment_preview.py`,
+   `test_six_view_heatmaps.py`, `test_heatmap_video_renderer.py`) are in `test/` and
+   currently pass against the repo-local paths. Moving the tools to a submodule while
+   the tests remain in the main repo would break the test suite unless the move is
+   coordinated with the test imports.
+
+**Recommended hold condition:**
+Do not begin any physical restructuring move until: (a) full rc2 metric run on `vg-iai`
+is complete and verified; (b) sigma sweep is updated to rc2 contract and successfully
+run; (c) compatibility wrappers for items in Q4 are added in the same commit as the
+physical move.
+
+---
+
+*Reviewed at `d61be84` on 2026-06-10. No code was modified.*
