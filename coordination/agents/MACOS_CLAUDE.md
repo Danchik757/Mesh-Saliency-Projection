@@ -710,3 +710,51 @@ Shell launchers (5 files): `FIXATION_ROOT` fallback chain extended:
 **Verified:** inline test confirms `REPROJECT_PROCESSED_FIXATIONS_ROOT` and
 dataset-specific env vars each resolve correctly; missing-all → `None` still
 triggers the existing validation error.
+
+---
+
+## A3: Cropped-reset fixation format (mesh_json_2__offset_2000)
+
+**Commit:** b6a3a3a
+**Branch:** agent/macos-fixation-format-v2
+**Date:** 2026-06-10
+
+### Context
+
+New fixation root `/Users/admin/Downloads/mesh_json_2__offset_2000` delivers
+files with the trailing unused frames stripped:
+- 17 s tracks (MeshMamba, 3DVA): 450 frames = 510 − 54 − 6
+- 24 s tracks (SAL3D): 660 frames = 720 − 54 − 6
+- Index 0 = placement frame round(1.8 × fps) = 54; loop pairing unchanged
+- 3DVA_jessi: empty file (0 frames) → excluded by loader validation
+
+Old full-length format (510/720) is no longer production input.
+
+### Changes
+
+**`utils/participant_loader.py`**
+- `load_processed_track()`: validate `len(raw) == usable_count` (was
+  `total_frames`); raise `InvalidFixationError` for empty file (len=0)
+- `_build_provenance()`: added `fixation_format: cropped_reset_offset_2000`
+  and `fixation_start_index: 0`
+- Module docstring: updated 3DVA_jessi blocker note
+
+**`test/launch/run_{sal3d,meshmamba,3dva}_reference_batch.py`**
+- `_provenance_matches()`: for `processed_json` mode, requires
+  `fixation_format == "cropped_reset_offset_2000"`; old reports (without
+  this field) will not be reused on `--resume`
+
+**`test/test_participant_loader.py`**
+- All processed-JSON fixtures updated from `total_frames` to
+  `usable_count` length (450/660)
+- `test_provenance_fields_present`: added `fixation_format`,
+  `fixation_start_index` to required-fields list
+
+### Verification
+
+```
+python -m pytest -q   →   155 passed
+loader smoke test: MeshMamba Peanut_L3 usable=450 ✓
+                   SAL3D alien usable=660 ✓
+                   3DVA_jessi empty → InvalidFixationError ✓
+```
