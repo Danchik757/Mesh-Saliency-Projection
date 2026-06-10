@@ -1008,3 +1008,104 @@ compileall: clean
 221 passed in 2.43s
 compileall: clean
 ```
+
+---
+
+## Work Log — Six-view heatmap renderer (preview)
+
+**Branch:** agent/heatmap-six-view (from origin/reproject-benchmark @ 1065e28)
+
+### Task
+
+Small preview renderer: per-model jet heatmaps from 6 canonical views for
+SAL3D (GT + screen_space + cone) and MeshMamba.
+
+### Files created
+
+- `visualization/heatmap_six_view/render_six_view_heatmaps.py` — main CLI renderer
+- `test/test_six_view_heatmaps.py` — 35 unit tests (pure-logic, no pyvista required)
+
+### Key design decisions
+
+- **Normalization:** true min-max per map `(v - vmin) / (vmax - vmin)`, NOT
+  percentile clipping. Constant maps → all-zero with warning recorded.
+- **Domain detection:** `len == n_faces` → face; `len == n_verts` → vertex
+  (converted via `vals[faces].mean(axis=1)`); otherwise fail that row.
+- **SAL3D predictions are per-vertex** (`*_screen_space_vertices.txt`,
+  `*_cone_vertices.txt`). GT is per-face (`*_faces.txt`). Both handled.
+- **MeshMamba predictions are per-face** (`*_screen_space_faces.txt`,
+  `*_cone_faces.txt`). GT is per-face CSV.
+- Tags match batch-runner constants exactly (SAL3D_SCREEN_TAG,
+  SAL3D_CONE_TAG, MM_SCREEN_TAG, MM_CONE_TAG).
+- `_find_file_casefold()` for case-insensitive OBJ/GT lookups.
+- `--limit N` for preview runs. `--models` for explicit selection.
+- manifest.json: one entry per (dataset, model, map_type) with `input_min`,
+  `input_max`, `display_normalization=minmax_per_map`, `colormap`, domain,
+  commit hash, hostname, created_at.
+- summary.csv: one row per (dataset, texture_type, model, map_type) with
+  per-view PNG paths and montage path.
+
+### Test Results
+
+```
+256 passed in 2.50s   (+35 new, 0 regressions)
+compileall: clean
+py_compile visualization/heatmap_six_view/render_six_view_heatmaps.py: OK
+```
+
+---
+
+## Work log — 2026-06-10 — Alignment validation preview
+
+Branch: `agent/heatmap-six-view`
+
+Alignment gate tool before any full heatmap batch run.
+For each dataset/model at 5 canonical frame indices, renders the mesh
+silhouette using the exact same transform pipeline as the metric evaluators,
+overlays the edge contour on the corresponding real video frame, and computes
+silhouette IoU via background subtraction (gracefully omitted when video is
+absent).
+
+### Files created
+
+- `validation/alignment_preview/check_alignment.py` — main CLI
+- `test/test_alignment_preview.py` — 85 unit tests (no server data required)
+
+### Key design decisions
+
+- **Transform fidelity:** `precompute_base_verts` + `apply_frame_transform`
+  implement the exact same split the batch runners use: 3dva order (base_rz →
+  scale → frame_rz → extra_rx → extra_ry → translate) and blender_rig order
+  (scale → extra_rx → extra_ry → base_rz → frame_rz → translate).
+- **FOV:** `horizontal_to_vertical_fov_deg` applied for all datasets, matching
+  evaluator behaviour.
+- **Timing contract:** gaze index k → placement[CROP_START + k] → video frame
+  (CROP_START + k).  No use of processed_gaze offsets.
+- **Silhouette rasterisation:** PIL `ImageDraw.polygon` fill; all triangles
+  whose three vertices have `w_clip > 0` are drawn.
+- **Video mask:** corner-pixel median background subtraction (same algorithm as
+  `test/tools/debug_single_gaze_projection.py`).  IoU flagged unreliable when
+  video absent or extraction fails; overlays are still saved.
+- **`--video-root` optional:** missing → IoU = null, overlays not generated,
+  silhouette masks still saved.
+- **Output structure:** `{output_root}/{DATASET[_tt]}/{model}/frame_{k:04d}_p{p:04d}/`
+  → `silhouette_mask.png`, `raw_video_frame.png`, `overlay_edge.png`,
+  `video_mask.png`, `result.json`; plus top-level `manifest.json` +
+  `summary.csv`.
+
+### Test results
+
+```
+341 passed in 2.88s   (+85 new, 0 regressions)
+py_compile validation/alignment_preview/check_alignment.py: OK
+```
+
+### Fixes applied from live run
+
+- **Print format bug**: `{k:>4s}` → `{k:>4}` (`gaze_k` is int; `s` spec crashes)
+- **MeshMamba nested OBJ**: `_find_obj` now descends into `{model}/` subdirectory
+  and falls back to normalised name matching (strip `_`/`-`, lowercase) for cases
+  like `Starfruit_L3/Starfruit-L3.obj` and `Pear_L3/Pear.obj` (single-file
+  fallback).
+- Added `_normalise_lookup_name` helper + 13 new tests (`TestNormaliseLookupName`,
+  `TestFindObj`); 354 passed total, 0 regressions.
