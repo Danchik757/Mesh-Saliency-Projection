@@ -758,3 +758,123 @@ loader smoke test: MeshMamba Peanut_L3 usable=450 ✓
                    SAL3D alien usable=660 ✓
                    3DVA_jessi empty → InvalidFixationError ✓
 ```
+
+---
+
+## SAL3D Data Organization — Technical Note
+
+**Source:** PROJECT_STATE_2026-06-10.md + SAL3D_DATASET.md + sal3d.md + direct
+vertex-count audit on SAL3D_Dataset/Meshes and SAL3D_Dataset/Gaze.
+
+### Three distinct data types
+
+**`Gaze/<model>.txt` — raw GT in gaze-indexing**
+
+- Normally 20000 rows, 8 columns: `[x, y, z, nx, ny, nz, fixation_density, binary]`
+- Column 6 (`fixation_density`) is the primary GT: continuous, unnormalized
+  (observed range 0–7+, mean ≈ 0.003–0.028, typically 60–85% zero).
+- Column 7 is a binary presence flag, not used as the main GT.
+- Row indices are *gaze-indexing*, not OBJ vertex ordering. For "exact" models
+  (20000 Gaze rows == 20000 OBJ verts, e.g. bunny, camel) the indices happen to
+  coincide; for "subset" models they do not.
+
+**`Smooth Gaze/<model>_neighbors.txt` — topology only, no GT values**
+
+- Contains vertex IDs that received fixations and their 500-nearest-neighbor
+  lists, sorted by distance, in gaze-indexing.
+- Does not contain any saliency values. The propagation algorithm
+  `linspace(0.9*v, 0, n_neighbors)` requires `v` from the Gaze file; without
+  it only a binary (v=1 for all) approximation is possible, which
+  systematically upweights weak fixations ~10–13×.
+- Cannot serve as GT on its own.
+
+**NPZ `target` — fixed per-face GT, already normalized `[0, 1]`**
+
+The fixed pipeline (sal3d_fix.py) produces this canonical GT:
+1. Load raw `Gaze[:, 6]` in gaze-indexing.
+2. Min-max normalize to `[0, 1]`.
+3. Apply Smooth Gaze propagation in gaze-indexing (neighbor smoothing).
+4. Repair mesh with pymeshfix if non-watertight/non-manifold.
+5. Transfer smoothed GT to repaired OBJ vertices via KDTree nearest-neighbor
+   in the gaze coordinate frame (exact hit for original verts; patch verts
+   inherit nearest).
+6. Average per-vertex GT across the three vertices of each face → per-face.
+7. Min-max normalize final per-face map → `[0, 1]`.
+
+Stored as `npz['target']`, shape `(n_faces,)`, dtype float32, range `[0, 1]`.
+The canonical OBJ to pair with it is `SAL3D_almost_fixed/Meshes/<model>.obj`.
+
+### Why MaxPlanck / meca / sofa cannot be evaluated via raw Gaze vertex-index
+
+Direct measurement (SAL3D_Dataset/Meshes vs SAL3D_Dataset/Gaze):
+
+| Model | OBJ vertices | Gaze rows | Verdict |
+|-------|-------------|-----------|---------|
+| MaxPlanck | 19999 | 20000 | off-by-one: index 19999 has no OBJ vertex |
+| meca | 15000 | 20000 | 5000-row gap: last 5000 gaze rows map out of range |
+| sofa | ~15125 | 20000 | ~4875-row gap: same failure |
+| bunny | 20000 | 20000 | exact match, index assignment valid |
+| camel | 20000 | 20000 | exact match, index assignment valid |
+
+For MaxPlanck the mismatch is a single missing vertex (possibly a degenerate
+vertex removed during export). For meca and sofa the OBJ is a different-
+resolution version of the model than the one used for eye-tracking. Assigning
+`gaze[i]` to `obj.verts[i]` silently produces wrong GT in all three cases.
+These models must use the fixed per-face NPZ target obtained through KDTree
+coordinate-based transfer.
+
+### Excluded SAL3D models and reasons
+
+| Model | Reason |
+|-------|--------|
+| AudiRS5, bimba, blade | OBJ version mismatch with gaze data (median nearest-distance 12–18% of model size after unit-normalization; threshold 0.5%) |
+| gamecontroller, spanner | OBJ present, no Gaze file |
+| gorgoile | No processed participant fixation JSON; excluded from our gaze metrics until one exists |
+
+55 models are usable in the fixed dataset. Gorgoile has a valid NPZ GT but is
+excluded from the participant-gaze benchmark.
+
+### Heatmap rendering — normalization requirements
+
+Every map must be independently min-max normalized to `[0, 1]` before applying
+the jet colormap. Constant maps (max == min) display as all-blue (zero).
+
+```python
+vmin, vmax = values.min(), values.max()
+if vmax > vmin:
+    values01 = (values - vmin) / (vmax - vmin)
+else:
+    values01 = np.zeros_like(values)
+```
+
+This applies uniformly to:
+- `screen_space_gaussian` prediction maps (per-face or per-vertex);
+- `cone_gaussian_on_mesh` prediction maps;
+- MeshMamba GT CSV values;
+- SAL3D fixed NPZ `target` (already in `[0, 1]` but still normalized for
+  display consistency);
+- any future 3DVA CombinedGT maps.
+
+**Map-domain validation (required before rendering):**
+
+```
+if len(map) == n_faces:   → color by face  (cell_data)
+if len(map) == n_verts:   → color by vertex (point_data)
+otherwise                 → fail, write error row in summary.csv
+```
+
+Never silently resample if the length does not match exactly.
+
+**Manifest fields required per rendered entry:**
+
+```
+map_domain:            face | vertex
+input_min:             float (pre-normalization minimum)
+input_max:             float (pre-normalization maximum)
+display_normalization: minmax_per_map | constant_zero
+colormap:              jet
+```
+
+When `--global-scale-per-model` is active, `input_min`/`input_max` reflect
+the shared scale across all three map types for that model, and
+`display_normalization` is set to `global_minmax_per_model`.
