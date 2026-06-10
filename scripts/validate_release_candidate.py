@@ -1,5 +1,12 @@
 #!/usr/bin/env python3
-"""Validate release candidate manifest, checksums, CRCs, and data-type separation."""
+"""Validate release candidate manifest, checksums, CRCs, and data-type separation.
+
+Targets v2.0-data-rc3 (schema_version=2):
+  - timing_contract.name = one_turn_from_start
+  - timing_contract.delay_seconds_default = 0.0
+  - fixation archive = participant_fixations_offset0_full_cleaned.zip
+  - 298 fixations.json files, frame lengths 510/720 except 3DVA_jessi=41
+"""
 
 from __future__ import annotations
 
@@ -12,22 +19,23 @@ from pathlib import Path
 
 EXPECTED_PARTICIPANT_COUNTS = {
     "participant_gaze_csv_original.zip": 298,
-    "participant_fixations_processed_offset_2000.zip": 298,
+    "participant_fixations_offset0_full_cleaned.zip": 298,
 }
 EXPECTED_ARCHIVE_COUNTS = {
     **EXPECTED_PARTICIPANT_COUNTS,
     "object_placement_json_canonical.zip": 299,
     "3dva_objs_corrected.zip": 32,
+    "sal3d_fixed_face_gt.zip": 114,
 }
 EXPECTED_ARCHIVE_ROOTS = {
     "participant_gaze_csv_original.zip": "participant_gaze_csv_original/",
-    "participant_fixations_processed_offset_2000.zip": "participant_fixations_processed_offset_2000/",
+    "participant_fixations_offset0_full_cleaned.zip": "participant_fixations_offset0_full_cleaned/",
     "object_placement_json_canonical.zip": "object_placement_json_canonical/",
     "3dva_objs_corrected.zip": "datasets/3DVA/3DModels-Simplif-up/",
 }
 REQUIRED_ARCHIVES = {
     "participant_gaze_csv_original.zip",
-    "participant_fixations_processed_offset_2000.zip",
+    "participant_fixations_offset0_full_cleaned.zip",
     "object_placement_json_canonical.zip",
     "3dva_objs_corrected.zip",
     "3dva_gt.zip",
@@ -37,7 +45,14 @@ REQUIRED_ARCHIVES = {
     "meshmamba_saliency_gt.zip",
     "sal3d_meshes.zip",
     "sal3d_gaze_gt.zip",
+    "sal3d_fixed_face_gt.zip",
 }
+
+_FIXATION_ARCHIVE = "participant_fixations_offset0_full_cleaned.zip"
+_FIXATION_ROOT = "participant_fixations_offset0_full_cleaned/"
+_JESSI_MEMBER = f"{_FIXATION_ROOT}3DVA_jessi/fixations.json"
+_EXPECTED_JESSI_FRAMES = 41
+_VALID_FRAME_LENGTHS: frozenset[int] = frozenset({510, 720, _EXPECTED_JESSI_FRAMES})
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,6 +70,38 @@ def sha256(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _check_fixation_frame_counts(path: Path, members: set[str], errors: list[str]) -> None:
+    """Verify per-file frame counts inside the offset0 fixation archive."""
+    bad_lengths: list[str] = []
+    jessi_found = False
+    with zipfile.ZipFile(path) as archive:
+        for member in sorted(members):
+            raw = archive.read(member)
+            try:
+                frames = json.loads(raw)
+            except json.JSONDecodeError:
+                errors.append(f"invalid JSON in fixation archive: {member}")
+                continue
+            if not isinstance(frames, list):
+                errors.append(f"fixation file is not a list: {member}")
+                continue
+            n = len(frames)
+            if member == _JESSI_MEMBER:
+                jessi_found = True
+                if n != _EXPECTED_JESSI_FRAMES:
+                    errors.append(
+                        f"3DVA_jessi frame count: expected {_EXPECTED_JESSI_FRAMES}, got {n}"
+                    )
+            elif n not in _VALID_FRAME_LENGTHS:
+                bad_lengths.append(f"{member}:{n}")
+    if not jessi_found:
+        errors.append(f"3DVA_jessi/fixations.json not found in {_FIXATION_ARCHIVE}")
+    if bad_lengths:
+        shown = bad_lengths[:5]
+        suffix = f" ... (+{len(bad_lengths) - 5} more)" if len(bad_lengths) > 5 else ""
+        errors.append(f"unexpected frame counts in fixation archive: {shown}{suffix}")
+
+
 def main() -> int:
     args = parse_args()
     root = args.candidate_dir.resolve()
@@ -64,13 +111,18 @@ def main() -> int:
     manifest = json.loads((root / "release_manifest.json").read_text())
     contract_report = json.loads((root / "data_contract_validation.json").read_text())
     errors: list[str] = []
+
+    schema_version = manifest.get("schema_version")
+    if schema_version != 2:
+        errors.append(f"schema_version must be 2, got {schema_version!r}")
+
     archives = {item["name"]: item for item in manifest["archives"]}
     missing = sorted(REQUIRED_ARCHIVES - set(archives))
     if missing:
         errors.append(f"missing required archives: {missing}")
 
     csv_members: set[str] = set()
-    processed_members: set[str] = set()
+    fixation_members: set[str] = set()
     for name, item in archives.items():
         path = root / name
         if not path.is_file():
@@ -98,23 +150,35 @@ def main() -> int:
             csv_members = members
             if any(not member.lower().endswith(".csv") for member in members):
                 errors.append("original gaze archive contains non-CSV files")
-        if name == "participant_fixations_processed_offset_2000.zip":
-            processed_members = members
+        if name == _FIXATION_ARCHIVE:
+            fixation_members = members
             if any(not member.endswith("/fixations.json") for member in members):
                 errors.append("processed fixation archive contains unexpected files")
+            _check_fixation_frame_counts(path, members, errors)
 
     if not csv_members:
         errors.append("original CSV participant archive is empty")
-    if not processed_members:
+    if not fixation_members:
         errors.append("processed fixation participant archive is empty")
+
     contract = manifest.get("participant_data_contract", {})
     if contract.get("automatic_fallback_allowed") is not False:
         errors.append("participant data contract must disable automatic fallback")
+    if contract.get("processed_json_archive") != _FIXATION_ARCHIVE:
+        errors.append(
+            f"participant_data_contract.processed_json_archive must be {_FIXATION_ARCHIVE!r}"
+        )
+
     timing = manifest.get("timing_contract", {})
-    if timing.get("crop_start_seconds") != 1.8 or timing.get("crop_end_seconds") != 0.2:
-        errors.append("timing contract must use the approved 1.8s/0.2s crop")
-    if timing.get("derive_full_turn_from_placement_json") is not True:
-        errors.append("timing contract must derive full turn from placement JSON")
+    if timing.get("name") != "one_turn_from_start":
+        errors.append("timing_contract.name must be 'one_turn_from_start'")
+    if timing.get("delay_seconds_default") != 0.0:
+        errors.append("timing_contract.delay_seconds_default must be 0.0")
+    if timing.get("crop_start_seconds") != 0.0:
+        errors.append("timing_contract.crop_start_seconds must be 0.0")
+    if timing.get("crop_end_seconds") != 0.0:
+        errors.append("timing_contract.crop_end_seconds must be 0.0")
+
     if contract_report.get("errors"):
         errors.append("embedded data-contract report contains errors")
 

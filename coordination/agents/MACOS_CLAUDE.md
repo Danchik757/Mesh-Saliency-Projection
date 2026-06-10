@@ -1285,3 +1285,143 @@ physical move.
 ---
 
 *Reviewed at `d61be84` on 2026-06-10. No code was modified.*
+
+---
+
+## Work Log — RC3 Release Tooling and Ablation Infrastructure
+
+**Branch:** `agent/rc3-release-and-ablation-infra`
+**Base:** `aa0fec9` (`origin/agent/offset0-one-turn-contract`)
+**Date:** 2026-06-11
+
+### Context
+
+Windows rc3 validation (branch `agent/windows-rc3-validation`, commit `e96268e`)
+confirmed the rc3 release is valid. The macOS worker's responsibility is to update
+tooling, metadata, and prepare the ablation runner. This log records all changes made.
+
+### Input facts from Windows rc3 validation report
+
+- `schema_version`: 2
+- `timing_contract.name`: `one_turn_from_start`
+- `timing_contract.delay_seconds_default`: 0.0
+- `timing_contract.crop_start_seconds`: 0.0
+- `timing_contract.crop_end_seconds`: 0.0
+- Fixation archive: `participant_fixations_offset0_full_cleaned.zip` (298 files)
+- Frame distribution: 510-frame files = 241 (3DVA + MeshMamba), 720-frame files = 56 (SAL3D), 41-frame = 1 (`3DVA_jessi`)
+- Old `participant_fixations_processed_offset_2000.zip` is NOT present in rc3
+- New in rc3 vs rc2: `sal3d_fixed_face_gt.zip` (114 files), `sal3d_smooth_gaze.zip`, `source_videos.zip`
+- `data_contract_validation.json`: status=ok, errors=[]
+
+### Files changed
+
+**`scripts/validate_release_candidate.py`** — updated for rc3 (v2.0-data-rc3):
+- `REQUIRED_ARCHIVES`: replaced `participant_fixations_processed_offset_2000.zip` with
+  `participant_fixations_offset0_full_cleaned.zip`; added `sal3d_fixed_face_gt.zip`.
+- `EXPECTED_ARCHIVE_COUNTS`/`EXPECTED_ARCHIVE_ROOTS`: updated for new archive name.
+- Added `schema_version == 2` check.
+- Replaced old 1.8s/0.2s timing crop checks with:
+  - `timing_contract.name == "one_turn_from_start"`
+  - `timing_contract.delay_seconds_default == 0.0`
+  - `timing_contract.crop_start_seconds == 0.0`
+  - `timing_contract.crop_end_seconds == 0.0`
+- Added `participant_data_contract.processed_json_archive` key check.
+- Added `_check_fixation_frame_counts()`: reads every `fixations.json` from the zip,
+  verifies lengths in `{510, 720, 41}`, confirms `3DVA_jessi/fixations.json` == 41 frames.
+- Removed old `derive_full_turn_from_placement_json` check (rc2-only field).
+
+**`jsons/dataset_model_info/all_datasets_summary.json`** — updated to rc3:
+- `repository_staging_roots.processed_fixations_json`:
+  `participant_data/processed_fixations_offset_2000` →
+  `participant_data/processed_fixations_offset0_full_cleaned`
+- `release_roots.processed_fixations_json`:
+  `participant_fixations_processed_offset_2000` → `participant_fixations_offset0_full_cleaned`
+- Added `legacy_release_roots_rc2.processed_fixations_json`:
+  `participant_fixations_processed_offset_2000` (for reference)
+- `timing_contract`: updated from rc2 format to rc3:
+  - `name`: `one_turn_from_start`
+  - `delay_seconds_default`: 0.0
+  - `crop_start_seconds`/`crop_end_seconds`: 0.0 each
+  - `pairing`: descriptive string added
+
+**`jsons/dataset_model_info/{3dva,sal3d,meshmamba_non_texture,meshmamba_rgb_texture}_models.json`**
+— sed bulk replacements:
+- `participant_data/processed_fixations_offset_2000/` →
+  `participant_data/processed_fixations_offset0_full_cleaned/` (all `repository_staging_path`)
+- `participant_fixations_processed_offset_2000/` →
+  `participant_fixations_offset0_full_cleaned/` (all `release_path`)
+- 64 replacements in `3dva_models.json`, 114 in `sal3d_models.json`,
+  210 each in the two MeshMamba files.
+- All JSON files validated with `python3 -c "import json; json.load(open(...))"`.
+
+**`server/sync_release_rc3.sh`** (new):
+- Downloads `v2.0-data-rc3` assets using `gh release download` if `gh` is available and auth is active.
+- Falls back to `curl` with direct GitHub release URLs if `gh` is absent or not authenticated.
+- Verifies `SHA256SUMS` using `sha256sum` (Linux) or `shasum -a 256` (macOS).
+- Extracts each archive with `unzip` to `shared_release_data/v2.0-data-rc3/extracted/`.
+- Uses `.extracted_<name>` marker files to skip already-extracted archives.
+- No sudo required. Configurable via `REPO`, `TAG`, `EXTRACT_DIR` env vars.
+- CLI: `--extract-dir`, `--repo`, `--tag`.
+
+**`server/install_gh_user_local.sh`** (new):
+- Installs `gh` CLI to `~/.local/bin` (or `--install-dir` override) without sudo.
+- Fetches latest version from GitHub API unless `--version` is pinned.
+- Detects OS (linux/macOS) and arch (amd64/arm64) automatically.
+- Verifies `gh --version` after install; prints PATH reminder if needed.
+- Do NOT run without reviewer/controller authorization.
+
+**`test/launch/run_ablation_window_delay.py`** (new):
+- Ablation runner for window/delay sweep across all datasets and both methods.
+- Three window modes defined with precise pairing semantics:
+  - `cut_tail` (evaluator-ready): `gaze[max(0,d):N+max(0,d)] -> placement[max(0,-d):N+max(0,-d)]`
+  - `cut_head` (requires `--window-mode` evaluator support): last N frames, jointly shifted
+  - `center` (requires `--window-mode` evaluator support): center N frames
+- Delay grid: -0.3, -0.2, -0.1, 0.0, +0.1, +0.2, +0.3 seconds.
+  - `delay=+0.2` at 30 fps: `gaze[6:6+N] -> placement[0:N]` (confirmed in module docstring)
+- Output: `ablation_summary.csv` + `ablation_rows.jsonl` per batch output dir.
+- CSV columns: dataset, model, method, window_mode, delay_seconds, sigma_px, sigma_screen,
+  sigma_deg, radius_sigma_mult, CC, SIM, KLD, MSE, AUC_Judd, NSS, report_path, git_commit,
+  input_type, timing_contract, fixation_format, gaze_start_frame, placement_start_frame,
+  turn_frames_used, fps, status, error_type, error_message, stdout_log_path, elapsed_seconds.
+- Args: `--workers`, `--model-list-file`, `--models`, `--shard-index`, `--num-shards`,
+  `--dry-run`, `--window-modes`, `--delays`, `--datasets`, `--methods`, `--timeout-seconds`.
+- Target servers for future runs: `vg-gml01` (shard 0), `vg-gml02` (shard 1).
+- `cut_head`/`center` tasks auto-skip with `status=skipped` until evaluator support is added.
+
+### Test results
+
+```
+python3 -m pytest -q
+369 passed in 3.63s
+
+python3 -m py_compile scripts/validate_release_candidate.py   → OK
+python3 -m py_compile test/launch/run_ablation_window_delay.py → OK
+bash -n server/sync_release_rc3.sh                            → OK
+bash -n server/install_gh_user_local.sh                       → OK
+```
+
+All 5 dataset model info JSON files validated with `json.load()`.
+
+### Known limitations / open questions
+
+1. **`cut_head` and `center` window modes** require `--window-mode` support to be added to
+   all 8 evaluators. The ablation runner already handles the pairing math; evaluator changes
+   are a separate task. Until then, tasks with these modes are recorded as `status=skipped`
+   with the exact pairing documented in `error_message`.
+
+2. **`sal3d_smooth_gaze.zip` and `source_videos.zip`** are not in `REQUIRED_ARCHIVES` because
+   `build_release_candidate.py` adds them only with `--include-*` flags. They are optional
+   for the validator. If a run is known to include them, verify manually or extend the
+   optional-archive list.
+
+3. **`server/` directory**: newly created (was not present on `agent/offset0-one-turn-contract`).
+   Contains only shell scripts. No Python package init needed.
+
+4. **`sync_release_rc3.sh` `gh` auth**: the script checks `gh auth status` before attempting
+   download. On a fresh server without a token, it falls through to `curl` automatically.
+
+### Action items (not yet done, awaiting review)
+
+- Add `--window-mode` parameter to all 8 evaluators (prerequisite for `cut_head`/`center`).
+- Run `./server/sync_release_rc3.sh` on `vg-gml01`/`vg-gml02` after authorization.
+- After authorization: run dry-run on one server, then full ablation with two-shard split.
