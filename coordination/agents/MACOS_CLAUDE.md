@@ -1425,3 +1425,92 @@ All 5 dataset model info JSON files validated with `json.load()`.
 - Add `--window-mode` parameter to all 8 evaluators (prerequisite for `cut_head`/`center`).
 - Run `./server/sync_release_rc3.sh` on `vg-gml01`/`vg-gml02` after authorization.
 - After authorization: run dry-run on one server, then full ablation with two-shard split.
+
+---
+
+## Work Log — RC3 Review Fixes (ablation runner redesign)
+
+**Branch:** `agent/rc3-release-and-ablation-infra`
+**Commit (prior):** `6bf8275`
+**Date:** 2026-06-11
+
+### Issues addressed from review
+
+1. **schema_version check** — confirmed correct. Actual rc3 manifest has `schema_version: 2`.
+   Validator passes rc3 (`status: ok, 0 errors`). rc2 explicitly fails with 7 errors,
+   rc1 with 9 errors. Not silent — all failures are descriptive.
+
+2. **RC1/RC2 incompatibility documented** — added explicit RC3-ONLY warning to
+   `validate_release_candidate.py` docstring listing all expected failure messages for rc1/rc2.
+
+3. **Ablation runner redesigned** — complete rewrite addressing all review requirements:
+
+   **Global job pool (confirmed existing):**
+   All jobs across all datasets/models/methods share one `ThreadPoolExecutor` with `--workers N`.
+   There are no separate per-dataset queues.
+
+   **Stable-hash sharding:**
+   Old: `i % num_shards` (position-based). New: `int(MD5(job.key).hexdigest, 16) % num_shards`.
+   Both servers enumerate the same sorted job list and deterministically split without coordinator.
+
+   **Job identity key:**
+   `"<dataset>:<model>:<method>:<window_mode>:<delay:.3f>:<sigma_string>"`
+   Fully identifies a job including sigma params. Used for sharding and resume.
+
+   **Resume at job level:**
+   On startup reads all JSONL rows with `status == "ok"` from `ablation_rows.jsonl`.
+   Any job whose key is in the completed set prints `resume-skip` and is excluded from
+   the pending list before the ThreadPoolExecutor starts. No evaluator call made.
+
+   **Thread-safe JSONL:**
+   `_JsonlWriter` class wraps file append in `threading.Lock()`. Appended per-job from
+   any worker thread. No race condition possible.
+
+   **CSV aggregation:**
+   `aggregate_csv()` reads all JSONL rows at end of run and writes sorted
+   `ablation_summary.csv`. Also available via `--aggregate-only` flag.
+
+   **Normalized status labels:**
+   `ok` / `skipped` / `failed` / `runtime_error` — matching specification exactly.
+   - `ok`: evaluator ran, report parsed, metrics extracted
+   - `skipped`: window_mode not implemented (error_type=window_mode_not_implemented)
+     OR job already done from previous run (error_type=already_done via resume)
+   - `failed`: non-zero exit, timeout, missing report, JSON parse error
+   - `runtime_error`: unexpected exception in runner itself
+
+   **Dry-run behavior:**
+   `--dry-run` writes `status=ok, error_type=dry_run` (not a special status) so that
+   a second dry-run triggers resume-skip for completed dry_run jobs.
+   No evaluator is invoked for any mode.
+
+### Review artifacts
+
+```
+Branch: agent/rc3-release-and-ablation-infra
+HEAD:   6bf8275 (pre-fix); final commit follows
+
+pytest -q:  369 passed
+compileall: all scripts/ utils/ test/launch/ server/ OK
+
+Validator:
+  rc3: status=ok, 0 errors (14 archives, all checksums OK, frame counts verified)
+  rc2: status=failed, 7 errors
+  rc1: status=failed, 9 errors
+
+Dry-run ablation (--datasets 3dva --models A380 --delays -0.1 0.0 0.1 --window-modes cut_tail cut_head center):
+  cut_tail  d=-0.1  status=ok      error_type=dry_run
+  cut_tail  d=+0.0  status=ok      error_type=dry_run
+  cut_tail  d=+0.1  status=ok      error_type=dry_run
+  cut_head  d=-0.1  status=skipped error_type=window_mode_not_implemented
+  cut_head  d=+0.0  status=skipped error_type=window_mode_not_implemented
+  cut_head  d=+0.1  status=skipped error_type=window_mode_not_implemented
+  center    d=-0.1  status=skipped error_type=window_mode_not_implemented
+  center    d=+0.0  status=skipped error_type=window_mode_not_implemented
+  center    d=+0.1  status=skipped error_type=window_mode_not_implemented
+
+Second dry-run (same args, same output dir):
+  resume-skip: 3dva/A380/screen_space wm=cut_tail d=-0.1
+  resume-skip: 3dva/A380/screen_space wm=cut_tail d=+0.0
+  resume-skip: 3dva/A380/screen_space wm=cut_tail d=+0.1
+  jobs: 9 total, 3 resume-skipped, 6 to run → all 6 skipped (wm not implemented)
+```

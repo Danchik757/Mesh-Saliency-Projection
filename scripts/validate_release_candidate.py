@@ -1,11 +1,28 @@
 #!/usr/bin/env python3
 """Validate release candidate manifest, checksums, CRCs, and data-type separation.
 
-Targets v2.0-data-rc3 (schema_version=2):
-  - timing_contract.name = one_turn_from_start
-  - timing_contract.delay_seconds_default = 0.0
-  - fixation archive = participant_fixations_offset0_full_cleaned.zip
-  - 298 fixations.json files, frame lengths 510/720 except 3DVA_jessi=41
+Targets v2.0-data-rc3 (schema_version=2).  RC3-ONLY validator.
+
+Required manifest fields (rc3):
+  schema_version                                    == 2
+  timing_contract.name                              == "one_turn_from_start"
+  timing_contract.delay_seconds_default             == 0.0
+  timing_contract.crop_start_seconds                == 0.0
+  timing_contract.crop_end_seconds                  == 0.0
+  participant_data_contract.processed_json_archive  == participant_fixations_offset0_full_cleaned.zip
+  participant_data_contract.automatic_fallback_allowed == False
+
+RC1/RC2 INCOMPATIBILITY: this script will explicitly fail when run against rc1 or rc2
+release directories.  Typical rc1/rc2 failure messages:
+  - "schema_version must be 2, got 1" (rc1)
+  - "timing_contract.name must be 'one_turn_from_start'"
+  - "participant_data_contract.processed_json_archive must be 'participant_fixations_offset0_full_cleaned.zip'"
+Use git history to recover the pre-rc3 version if rc1/rc2 validation is needed.
+
+Fixation archive frame counts (verified at validation time):
+  510 frames: 3DVA and MeshMamba models
+  720 frames: SAL3D models
+   41 frames: 3DVA_jessi (known blocker, excluded in manifest known_blockers)
 """
 
 from __future__ import annotations
