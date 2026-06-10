@@ -39,7 +39,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from utils.participant_loader import GazeBatch, load_processed_track, load_csv_compat_track  # noqa: E402
+from utils.participant_loader import (  # noqa: E402
+    GazeBatch,
+    TIMING_CONTRACT_CROPPED_RESET,
+    TIMING_CONTRACT_ONE_TURN,
+    guard_report_compatible,
+    load_csv_compat_track,
+    load_processed_track,
+)
 
 # Internal gaze density image resolution. Lower than 1920×1080 for speed; the
 # Gaussian sigma is specified as a fraction of image width so it scales correctly.
@@ -93,6 +100,38 @@ def parse_args() -> argparse.Namespace:
         action="store_true",
         default=False,
         help="Use legacy CSV input (requires --csv-root). Reports will show input_mode=csv_compat.",
+    )
+    parser.add_argument(
+        "--timing-contract",
+        default=os.environ.get("REPROJECT_TIMING_CONTRACT", TIMING_CONTRACT_CROPPED_RESET),
+        choices=[TIMING_CONTRACT_CROPPED_RESET, TIMING_CONTRACT_ONE_TURN],
+        help=(
+            "Timing contract for participant data. "
+            "'cropped_reset': skip 1.8s/0.2s (default, offset_2000 data). "
+            "'one_turn_from_start': one full rotation from frame 0 (offset_0 data). "
+            "Also read from REPROJECT_TIMING_CONTRACT env var."
+        ),
+    )
+    parser.add_argument(
+        "--delay-seconds",
+        type=float,
+        default=float(os.environ.get("REPROJECT_GAZE_DELAY_SECONDS", "0.0")),
+        help=(
+            "Gaze-to-placement delay in seconds (one_turn_from_start only). "
+            "+0.2 → gaze[6:6+N] paired with placement[0:N]. "
+            "-0.2 → gaze[0:N] paired with placement[6:6+N]. "
+            "Default 0.0. Env: REPROJECT_GAZE_DELAY_SECONDS."
+        ),
+    )
+    parser.add_argument(
+        "--fixation-data-tag",
+        default=os.environ.get("REPROJECT_FIXATION_DATA_TAG"),
+        help=(
+            "Label for the fixation dataset version embedded in provenance "
+            "(e.g. 'processed_fixations_offset0_full_cleaned'). "
+            "Falls back to basename of --fixation-root. "
+            "Env: REPROJECT_FIXATION_DATA_TAG."
+        ),
     )
     parser.add_argument(
         "--json-root",
@@ -307,10 +346,14 @@ def _load_gaze_track(args: argparse.Namespace, placement_path: Path):
         )
     if args.fixation_root is None:
         raise SystemExit("--fixation-root is required unless --csv-compat is set")
+    data_tag = getattr(args, "fixation_data_tag", None) or Path(args.fixation_root).name
     return load_processed_track(
         args.fixation_root / canonical_name / "fixations.json",
         placement_path,
         dataset=dataset, model=model, canonical_name=canonical_name,
+        timing_contract=args.timing_contract,
+        delay_seconds=getattr(args, "delay_seconds", 0.0),
+        fixation_data_tag=data_tag,
     )
 
 

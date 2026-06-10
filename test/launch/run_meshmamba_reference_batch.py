@@ -174,6 +174,34 @@ def parse_args() -> argparse.Namespace:
         help="Skip tasks with an existing report JSON whose participant contract matches.",
     )
     parser.add_argument(
+        "--timing-contract",
+        default=os.environ.get("REPROJECT_TIMING_CONTRACT", "cropped_reset"),
+        choices=["cropped_reset", "one_turn_from_start"],
+        help=(
+            "Timing contract passed to each eval script. "
+            "'cropped_reset': default, offset_2000 data. "
+            "'one_turn_from_start': offset_0 data, no crop. "
+            "Also read from REPROJECT_TIMING_CONTRACT env var."
+        ),
+    )
+    parser.add_argument(
+        "--delay-seconds",
+        type=float,
+        default=float(os.environ.get("REPROJECT_GAZE_DELAY_SECONDS", "0.0")),
+        help=(
+            "Gaze-to-placement delay in seconds (one_turn_from_start only). "
+            "Default 0.0. Env: REPROJECT_GAZE_DELAY_SECONDS."
+        ),
+    )
+    parser.add_argument(
+        "--fixation-data-tag",
+        default=os.environ.get("REPROJECT_FIXATION_DATA_TAG"),
+        help=(
+            "Label for the fixation dataset version embedded in provenance. "
+            "Env: REPROJECT_FIXATION_DATA_TAG."
+        ),
+    )
+    parser.add_argument(
         "--nice-level",
         type=int,
         default=10,
@@ -343,6 +371,10 @@ def build_command(args: argparse.Namespace, task: Task) -> list[str]:
         gaze_args = ["--csv-compat", "--csv-root", str(csv_root)]
     else:
         gaze_args = ["--fixation-root", str(resolve_fixation_root())]
+    gaze_args += ["--timing-contract", getattr(args, "timing_contract", "cropped_reset")]
+    gaze_args += ["--delay-seconds", str(getattr(args, "delay_seconds", 0.0))]
+    if getattr(args, "fixation_data_tag", None):
+        gaze_args += ["--fixation-data-tag", args.fixation_data_tag]
 
     if task.method == "screen_space":
         return [
@@ -422,14 +454,28 @@ def _provenance_matches(report_path: Path, args: argparse.Namespace) -> bool:
         existing = json.loads(report_path.read_text(encoding="utf-8"))
         prov = existing.get("participant_input", {})
         current_mode = "csv_compat" if args.csv_compat else "processed_json"
-        if not (
-            prov.get("input_mode") == current_mode
-            and abs(float(prov.get("crop_start_seconds", -1)) - 1.8) < 1e-6
-            and abs(float(prov.get("crop_end_seconds", -1)) - 0.2) < 1e-6
-        ):
+        if prov.get("input_mode") != current_mode:
             return False
-        if current_mode == "processed_json":
-            return prov.get("fixation_format") == "cropped_reset_offset_2000"
+        current_contract = getattr(args, "timing_contract", "cropped_reset")
+        existing_contract = prov.get("timing_contract")
+        if existing_contract is not None:
+            if existing_contract != current_contract:
+                return False
+        else:
+            # Legacy report without timing_contract field: only matches cropped_reset
+            if current_contract != "cropped_reset":
+                return False
+            if current_mode == "processed_json":
+                return prov.get("fixation_format") == "cropped_reset_offset_2000"
+        if current_contract == "one_turn_from_start":
+            expected_delay = round(getattr(args, "delay_seconds", 0.0) * float(prov.get("fps", 30.0)))
+            existing_delay = prov.get("delay_frames")
+            if existing_delay is not None and existing_delay != expected_delay:
+                return False
+            current_tag = getattr(args, "fixation_data_tag", None)
+            existing_tag = prov.get("fixation_data_tag")
+            if current_tag and existing_tag and current_tag != existing_tag:
+                return False
         return True
     except Exception:
         return False
