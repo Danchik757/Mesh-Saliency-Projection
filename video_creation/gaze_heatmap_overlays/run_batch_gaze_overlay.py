@@ -102,6 +102,29 @@ def discover_models(
     return entries
 
 
+def check_full_batch_guard(
+    dry_run: bool,
+    filter_models: list[str] | None,
+    limit: int | None,
+    allow_full_batch: bool,
+) -> None:
+    """Refuse to start a full render unless an explicit scope or approval is given."""
+    if dry_run:
+        return
+    if filter_models or limit is not None or allow_full_batch:
+        return
+    print(
+        "[ERROR] Full batch render refused.\n"
+        "  Specify at least one of:\n"
+        "    --models MODEL_KEY [...]   render named models only\n"
+        "    --limit N                  render at most N models\n"
+        "    --allow-full-batch         explicitly allow rendering all models\n"
+        "  Use --dry-run to preview what would be rendered without starting.",
+        file=sys.stderr,
+    )
+    sys.exit(1)
+
+
 def run_batch(
     fixation_root: Path,
     video_root: Path,
@@ -117,7 +140,10 @@ def run_batch(
     dry_run: bool,
     nice: bool,
     limit: int | None = None,
+    allow_full_batch: bool = False,
 ) -> None:
+    check_full_batch_guard(dry_run, filter_models, limit, allow_full_batch)
+
     entries = discover_models(fixation_root, video_root, filter_models, excluded)
     if not entries:
         print("[ERROR] No models found.", file=sys.stderr)
@@ -251,6 +277,8 @@ def _build_parser() -> argparse.ArgumentParser:
                     help="List models and videos only; do not render")
     ap.add_argument("--limit", type=int, default=None,
                     help="Process at most N models (applied after --models filter; use for smoke)")
+    ap.add_argument("--allow-full-batch", action="store_true",
+                    help="Required to render all models without --models or --limit")
     ap.add_argument("--nice", action="store_true",
                     help="(ignored; use 'nice -n 18 ionice -c2 -n7' in the shell wrapper)")
     return ap
@@ -282,6 +310,7 @@ def main() -> None:
         dry_run=args.dry_run,
         nice=args.nice,
         limit=args.limit,
+        allow_full_batch=args.allow_full_batch,
     )
 
 

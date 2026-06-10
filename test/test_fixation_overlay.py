@@ -24,6 +24,9 @@ from video_creation.gaze_heatmap_overlays.render_fixation_overlay import (
     n_frames_for_mode,
     parse_model_key,
 )
+from video_creation.gaze_heatmap_overlays.run_batch_gaze_overlay import (
+    check_full_batch_guard,
+)
 
 
 # ── parse_model_key ────────────────────────────────────────────────────────────
@@ -281,3 +284,40 @@ class TestModes:
 class TestFixationResolution:
     def test_is_1920x1080(self):
         assert FIXATION_RESOLUTION == (1920, 1080)
+
+
+# ── check_full_batch_guard ────────────────────────────────────────────────────
+
+class TestFullBatchGuard:
+    """Safety gate: batch refuses to render without an explicit scope or approval."""
+
+    def _guard(self, dry_run=False, filter_models=None, limit=None, allow_full_batch=False):
+        check_full_batch_guard(
+            dry_run=dry_run,
+            filter_models=filter_models,
+            limit=limit,
+            allow_full_batch=allow_full_batch,
+        )
+
+    def test_no_scope_no_approval_raises(self):
+        with pytest.raises(SystemExit) as exc:
+            self._guard(dry_run=False, filter_models=None, limit=None, allow_full_batch=False)
+        assert exc.value.code == 1
+
+    def test_dry_run_without_scope_allowed(self):
+        self._guard(dry_run=True, filter_models=None, limit=None, allow_full_batch=False)
+
+    def test_allow_full_batch_flag_allowed(self):
+        self._guard(dry_run=False, filter_models=None, limit=None, allow_full_batch=True)
+
+    def test_limit_allows_render(self):
+        self._guard(dry_run=False, filter_models=None, limit=3, allow_full_batch=False)
+
+    def test_models_filter_allows_render(self):
+        self._guard(dry_run=False, filter_models=["3DVA_A380"], limit=None, allow_full_batch=False)
+
+    def test_dry_run_with_models_allowed(self):
+        self._guard(dry_run=True, filter_models=["3DVA_A380"], limit=5, allow_full_batch=False)
+
+    def test_dry_run_with_allow_full_batch_allowed(self):
+        self._guard(dry_run=True, filter_models=None, limit=None, allow_full_batch=True)
