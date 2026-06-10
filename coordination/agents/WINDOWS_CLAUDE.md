@@ -475,3 +475,73 @@ py_compile: OK
 compileall: OK (video_creation test metrics utils reprojection_methods)
 no conflict markers
 ```
+
+---
+
+## 2026-06-11 — Task 1: rc3 gaze overlay renderer and batch runner
+
+Branch: agent/windows-video-overlays-rc3 (from origin/agent/offset0-one-turn-contract)
+
+### New files
+
+| File | Purpose |
+| --- | --- |
+| video_creation/gaze_heatmap_overlays/render_fixation_overlay.py | Per-model rc3 fixation JSON → overlay video renderer |
+| video_creation/gaze_heatmap_overlays/run_batch_gaze_overlay.py | Batch runner for all models with manifest output |
+| video_creation/gaze_heatmap_overlays/run_smoke_gaze_overlay.sh | Smoke test: 3DVA_A380 + MeshMamba_non_texture_Starfruit_L3 + SAL3D_bunny |
+| test/test_fixation_overlay.py | 45 pure-logic unit tests |
+
+### rc3 fixation format
+
+- fixations.json = list of N frames; each frame = list of [x, y] absolute pixel coords (1920x1080 space)
+- 510 frames for 3DVA/MeshMamba; 720 for SAL3D; 41 for 3DVA_jessi (invalid)
+- gaze[k] → video_frame[k]; no timestamp lookup needed
+
+### Two modes
+
+| Mode | Frames rendered | Corresponds to |
+| --- | --- | --- |
+| full_video_overlay | all 510/720 frames | entire fixation JSON |
+| benchmark_one_turn_overlay | 450/660 frames | evaluator timing contract (one full turn) |
+
+### Turn frames (from rc3 manifest)
+
+```
+3DVA:      450
+MeshMamba: 450
+SAL3D:     660
+```
+
+### Exclusions
+
+3DVA_jessi excluded by default (41 frames, known_blocker). SAL3D_jessi is valid.
+
+### Output layout
+
+```
+{output-root}/{mode}/{dataset}/          {model}/overlay.mp4
+{output-root}/{mode}/{dataset}/          {model}/manifest.json
+{output-root}/manifest.json              (combined)
+{output-root}/manifest.csv              (combined)
+```
+
+### Manifest fields per model
+
+mode, dataset, track, model, model_key, fixation_format, fixation_json_path,
+video_path, output_path, n_json_frames, frame_count, fps, resolution,
+crop_start_sec (0.0), crop_end_sec (0.0), status, error, repo_commit
+
+### Video discovery
+
+Batch runner scans video_root recursively for {model_key}.mp4. Models without
+matching video get status=skipped_no_video in the manifest (not an error).
+
+### Validation
+
+```
+py_compile: OK
+411 passed, 3 skipped in 3.41s  (366 prior + 45 overlay)
+compileall: OK
+```
+
+Smoke not yet run — awaiting server approval and rc3 source_videos availability.
