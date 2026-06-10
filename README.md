@@ -10,20 +10,25 @@ boundaries, and review gates.
 
 ## Current focus
 
-- Benchmark pipeline for 3DVA and MeshMamba datasets (all 32+16 models);
-- Cone projection + raycast nearest-vertex method (primary);
-- Screen-space Gaussian baseline;
-- Geodesic diffusion method;
-- Shared metric suite: CC, KL, NSS, AUC-Judd, Similarity.
+- `v2.0-data-rc2` benchmark pipeline for 3DVA, MeshMamba, and SAL3D;
+- processed participant fixation JSON by default (`cropped_reset_offset_2000`);
+- two primary baseline methods: `screen_space_gaussian` and `cone_gaussian_on_mesh`;
+- SAL3D fixed per-face GT for current OBJ meshes;
+- shared metric suite: CC, SIM, KLD, MSE, MAE, Spearman, AUC-Judd proxy, NSS proxy.
 
 ## Datasets validated
 
-| Dataset | Models | Mean IoU | Status |
-|---------|--------|----------|--------|
-| MeshMamba non_texture | 8 | ≥ 0.987 | ✅ validated |
-| MeshMamba rgb_texture | 8 | ≥ 0.990 | ✅ validated |
-| 3DVA | 32 | 0.946 | ✅ validated |
-| SAL3D | TBD | — | in progress |
+Current validation status is for the rc2 timing/placement contract. The numeric
+IoU is reliable for 3DVA and MeshMamba. For SAL3D the visual overlay is accepted,
+but automatic video-mask IoU is conservative because the source videos contain
+white objects on a light background.
+
+| Dataset | Smoke models | Alignment status | Metric smoke |
+|---------|--------------|------------------|--------------|
+| 3DVA | `bunny`, `A380` | accepted | 4/4 ok |
+| MeshMamba non_texture | `Starfruit_L3`, `Pear_L3` | accepted, IoU ~0.995 | 4/4 ok |
+| MeshMamba rgb_texture | `Starfruit_L3`, `Pear_L3` | accepted, IoU ~0.997 | 4/4 ok |
+| SAL3D fixed face GT | `bunny`, `MaxPlanck`, `meca`, `sofa` | visual overlay accepted | 8/8 ok |
 
 Alignment validation details: [test/README.md](./test/README.md)
 
@@ -56,7 +61,7 @@ On a new machine:
 
 ```bash
 # 1. Download, validate, and extract the approved v2 candidate into an empty path
-TAG=v2.0-data-rc1 bash scripts/download_release_candidate.sh /path/to/v2.0-data-rc1
+TAG=v2.0-data-rc2 bash scripts/download_release_candidate.sh /path/to/v2.0-data-rc2
 
 # 2. Configure env vars
 cp test/env/new_machine.env.sh.template test/env/local_paths.sh
@@ -68,7 +73,7 @@ To create a new release from local data (maintainer only):
 ```bash
 python3 scripts/validate_data_contract.py --allow-known-blockers
 python3 scripts/build_release_candidate.py --include-videos --include-sal3d-smooth-gaze
-python3 scripts/validate_release_candidate.py release_assets/v2.0-data-rc1
+python3 scripts/validate_release_candidate.py release_assets/v2.0-data-rc2
 bash scripts/upload_release_candidate.sh
 ```
 
@@ -128,23 +133,15 @@ Detailed usage:
 # Set up local environment variables
 source test/env/local_paths.example.sh
 
-# Run 3DVA eval for one model
-python3 reprojection_methods/cone_projection_on_mesh/eval_3dva_raycast_cone.py \
-    --model bunny \
-    --dataset-root "$REPROJECT_DATASET_3DVA_ROOT" \
-    --csv-root     "$REPROJECT_GAZE_CSV_3DVA_ROOT" \
-    --json-root    "$REPROJECT_GAZE_JSON_3DVA_ROOT" \
-    --recenter-to-bbox-center \
-    --output-dir   results/3dva/cone_gaussian/bunny
-
-# Run MeshMamba eval for one model
-python3 reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py \
-    --model Penguin \
-    --texture-type non_texture \
-    --dataset-root "$REPROJECT_DATASET_MESHMAMBA_ROOT" \
-    --csv-root     "$REPROJECT_GAZE_CSV_MESHMAMBA_NON_TEXTURE_ROOT" \
-    --json-root    "$REPROJECT_GAZE_JSON_MESHMAMBA_NON_TEXTURE_ROOT" \
-    --output-dir   results/meshmamba/non_texture/cone_gaussian/Penguin
+# Run a reference batch with processed fixation JSON.
+# Use --no-resume when changing data, timing, GT, or method parameters.
+python3 test/launch/run_meshmamba_reference_batch.py \
+    --methods screen_space cone \
+    --texture-types non_texture \
+    --models Starfruit_L3 Pear_L3 \
+    --fixation-root "$REPROJECT_PROCESSED_FIXATIONS_ROOT" \
+    --batch-output-dir results/quick_meshmamba_smoke \
+    --no-resume
 ```
 
 ## Data paths
