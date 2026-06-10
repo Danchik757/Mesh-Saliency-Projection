@@ -364,11 +364,15 @@ def _provenance_matches(report_path: Path, args: argparse.Namespace) -> bool:
         existing = json.loads(report_path.read_text(encoding="utf-8"))
         prov = existing.get("participant_input", {})
         current_mode = "csv_compat" if args.csv_compat else "processed_json"
-        return (
+        if not (
             prov.get("input_mode") == current_mode
             and abs(float(prov.get("crop_start_seconds", -1)) - 1.8) < 1e-6
             and abs(float(prov.get("crop_end_seconds", -1)) - 0.2) < 1e-6
-        )
+        ):
+            return False
+        if current_mode == "processed_json":
+            return prov.get("fixation_format") == "cropped_reset_offset_2000"
+        return True
     except Exception:
         return False
 

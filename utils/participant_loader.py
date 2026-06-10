@@ -20,7 +20,7 @@ Output coordinates:
     GazeBatch.x_norm, y_norm are in [0, 1] (x_px / width, y_px / height).
 
 Known blockers (Decision 4):
-    3DVA_jessi      -- 41 frames instead of 510; raises InvalidFixationError
+    3DVA_jessi      -- empty file (0 frames) in new format; raises InvalidFixationError
     SAL3D_gorgoile  -- missing file; raises MissingFixationError
 Neither case falls back to CSV automatically.
 """
@@ -257,6 +257,8 @@ def _build_provenance(
         "total_frames": timing["total_frames"],
         "video_duration_seconds": timing["duration"],
         "resolution": f"{timing['width']}x{timing['height']}",
+        "fixation_format": "cropped_reset_offset_2000",
+        "fixation_start_index": 0,
         "crop_start_seconds": CROP_START_SECONDS,
         "crop_end_seconds": CROP_END_SECONDS,
         "crop_start_frames": timing["crop_start_frames"],
@@ -326,10 +328,18 @@ def load_processed_track(
         raise InvalidFixationError(canonical_name, "top level must be a list of frames")
 
     total_frames = timing["total_frames"]
-    if len(raw) != total_frames:
+    usable_count_expected = timing["usable_count"]
+    if len(raw) == 0:
         raise InvalidFixationError(
             canonical_name,
-            f"processed frames {len(raw)} != placement total_frames {total_frames}",
+            "fixation file is empty (0 frames); participant excluded from benchmark",
+        )
+    if len(raw) != usable_count_expected:
+        raise InvalidFixationError(
+            canonical_name,
+            f"cropped fixation frames {len(raw)} != expected {usable_count_expected} "
+            f"(total_frames={total_frames}, "
+            f"crop_start={timing['crop_start_frames']}, crop_end={timing['crop_end_frames']})",
         )
 
     width = timing["width"]

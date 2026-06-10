@@ -181,7 +181,7 @@ def test_load_processed_17s_pairing():
         fj = tmp / "fixations.json"
         _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration,
                                               rotation_speed_deg_per_sec=24.0))
-        _write_json(fj, _make_processed_fixations(total))
+        _write_json(fj, _make_processed_fixations(timing["usable_count"]))
 
         track = load_processed_track(fj, pj, dataset="3DVA", model="TestModel")
 
@@ -222,7 +222,7 @@ def test_load_processed_24s_pairing():
         fj = tmp / "fixations.json"
         _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration,
                                               rotation_speed_deg_per_sec=360.0 / 22.0))
-        _write_json(fj, _make_processed_fixations(total))
+        _write_json(fj, _make_processed_fixations(timing["usable_count"]))
 
         track = load_processed_track(fj, pj, dataset="SAL3D", model="horse")
 
@@ -301,7 +301,7 @@ def test_out_of_bounds_points_raises():
     violation (validate_data_contract.py confirms no valid release file has any).
     The loader must raise InvalidFixationError rather than silently dropping."""
     fps, duration = 30, 17
-    total = fps * duration
+    timing = _expected_timing(fps, duration)
     width, height = 1920, 1080
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -309,7 +309,7 @@ def test_out_of_bounds_points_raises():
         pj = tmp / "placement.json"
         fj = tmp / "fixations.json"
         _write_json(pj, _make_placement_json())
-        data = _make_processed_fixations(total)
+        data = _make_processed_fixations(timing["usable_count"])
         # Inject an out-of-bounds point in usable frame 0 (processed index 0)
         data[0] = [[width + 10, height + 10], [100.0, 100.0]]
         _write_json(fj, data)
@@ -403,7 +403,7 @@ def test_csv_mode_cannot_silently_stand_in_for_processed():
         fj = tmp / "fixations.json"
         cf = tmp / "model.csv"
         _write_json(pj, _make_placement_json())
-        _write_json(fj, _make_processed_fixations(total))
+        _write_json(fj, _make_processed_fixations(timing["usable_count"]))
         rows = _make_csv_rows(fps, timing["placement_start"], timing["placement_end_exclusive"])
         _write_csv(cf, rows, ["participation_id", "video_id", "data_gazes"])
 
@@ -500,14 +500,14 @@ def test_csv_boundary_samples():
 
 def test_provenance_fields_present():
     fps, duration = 30, 17
-    total = fps * duration
+    timing = _expected_timing(fps, duration)
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp = Path(tmp)
         pj = tmp / "placement.json"
         fj = tmp / "fixations.json"
         _write_json(pj, _make_placement_json())
-        _write_json(fj, _make_processed_fixations(total))
+        _write_json(fj, _make_processed_fixations(timing["usable_count"]))
 
         track = load_processed_track(
             fj, pj, dataset="3DVA", model="TestModel",
@@ -517,6 +517,7 @@ def test_provenance_fields_present():
     required = [
         "input_mode", "canonical_name", "dataset", "model",
         "fixation_source", "placement_source",
+        "fixation_format", "fixation_start_index",
         "fps", "total_frames", "video_duration_seconds", "resolution",
         "crop_start_seconds", "crop_end_seconds",
         "crop_start_frames", "crop_end_frames",
@@ -538,7 +539,6 @@ def test_provenance_fields_present():
 def test_frame_pairing_index_math():
     """processed_gaze[k] must map to placement frame placement_start + k."""
     fps, duration = 30, 17
-    total = fps * duration
     timing = _expected_timing(fps, duration)
 
     with tempfile.TemporaryDirectory() as tmp:
@@ -546,7 +546,7 @@ def test_frame_pairing_index_math():
         pj = tmp / "placement.json"
         fj = tmp / "fixations.json"
         _write_json(pj, _make_placement_json())
-        data = _make_processed_fixations(total)
+        data = _make_processed_fixations(timing["usable_count"])
         _write_json(fj, data)
 
         track = load_processed_track(fj, pj, dataset="3DVA", model="test")
