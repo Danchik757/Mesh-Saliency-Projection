@@ -181,23 +181,25 @@ def _overlay_heatmap(frame: np.ndarray, heat: np.ndarray, max_opacity: float) ->
 # ── video I/O (requires ffmpeg; only called at render time) ───────────────────
 
 def _probe_video(video_path: Path) -> dict:
-    result = subprocess.run(
-        ["ffprobe", "-v", "error", "-show_streams", "-show_format", "-of", "json",
-         str(video_path)],
-        capture_output=True, text=True,
-    )
-    if result.returncode != 0:
-        raise RuntimeError(result.stderr.strip() or "ffprobe failed")
-    data = json.loads(result.stdout)
-    vs = next(s for s in data["streams"] if s["codec_type"] == "video")
-    has_audio = any(s["codec_type"] == "audio" for s in data["streams"])
-    fps_n, fps_d = (int(p) for p in vs["avg_frame_rate"].split("/"))
-    fps = fps_n / fps_d
-    duration = float(vs.get("duration") or data["format"]["duration"])
-    frame_count = int(vs.get("nb_frames") or math.floor(duration * fps + 0.5))
+    import av as _av
+    container = _av.open(str(video_path))
+    try:
+        vs = next(s for s in container.streams if s.type == "video")
+        fps = float(vs.average_rate)
+        width, height = vs.width, vs.height
+        if vs.duration is not None:
+            duration = float(vs.duration * vs.time_base)
+        elif container.duration is not None:
+            duration = float(container.duration) / 1_000_000.0
+        else:
+            duration = 0.0
+        frame_count = int(vs.frames) if vs.frames else int(math.floor(duration * fps + 0.5))
+        has_audio = any(s.type == "audio" for s in container.streams)
+    finally:
+        container.close()
     return {
-        "width": int(vs["width"]),
-        "height": int(vs["height"]),
+        "width": width,
+        "height": height,
         "fps": fps,
         "duration": duration,
         "frame_count": frame_count,
