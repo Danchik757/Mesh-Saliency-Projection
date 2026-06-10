@@ -206,6 +206,39 @@ class TestInventoryFixedGtMode:
         )
         assert result == []
 
+    def test_nonexistent_fixed_gt_dir_raises(self, tmp_path, monkeypatch):
+        """--fixed-gt-dir pointing to a missing directory raises RuntimeError."""
+        missing_dir = tmp_path / "does_not_exist"
+        with pytest.raises(RuntimeError, match="does not exist or is not a directory"):
+            inventory_models(
+                None,
+                csv_compat=False,
+                fixed_gt_dir=missing_dir,
+                sal3d_manifest=None,
+            )
+
+    def test_manifest_bom_handled(self, tmp_path, monkeypatch):
+        """sal3d_manifest.csv with UTF-8 BOM (Excel export) is parsed correctly."""
+        models = ["bunny", "dragon"]
+        dataset_root, fixed_gt_dir, fixation_root = _make_compact_pkg(tmp_path, models)
+
+        manifest = tmp_path / "sal3d_manifest.csv"
+        # Write with UTF-8 BOM — mimics Excel CSV export
+        manifest.write_bytes(
+            "﻿model,n_faces\nbunny,1234\ndragon,5678\n".encode("utf-8")
+        )
+
+        monkeypatch.setattr(_mod, "resolve_dataset_root", lambda: dataset_root)
+        monkeypatch.setattr(_mod, "resolve_fixation_root", lambda: fixation_root)
+
+        result = inventory_models(
+            None,
+            csv_compat=False,
+            fixed_gt_dir=fixed_gt_dir,
+            sal3d_manifest=manifest,
+        )
+        assert set(result) == set(models)
+
 
 # ---------------------------------------------------------------------------
 # Classic mode: ensure old behavior unchanged when fixed_gt_dir is None

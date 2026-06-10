@@ -261,7 +261,7 @@ def load_explicit_models(args: argparse.Namespace) -> list[str] | None:
 
 def _read_manifest_model_names(manifest_path: Path) -> list[str]:
     """Read model names from the first 'model' column of sal3d_manifest.csv."""
-    with manifest_path.open("r", encoding="utf-8", newline="") as fh:
+    with manifest_path.open("r", encoding="utf-8-sig", newline="") as fh:
         reader = csv.reader(fh)
         header = next(reader, None)
         if header is None:
@@ -300,7 +300,11 @@ def inventory_models(
     if explicit_models is not None:
         return list(explicit_models)
 
-    if fixed_gt_dir and fixed_gt_dir.is_dir():
+    if fixed_gt_dir is not None:
+        if not fixed_gt_dir.is_dir():
+            raise RuntimeError(
+                f"--fixed-gt-dir does not exist or is not a directory: {fixed_gt_dir}"
+            )
         # --- fixed-GT mode ---
         if sal3d_manifest and sal3d_manifest.exists():
             raw_names = _read_manifest_model_names(sal3d_manifest)

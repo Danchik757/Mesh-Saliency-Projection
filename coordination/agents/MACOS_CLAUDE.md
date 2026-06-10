@@ -980,3 +980,31 @@ that has no `Gaze/` directory. Fix model discovery for `--fixed-gt-dir` mode.
 219 passed in 3.20s
 compileall: clean
 ```
+
+---
+
+## Work Log — Pre-merge review fixes (A4c)
+
+**Branch:** agent/sal3d-fixed-face-gt (follow-up commit to b4f5564)
+
+### Issues found in independent review
+
+1. **BLOCKER** `_read_manifest_model_names()` used `encoding="utf-8"` — fails on
+   BOM-prefixed CSVs from Excel/Windows. Fixed to `encoding="utf-8-sig"`.
+
+2. **Design gap** `inventory_models()` treated nonexistent `--fixed-gt-dir` as
+   "not set", silently falling back to classic Gaze/ mode. Fixed: if
+   `fixed_gt_dir is not None` but not a directory, raise `RuntimeError` with a
+   clear message.
+
+### New tests (2 added to test_sal3d_batch_inventory.py)
+
+- `test_nonexistent_fixed_gt_dir_raises`
+- `test_manifest_bom_handled`
+
+### Test Results
+
+```
+221 passed in 2.43s
+compileall: clean
+```
