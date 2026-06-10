@@ -6,7 +6,7 @@ This folder stores scripts that generate visual comparisons, figures, and later 
 
 - [transfer_visualizations](./transfer_visualizations/README.md)
 - [gaze_heatmap_overlays](./gaze_heatmap_overlays/README.md)
-- [gaze_heatmap_overlays](./gaze_heatmap_overlays/README.md)
+- [heatmap_on_mesh_video](./heatmap_on_mesh_video/README.md)
 
 ## What is here now
 
@@ -15,8 +15,7 @@ The main visualization workflow currently lives in:
 - [transfer_visualizations/make_transfer_visualizations.py](./transfer_visualizations/make_transfer_visualizations.py)
 - [gaze_heatmap_overlays/render_heatmap_overlay.py](./gaze_heatmap_overlays/render_heatmap_overlay.py)
 - [gaze_heatmap_overlays/make_gif.py](./gaze_heatmap_overlays/make_gif.py)
-- [gaze_heatmap_overlays/render_heatmap_overlay.py](./gaze_heatmap_overlays/render_heatmap_overlay.py)
-- [gaze_heatmap_overlays/make_gif.py](./gaze_heatmap_overlays/make_gif.py)
+- [heatmap_on_mesh_video/render_heatmap_video.py](./heatmap_on_mesh_video/render_heatmap_video.py)
 
 This script is not a metric benchmark by itself. It is a reporting and inspection tool that renders side-by-side comparisons for two reprojection methods on `Saliency3D_clear`:
 
@@ -26,6 +25,8 @@ This script is not a metric benchmark by itself. It is a reporting and inspectio
 It also writes a JSON summary with the metrics shown on the figures.
 
 The `gaze_heatmap_overlays` subfolder is a separate screen-space visualization workflow for rendering gaze heatmaps directly over source videos.
+The `heatmap_on_mesh_video` subfolder renders mesh-surface heatmaps over the
+object animation from placement JSON.
 
 ## Typical outputs
 

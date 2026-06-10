@@ -31,25 +31,39 @@ questions.
 ## Current Integration State
 
 - Integration branch: `reproject-benchmark`
-- Current remote base before this coordination package:
-  `684efc31cbbe90c35b7b761d46b5cd4492e1c5fa`
-- Planned immutable worker base: `agent-base-2026-06-09`
-- Workers may complete onboarding now, but must not edit implementation code
-  until the reviewer/controller publishes the reviewed baseline and base ref.
+- Current rc2 integration point during this review: `15eb036`
+- Data release used by current benchmark runs: `v2.0-data-rc2`
 - Workers never merge directly into `reproject-benchmark`.
-- The reviewer/controller reviews and integrates; it does not implement fixes.
+- The reviewer/controller reviews and integrates. Implementation work should
+  happen on worker branches unless the change is documentation-only or an
+  explicitly approved small fix.
+- The Windows worker branch is not to be deleted or rewritten while its WSL
+  state is unresolved.
 
-## Immediate Phase 1 Blockers
+## Current Phase Status
 
-1. Existing evaluators and batch launchers still use original CSV input and no
-   approved common crop.
-2. The processed-fixation loader and report provenance/resume safety are absent.
-3. GitHub Release `v1.0-data` is historical and not valid for the next benchmark.
-4. `3DVA_jessi` processed fixations are invalid; `SAL3D_gorgoile` is missing.
-5. Deterministic MeshMamba/SAL3D geometry failure handling is incomplete.
-6. Metric normalization, aggregation, 3DVA CombinedGT, and cone semantics require
-   a documented audit decision.
-7. A replacement release and release-only eight-result smoke gate must pass
-   before full metric runs.
+Completed for rc2:
 
-Phase 2 work is blocked until correct full metric runs have started.
+- processed fixation JSON is the default input format;
+- reports include fixation provenance and resume guards;
+- SAL3D fixed per-face GT is supported;
+- alignment preview tooling exists for 3DVA, MeshMamba, and SAL3D;
+- six-view heatmap rendering exists for qualitative inspection;
+- release `v2.0-data-rc2` is published.
+
+Current active work:
+
+- full rc2 metric runs on `vg-iai`;
+- review and cleanup of auxiliary tooling before a future submodule split;
+- prepare, but do not yet run, rc2-compatible sigma sweep.
+
+Known excluded/problem data:
+
+- `3DVA_jessi`: empty cropped-reset fixation file, excluded by loader;
+- `SAL3D_gorgoile`: no processed fixation JSON, excluded from participant-gaze metrics.
+
+See also:
+
+- `coordination/PROJECT_STATE_2026-06-10.md`
+- `coordination/RESTRUCTURING_REVIEW_2026-06-10.md`
+- `coordination/PIPELINE_3DVA.md`

@@ -5,6 +5,8 @@
 - `metrics/`
 - `reprojection_methods/`
 - `video_creation/`
+- `visualization/`
+- `validation/`
 - `requirements/`
 - `datasets/`
 - `results/`
@@ -22,6 +24,10 @@
   - method-specific code and documentation
 - `video_creation/`
   - scripts for figures, videos, and visual comparisons
+- `visualization/`
+  - static heatmap renderers, six-view object saliency views, and qualitative figures
+- `validation/`
+  - current alignment-preview checks used to verify object placement before metric runs
 - `requirements/`
   - task-specific dependency files instead of one oversized environment
 - `datasets/`
@@ -59,9 +65,12 @@ Keep stable logic in:
 - `metrics/`
 - `reprojection_methods/`
 - `utils/`
+- `test/launch/`
 
 Keep experimental logic in:
 
 - `experiments/`
+- auxiliary visualization/validation folders until they are split into a helper
+  submodule with compatibility wrappers
 
 Promote code from `experiments/` into the stable folders only after the method and metrics are fixed.

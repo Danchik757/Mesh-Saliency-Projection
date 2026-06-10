@@ -38,18 +38,40 @@ Alignment validation details: [test/README.md](./test/README.md)
 |--------|----------|
 | [metrics/](./metrics/README.md) | Shared metric implementations (CC, KL, NSS, AUC, Similarity) |
 | [reprojection_methods/](./reprojection_methods/README.md) | All projection methods (cone, screen-space, geodesic) |
-| [test/](./test/README.md) | Alignment validation: scripts, manifests, Blender canonical check |
+| [test/](./test/README.md) | Batch launchers, tests, and legacy alignment/debug tooling |
 | [test/launch/](./test/launch/README.md) | Batch and pilot eval launchers for all datasets |
 | [test/manifests/](./test/manifests/README.md) | Per-model alignment check manifests (validated IoU) |
 | [test/tools/](./test/tools/README.md) | Diagnostic and preview utilities (no eval, debug only) |
 | [datasets/](./datasets/README.md) | Dataset reference: contents, sizes, formats, validation status |
 | [scripts/](./scripts/README.md) | Dataset download/upload scripts and method comparison tools |
 | [docs/](./docs/EVAL_RUNBOOK.md) | Eval runbook and project architecture notes |
+| [validation/](./validation/alignment_preview/check_alignment.py) | Current alignment-preview tooling used before full metric runs |
+| [visualization/](./visualization/heatmap_six_view/render_six_view_heatmaps.py) | Qualitative heatmap renderers and collages |
 | [video_creation/](./video_creation/README.md) | Scripts for generating render videos |
 | [requirements/](./requirements/README.md) | Per-environment dependency lists |
 | [coordination/](./coordination/README.md) | Current multi-agent instructions, data/release contract, and review gates |
-| [PIPELINE.md](./PIPELINE.md) | Benchmark pipeline design options |
-| [DATA_PATHS.md](./DATA_PATHS.md) | Reference: all local and server file paths |
+| [coordination/PIPELINE_3DVA.md](./coordination/PIPELINE_3DVA.md) | Current 3DVA benchmark pipeline |
+| [md/archive/PIPELINE.md](./md/archive/PIPELINE.md) | Historical pipeline design options |
+| [md/archive/DATA_PATHS.md](./md/archive/DATA_PATHS.md) | Historical local/server path reference |
+
+## Production vs auxiliary code
+
+The production benchmark path is intentionally narrow:
+
+- `utils/`
+- `metrics/`
+- `reprojection_methods/`
+- `test/launch/`
+- `scripts/`
+- `configs/`
+- `jsons/`
+- `participant_data/README.md` and release metadata only
+
+Diagnostic/rendering helpers are kept in the same repository for now because
+they share the projection contract and are still used to validate metric runs.
+Candidates for a future helper/submodule split are documented in
+[coordination/RESTRUCTURING_REVIEW_2026-06-10.md](./coordination/RESTRUCTURING_REVIEW_2026-06-10.md).
+Do not move those paths until compatibility wrappers and tests are added.
 
 ## Getting the datasets
 
@@ -146,7 +168,10 @@ python3 test/launch/run_meshmamba_reference_batch.py \
 
 ## Data paths
 
-All local and server paths are documented in [DATA_PATHS.md](./DATA_PATHS.md).
+Current local and server paths are documented in
+[coordination/PROJECT_STATE_2026-06-10.md](./coordination/PROJECT_STATE_2026-06-10.md)
+and the server env files under [configs/](./configs/README.md). The older
+[md/archive/DATA_PATHS.md](./md/archive/DATA_PATHS.md) is historical only.
 
 Raw datasets stay **outside** the repository. Generated outputs go into `results/`.
 
