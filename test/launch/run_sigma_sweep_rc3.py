@@ -21,7 +21,7 @@ Screen-space sigma
 Parameter swept: sigma_screen (fraction of image width).
   MeshMamba evaluator:   --sigma-screen <value>             (img 256px)
   3DVA/SAL3D evaluators: --sigma-px <sigma_screen × 1920>  (img 1920px)
-Default grid: 0.010 0.014 0.020 0.025 0.035 0.050 0.065 0.080 0.100
+Default grid: 0.006 0.008 0.010 0.014 0.020 0.025 0.035 0.050 0.065 0.080 0.100 0.125
   0.014 ≈ SAL3D current default (26.3 / 1920)
   0.025 ≈ 3DVA current default  (49.0 / 1920)
   0.050   MeshMamba current default
@@ -30,9 +30,9 @@ Cone sigma
 ──────────
 Parameters swept: sigma_deg (angular degrees) × radius_sigma_mult (truncation radius).
 Default grids:
-  sigma_deg:          0.25 0.50 0.75 1.00 1.50 2.00 3.00
+  sigma_deg:          0.15 0.25 0.35 0.50 0.75 1.00 1.50 2.00 3.00 4.00
   radius_sigma_mult:  2.0  3.0  4.0
-Full grid: 7 × 3 = 21 combinations.
+Full grid: 10 × 3 = 30 combinations.
 
 Model selection
 ───────────────
@@ -129,8 +129,8 @@ _EVAL: dict[str, dict[str, Path]] = {
 
 # ── default sigma grids ───────────────────────────────────────────────────────
 
-DEFAULT_SIGMA_SCREEN = [0.010, 0.014, 0.020, 0.025, 0.035, 0.050, 0.065, 0.080, 0.100]
-DEFAULT_SIGMA_DEG    = [0.25,  0.50,  0.75,  1.00,  1.50,  2.00,  3.00]
+DEFAULT_SIGMA_SCREEN = [0.006, 0.008, 0.010, 0.014, 0.020, 0.025, 0.035, 0.050, 0.065, 0.080, 0.100, 0.125]
+DEFAULT_SIGMA_DEG    = [0.15,  0.25,  0.35,  0.50,  0.75,  1.00,  1.50,  2.00,  3.00,  4.00]
 DEFAULT_RADIUS_MULT  = [2.0,   3.0,   4.0]
 
 ALL_DATASETS = ["3dva", "meshmamba_non_texture", "meshmamba_rgb_texture", "sal3d"]

@@ -1705,3 +1705,55 @@ for rgb_texture). The ablation runner bug is latent and won't affect dry-runs.
 3. Write server env script for sigma sweep (`server/rc3_sigma_env.sh`) — or reuse `rc3_ablation_env.sh` with different BATCH_OUTPUT_DIR.
 4. Run `preflight_ablation.sh` on each server (unchanged, same HEAD 951f224).
 5. Reviewer/controller says "start" → launch.
+
+---
+
+### 2026-06-11 — sigma sweep grid update + launch scripts (session 3 continued)
+
+#### Sigma grid update
+
+User-specified final grids (replacing proposals):
+
+screen_space sigma_screen (12 values):
+  0.006 0.008 0.010 0.014 0.020 0.025 0.035 0.050 0.065 0.080 0.100 0.125
+
+cone sigma_deg (10 values):
+  0.15 0.25 0.35 0.50 0.75 1.00 1.50 2.00 3.00 4.00
+
+cone radius_sigma_mult (3 values):
+  2.0 3.0 4.0  (unchanged)
+
+#### Updated job counts
+
+Total: 5040 jobs (12 sigma_screen × 120 models + 10×3=30 cone combos × 120 models)
+
+Shard distribution (MD5 mod 3):
+  Shard 0 (vg-iai,   32w): 1730 jobs
+  Shard 1 (vg-gml01, 40w): 1680 jobs
+  Shard 2 (vg-gml02, 40w): 1630 jobs
+
+Dry-run: ok=5040 skipped=0 failed=0.
+
+#### Preflight (HEAD 4ec6151)
+
+pytest -q:   374 passed, 0 failed
+compileall:  clean
+
+#### Launch scripts
+
+| File | Server | Shard | Workers | Jobs |
+|------|--------|-------|---------|------|
+| `server/launch_sigma_shard0_vg_iai.sh` | vg-iai | 0/3 | 32 | 1730 |
+| `server/launch_sigma_shard1_vg_gml01.sh` | vg-gml01 | 1/3 | 40 | 1680 |
+| `server/launch_sigma_shard2_vg_gml02.sh` | vg-gml02 | 2/3 | 40 | 1630 |
+
+Output: `${REPROJECT_SERVER_ROOT}/outputs/sigma_sweep/${RUN_ID}/shard_{i}_of_3/`
+JSONL: `sigma_sweep_rows.jsonl`, CSV: `sigma_sweep_summary.csv`
+tmux sessions: rc3_sigma_shard{0,1,2}
+nice=0, sources rc3_ablation_env.sh, overrides BATCH_OUTPUT_DIR
+
+#### Pending (requires reviewer/controller start)
+
+1. Set `RUN_ID=rc3_sigma_sweep_YYYYMMDD_HHMMSS` (same on all servers).
+2. On each server: git pull --ff-only HEAD 4ec6151, run preflight_ablation.sh.
+3. Reviewer/controller says "start" → operators run launch_sigma_shard*.sh.
