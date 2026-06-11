@@ -282,12 +282,14 @@ def _derive_timing_one_turn(
     placement: dict[str, Any],
     path: Path,
     delay_seconds: float,
+    frame_offset: int = 0,
 ) -> dict[str, Any]:
     """Validate placement JSON and return timing for one_turn_from_start contract.
 
-    Takes exactly one full rotation from frame 0 — no crop_start/crop_end.
+    Takes exactly one full rotation starting at frame_offset — no crop_start/crop_end.
     Fixation files longer than one turn are accepted; extra trailing frames
-    are truncated during pairing.
+    are truncated during pairing.  frame_offset shifts both gaze_start and
+    placement_start by the same absolute amount (cut_head / center window modes).
     """
     try:
         vi = placement["video_info"]
@@ -323,15 +325,15 @@ def _derive_timing_one_turn(
     turn_frames = round(abs(360.0 / rotation_speed) * fps)
     delay_frames = round(delay_seconds * fps)
 
-    gaze_start = max(0, delay_frames)
-    placement_start = max(0, -delay_frames)
+    gaze_start = frame_offset + max(0, delay_frames)
+    placement_start = frame_offset + max(0, -delay_frames)
     placement_end_exclusive = placement_start + turn_frames
 
     if placement_end_exclusive > total_frames:
         raise TimingValidationError(
-            f"{path}: with delay_seconds={delay_seconds:.3f}, "
+            f"{path}: with frame_offset={frame_offset}, delay_seconds={delay_seconds:.3f}, "
             f"placement_end_exclusive={placement_end_exclusive} > total_frames={total_frames}. "
-            "Delay magnitude is too large for the available placement data."
+            "Frame offset + delay magnitude too large for available placement data."
         )
 
     return {
@@ -344,6 +346,7 @@ def _derive_timing_one_turn(
         "full_turn_seconds": abs(360.0 / rotation_speed),
         "turn_frames": turn_frames,
         "delay_frames": delay_frames,
+        "frame_offset": frame_offset,
         "gaze_start": gaze_start,
         "crop_start_frames": 0,
         "crop_end_frames": 0,
@@ -380,6 +383,7 @@ def _build_provenance(
     input_mode: str,
     timing_contract: str = TIMING_CONTRACT_CROPPED_RESET,
     delay_frames: int = 0,
+    frame_offset: int = 0,
     fixation_data_tag: str | None = None,
 ) -> dict[str, Any]:
     prov: dict[str, Any] = {
@@ -400,6 +404,7 @@ def _build_provenance(
         "usable_count": timing["usable_count"],
         "turn_frame_count": timing.get("turn_frames", timing["usable_count"]),
         "delay_frames": delay_frames,
+        "frame_offset": frame_offset,
         "rotation_speed_deg_per_sec": timing["rotation_speed"],
         "full_turn_seconds": timing["full_turn_seconds"],
     }
@@ -440,6 +445,7 @@ def load_processed_track(
     canonical_name: str | None = None,
     timing_contract: str = TIMING_CONTRACT_CROPPED_RESET,
     delay_seconds: float = 0.0,
+    frame_offset: int = 0,
     fixation_data_tag: str | None = None,
 ) -> LoadedTrack:
     """Load a processed fixation JSON and pair with its placement JSON.
@@ -463,6 +469,10 @@ def load_processed_track(
     delay_seconds:
         Only used with "one_turn_from_start". Positive = gaze leads placement
         (gaze_start = round(delay_seconds * fps)). Negative = gaze lags.
+    frame_offset:
+        Only used with "one_turn_from_start". Shifts both gaze_start and
+        placement_start by this many frames before applying delay.
+        0 = cut_tail, tail = cut_head, tail//2 = center.
     fixation_data_tag:
         Optional label embedded in provenance (e.g. "mesh_json__offset_0").
 
@@ -488,7 +498,7 @@ def load_processed_track(
     placement = _load_placement(placement_path)
 
     if timing_contract == TIMING_CONTRACT_ONE_TURN:
-        timing = _derive_timing_one_turn(placement, placement_path, delay_seconds)
+        timing = _derive_timing_one_turn(placement, placement_path, delay_seconds, frame_offset)
     else:
         timing = _derive_timing(placement, placement_path)
 
@@ -518,7 +528,7 @@ def load_processed_track(
                 canonical_name,
                 f"fixation frames {len(raw)} < required {required_gaze_frames} "
                 f"(turn_frames={turn_frames}, gaze_start={gaze_start}, "
-                f"delay_frames={timing['delay_frames']})",
+                f"delay_frames={timing['delay_frames']}, frame_offset={frame_offset})",
             )
     else:
         gaze_start = 0
@@ -588,6 +598,7 @@ def load_processed_track(
         input_mode="processed_json",
         timing_contract=timing_contract,
         delay_frames=timing.get("delay_frames", 0),
+        frame_offset=timing.get("frame_offset", 0),
         fixation_data_tag=fixation_data_tag,
     )
 
@@ -625,16 +636,17 @@ def guard_report_compatible(
     turn_frame_count: int | None = None,
     gaze_start_frame: int | None = None,
     placement_start_frame: int | None = None,
+    frame_offset: int | None = None,
 ) -> None:
     """Raise ResumeContractMismatchError if an existing report has incompatible provenance.
 
     Call before writing a new report.  No-op when the report does not exist or
     cannot be read.  Prevents silently reusing an old cropped_reset report as
     if it were produced under the one_turn_from_start contract (and vice-versa),
-    or with a different delay or dataset tag.
+    or with a different delay, frame_offset, or dataset tag.
 
     Checked fields: timing_contract, fixation_data_tag, delay_frames,
-    turn_frame_count, gaze_start_frame, placement_start_frame.
+    turn_frame_count, gaze_start_frame, placement_start_frame, frame_offset.
 
     For one_turn_from_start: if the expected value is provided and the existing
     report is missing that field, it is treated as a mismatch.
@@ -667,6 +679,7 @@ def guard_report_compatible(
     _check("turn_frame_count", turn_frame_count)
     _check("gaze_start_frame", gaze_start_frame)
     _check("placement_start_frame", placement_start_frame)
+    _check("frame_offset", frame_offset)
 
 
 # ── old-CSV compatibility loader ──────────────────────────────────────────────

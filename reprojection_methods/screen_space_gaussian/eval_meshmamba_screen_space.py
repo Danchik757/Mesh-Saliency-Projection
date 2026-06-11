@@ -124,6 +124,16 @@ def parse_args() -> argparse.Namespace:
         ),
     )
     parser.add_argument(
+        "--frame-offset",
+        type=int,
+        default=int(os.environ.get("REPROJECT_FRAME_OFFSET", "0")),
+        help=(
+            "Absolute frame offset for window mode (one_turn_from_start only). "
+            "0=cut_tail, tail=cut_head, tail//2=center. "
+            "Env: REPROJECT_FRAME_OFFSET."
+        ),
+    )
+    parser.add_argument(
         "--fixation-data-tag",
         default=os.environ.get("REPROJECT_FIXATION_DATA_TAG"),
         help=(
@@ -353,6 +363,7 @@ def _load_gaze_track(args: argparse.Namespace, placement_path: Path):
         dataset=dataset, model=model, canonical_name=canonical_name,
         timing_contract=args.timing_contract,
         delay_seconds=getattr(args, "delay_seconds", 0.0),
+        frame_offset=getattr(args, "frame_offset", 0),
         fixation_data_tag=data_tag,
     )
 
@@ -1031,6 +1042,7 @@ def main() -> None:
         turn_frame_count=track.provenance.get("turn_frame_count"),
         gaze_start_frame=track.provenance.get("gaze_start_frame"),
         placement_start_frame=track.provenance.get("placement_start_frame"),
+        frame_offset=track.provenance.get("frame_offset", 0),
     )
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps(report, indent=2))

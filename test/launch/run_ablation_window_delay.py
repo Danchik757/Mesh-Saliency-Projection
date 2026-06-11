@@ -38,19 +38,19 @@ Window modes
     delay=-0.2: gaze[0:N]   → placement[6:6+N]
     Evaluator flag: --timing-contract one_turn_from_start --delay-seconds <value>
 
-  cut_head  (requires --window-mode evaluator support — NOT yet implemented)
+  cut_head  (evaluator-ready: --frame-offset <tail>)
     Use the LAST turn_frames frames of gaze and placement, then apply delay.
     Let tail = total_frames − turn_frames  (= 60 for 3DVA/MeshMamba, = 60 for SAL3D).
     delay=0:    gaze[tail : tail+N]     → placement[tail : tail+N]
     delay=+0.2: gaze[tail+6 : tail+6+N] → placement[tail : tail+N]
     delay=-0.2: gaze[tail : tail+N]     → placement[tail+6 : tail+6+N]
-    Evaluator flag (future): --window-mode cut_head --delay-seconds <value>
+    Evaluator flag: --frame-offset <tail> --delay-seconds <value>
 
-  center  (requires --window-mode evaluator support — NOT yet implemented)
+  center  (evaluator-ready: --frame-offset <tail//2>)
     Use the center turn_frames frames (head_skip = (total − N) // 2), then apply delay.
     delay=0:    gaze[hs : hs+N]     → placement[hs : hs+N]
     delay=+0.2: gaze[hs+6 : hs+6+N] → placement[hs : hs+N]
-    Evaluator flag (future): --window-mode center --delay-seconds <value>
+    Evaluator flag: --frame-offset <tail//2> --delay-seconds <value>
 
 Delay grid (seconds):  -0.3  -0.2  -0.1  0.0  +0.1  +0.2  +0.3
   delay=+0.2 @ 30fps → d=+6 frames, so gaze[6:6+N] → placement[0:N]
@@ -140,7 +140,7 @@ ALL_METHODS = ["screen_space", "cone"]
 ALL_WINDOW_MODES = ["cut_tail", "cut_head", "center"]
 ALL_DELAYS = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3]
 
-_WINDOW_MODE_EVALUATOR_READY: frozenset[str] = frozenset({"cut_tail"})
+_WINDOW_MODE_EVALUATOR_READY: frozenset[str] = frozenset({"cut_tail", "cut_head", "center"})
 
 _SIGMA_DEFAULTS: dict[str, dict[str, dict[str, Any]]] = {
     "screen_space": {
@@ -309,6 +309,10 @@ def build_command(job: AblationJob, args: argparse.Namespace) -> list[str]:
     python = os.environ.get("REPROJECT_PYTHON", sys.executable)
     cmd = [python, str(script), "--models", job.model]
     cmd += ["--timing-contract", "one_turn_from_start", "--delay-seconds", str(job.delay_seconds)]
+    info = _DATASET_FRAMES[job.dataset]
+    tail = info["total_frames"] - info["turn_frames"]
+    _frame_offset = {"cut_tail": 0, "cut_head": tail, "center": tail // 2}[job.window_mode]
+    cmd += ["--frame-offset", str(_frame_offset)]
 
     fixation_root = getattr(args, "fixation_root", None) or _env_first(
         "FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT"

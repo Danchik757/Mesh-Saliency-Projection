@@ -1005,3 +1005,162 @@ def test_guard_placement_start_frame_mismatch():
                 timing_contract=TIMING_CONTRACT_ONE_TURN,
                 placement_start_frame=6,
             )
+
+
+# ── frame_offset tests ────────────────────────────────────────────────────────
+
+def test_frame_offset_cut_tail_default():
+    """frame_offset=0 (default) is identical to standard cut_tail: gaze[0:450]→placement[0:450]."""
+    fps, duration = 30, 17
+    total = fps * duration  # 510
+    turn_frames = 450
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+            frame_offset=0,
+        )
+
+    assert track.placement_start == 0
+    assert track.placement_end_exclusive == turn_frames
+    assert track.usable_count == turn_frames
+    assert min(track.gaze_batches) == 0
+    assert max(track.gaze_batches) == turn_frames - 1
+    assert track.provenance["frame_offset"] == 0
+    assert track.provenance["gaze_start_frame"] == 0
+    assert track.provenance["placement_start_frame"] == 0
+
+
+def test_frame_offset_cut_head_17s():
+    """frame_offset=60 (cut_head), delay=0, 17s: gaze[60:510]→placement[60:510]."""
+    fps, duration = 30, 17
+    total = fps * duration   # 510
+    turn_frames = 450
+    tail = total - turn_frames  # 60
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+            frame_offset=tail,
+        )
+
+    assert track.placement_start == tail
+    assert track.placement_end_exclusive == tail + turn_frames  # 510
+    assert track.usable_count == turn_frames
+    assert min(track.gaze_batches) == tail
+    assert max(track.gaze_batches) == tail + turn_frames - 1
+    assert track.provenance["frame_offset"] == tail
+    assert track.provenance["gaze_start_frame"] == tail
+    assert track.provenance["placement_start_frame"] == tail
+
+
+def test_frame_offset_center_17s():
+    """frame_offset=30 (center), delay=0, 17s: gaze[30:480]→placement[30:480]."""
+    fps, duration = 30, 17
+    total = fps * duration   # 510
+    turn_frames = 450
+    center_offset = (total - turn_frames) // 2  # 30
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+            frame_offset=center_offset,
+        )
+
+    assert track.placement_start == center_offset
+    assert track.placement_end_exclusive == center_offset + turn_frames  # 480
+    assert track.usable_count == turn_frames
+    assert min(track.gaze_batches) == center_offset
+    assert max(track.gaze_batches) == center_offset + turn_frames - 1
+    assert track.provenance["frame_offset"] == center_offset
+
+
+def test_frame_offset_cut_head_with_positive_delay_fails():
+    """cut_head + delay=+0.2s: gaze_start=66, 66+450=516 > 510 → InvalidFixationError."""
+    fps, duration = 30, 17
+    total = fps * duration   # 510
+    turn_frames = 450
+    tail = total - turn_frames  # 60
+    delay_s = 0.2             # d=6, gaze_start=66, 66+450=516>510
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        with pytest.raises(InvalidFixationError) as exc_info:
+            load_processed_track(
+                fj, pj, dataset="3DVA", model="test",
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                delay_seconds=delay_s,
+                frame_offset=tail,
+            )
+
+    msg = str(exc_info.value)
+    assert "516" in msg or "66" in msg
+
+
+def test_frame_offset_in_provenance_and_guard():
+    """frame_offset is stored in provenance; guard raises when it differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+            frame_offset=30,
+        )
+        assert track.provenance["frame_offset"] == 30
+
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Same offset → no error
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            frame_offset=30,
+        )
+
+        # Different offset → error
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                frame_offset=0,
+            )
