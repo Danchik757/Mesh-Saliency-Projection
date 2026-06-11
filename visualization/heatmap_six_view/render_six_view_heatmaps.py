@@ -426,19 +426,46 @@ def make_montage(
     plt.close(fig)
 
 
+_ROW_LABELS = {
+    "gt":           "Ground\nTruth",
+    "screen_space": "Screen\nSpace",
+    "cone":         "Cone",
+}
+
+
+def _cbar_fmt(vmin: float, vmax: float) -> str:
+    """Pick a printf-style format string based on value span."""
+    span = abs(vmax - vmin) if vmax != vmin else 1e-10
+    if span < 0.001:
+        return "{:.2e}"
+    if span < 0.1:
+        return "{:.4f}"
+    if span < 10:
+        return "{:.3f}"
+    if span < 1000:
+        return "{:.1f}"
+    return "{:.0f}"
+
+
 def make_compare_collage(
     per_type_image_paths: dict[str, dict[str, Path]],
+    per_type_ranges: dict[str, tuple[float, float]],
     title: str,
     out_path: Path,
 ) -> None:
-    """Write a 3×6 compare collage: rows=map_types (gt/screen_space/cone),
-    cols=views (front/back/left/right/top/bottom).
+    """Write a 3×6 compare collage with method labels (left) and colorbars (right).
 
-    per_type_image_paths: {map_type: {view_name: Path}}
-    Only includes map_types that are present in the dict.
+    per_type_image_paths : {map_type: {view_name: Path}}
+    per_type_ranges      : {map_type: (input_min, input_max)}
+    Rows: gt / screen_space / cone (whichever are present).
+    Cols: front / back / left / right / top / bottom.
     """
     if plt is None:
         raise ImportError(f"matplotlib required: {_mpl_error}")
+
+    import matplotlib.gridspec as gridspec
+    import matplotlib.cm as cm
+    import matplotlib.colors as mcolors
 
     row_order = [mt for mt in ("gt", "screen_space", "cone")
                  if mt in per_type_image_paths]
@@ -448,20 +475,40 @@ def make_compare_collage(
     n_rows = len(row_order)
     n_cols = len(VIEW_ORDER)
 
-    fig, axes = plt.subplots(
-        n_rows, n_cols,
-        figsize=(n_cols * 3, n_rows * 3),
+    # Layout: [label | img×6 | colorbar]
+    label_w = 0.55
+    img_w   = 1.0
+    cbar_w  = 0.18
+
+    fig = plt.figure(
+        figsize=((label_w + n_cols * img_w + cbar_w) * 2.8, n_rows * 3.0 + 0.55),
         facecolor="#111111",
     )
-    fig.suptitle(title, color="white", fontsize=13, fontweight="bold")
+    fig.suptitle(title, color="white", fontsize=12, fontweight="bold", y=0.99)
 
-    if n_rows == 1:
-        axes = axes[np.newaxis, :]
+    gs = gridspec.GridSpec(
+        n_rows, n_cols + 2,
+        width_ratios=[label_w] + [img_w] * n_cols + [cbar_w],
+        hspace=0.04, wspace=0.04,
+        left=0.01, right=0.99, top=0.94, bottom=0.02,
+    )
 
     for r, map_type in enumerate(row_order):
+        # left label
+        lax = fig.add_subplot(gs[r, 0])
+        lax.set_facecolor("#111111")
+        lax.axis("off")
+        lax.text(
+            0.5, 0.5, _ROW_LABELS.get(map_type, map_type),
+            color="white", fontsize=11, fontweight="bold",
+            ha="center", va="center", rotation=90,
+            transform=lax.transAxes,
+        )
+
+        # image cells
         img_paths = per_type_image_paths[map_type]
         for c, view_name in enumerate(VIEW_ORDER):
-            ax = axes[r, c]
+            ax = fig.add_subplot(gs[r, c + 1])
             p = img_paths.get(view_name)
             if p is not None and p.exists():
                 ax.imshow(plt.imread(str(p)))
@@ -469,11 +516,25 @@ def make_compare_collage(
                 ax.set_facecolor("#222222")
             if r == 0:
                 ax.set_title(view_name, color="white", fontsize=9, pad=3)
-            if c == 0:
-                ax.set_ylabel(map_type, color="white", fontsize=9, rotation=90, labelpad=4)
             ax.axis("off")
 
-    plt.tight_layout(rect=[0, 0, 1, 0.96])
+        # right colorbar
+        vmin, vmax = per_type_ranges.get(map_type, (0.0, 1.0))
+        cbar_ax = fig.add_subplot(gs[r, n_cols + 1])
+        sm = cm.ScalarMappable(
+            cmap="jet",
+            norm=mcolors.Normalize(vmin=vmin, vmax=vmax),
+        )
+        sm.set_array([])
+        cb = fig.colorbar(sm, cax=cbar_ax)
+        cb.ax.yaxis.set_tick_params(color="white", labelcolor="white", labelsize=7)
+        for spine in cb.ax.spines.values():
+            spine.set_edgecolor("#888888")
+        fmt = _cbar_fmt(vmin, vmax)
+        ticks = np.linspace(vmin, vmax, 5)
+        cb.set_ticks(ticks)
+        cb.set_ticklabels([fmt.format(t) for t in ticks])
+
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(str(out_path), dpi=150, bbox_inches="tight", facecolor="#111111")
     plt.close(fig)
@@ -568,6 +629,7 @@ def process_model(
     )
 
     per_type_image_paths: dict[str, dict[str, Path]] = {}
+    per_type_ranges:      dict[str, tuple[float, float]] = {}
 
     for map_type in map_types:
         map_path = map_paths.get(map_type)
@@ -620,6 +682,7 @@ def process_model(
             continue
 
         per_type_image_paths[map_type] = image_paths
+        per_type_ranges[map_type]      = (vmin, vmax)
 
         manifest_entry = {
             "dataset":               dataset,
@@ -667,7 +730,8 @@ def process_model(
             collage_title += f" {texture_type}"
         collage_title += f" | {model} | gt / screen_space / cone"
         try:
-            make_compare_collage(per_type_image_paths, collage_title, compare_path)
+            make_compare_collage(per_type_image_paths, per_type_ranges,
+                                 collage_title, compare_path)
             rows.append({
                 "dataset": dataset, "texture_type": texture_type or "",
                 "model": model, "map_type": "_compare_collage",
