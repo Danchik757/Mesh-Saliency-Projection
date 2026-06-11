@@ -101,6 +101,7 @@ VALID_DATASETS  = ("sal3d", "meshmamba", "3dva")
 VALID_TEXTURE   = ("non_texture", "rgb_texture")
 
 # Canonical 6 orthographic camera directions: (cam_dir, up_vec)
+# Y-up coordinate system (SAL3D, MeshMamba)
 VIEWS_6 = {
     "front":  (( 0.0,  0.0,  1.0), (0.0,  1.0,  0.0)),
     "back":   (( 0.0,  0.0, -1.0), (0.0,  1.0,  0.0)),
@@ -109,7 +110,22 @@ VIEWS_6 = {
     "top":    (( 0.0,  1.0,  0.0), (0.0,  0.0, -1.0)),
     "bottom": (( 0.0, -1.0,  0.0), (0.0,  0.0,  1.0)),
 }
+
+# Z-up coordinate system (3DVA — Blender native; Y = forward/depth, Z = up/height)
+# Camera comes from -Y (in front of the object) for "front"; Z is the vertical axis.
+VIEWS_6_Z_UP = {
+    "front":  (( 0.0, -1.0,  0.0), (0.0,  0.0,  1.0)),
+    "back":   (( 0.0,  1.0,  0.0), (0.0,  0.0,  1.0)),
+    "left":   ((-1.0,  0.0,  0.0), (0.0,  0.0,  1.0)),
+    "right":  (( 1.0,  0.0,  0.0), (0.0,  0.0,  1.0)),
+    "top":    (( 0.0,  0.0,  1.0), (0.0, -1.0,  0.0)),
+    "bottom": (( 0.0,  0.0, -1.0), (0.0, -1.0,  0.0)),
+}
+
 VIEW_ORDER = ["front", "back", "left", "right", "top", "bottom"]
+
+# Datasets whose OBJ files use Blender Z-up coordinate convention
+DATASETS_Z_UP = {"3dva"}
 
 MAP_TYPE_DIR = {"screen_space": "screen_space", "cone": "cone", "gt": "gt"}
 
@@ -355,14 +371,20 @@ def render_six_views(
     face_vals01: np.ndarray,
     out_dir: Path,
     colormap: str = "jet",
+    views: dict | None = None,
 ) -> dict[str, Path]:
-    """Render 6 canonical views, save PNGs.  Returns {view_name: Path}."""
+    """Render 6 canonical views, save PNGs.  Returns {view_name: Path}.
+
+    views: camera dict to use; defaults to VIEWS_6 (Y-up).
+           Pass VIEWS_6_Z_UP for Blender Z-up datasets (e.g. 3DVA).
+    """
     if pv is None:
         raise ImportError(f"pyvista required for rendering: {_pyvista_error}")
 
     os.environ.setdefault("DISPLAY", "")
     pv.OFF_SCREEN = True
 
+    active_views = views if views is not None else VIEWS_6
     pv_mesh = _build_pyvista_mesh(vertices, faces, face_vals01)
     center   = np.array(pv_mesh.center)
     distance = pv_mesh.length * 0.9
@@ -370,7 +392,7 @@ def render_six_views(
     out_dir.mkdir(parents=True, exist_ok=True)
     image_paths: dict[str, Path] = {}
 
-    for view_name, (cam_dir, up_vec) in VIEWS_6.items():
+    for view_name, (cam_dir, up_vec) in active_views.items():
         pl = pv.Plotter(off_screen=True, window_size=(800, 800))
         pl.set_background("white")
         pl.add_mesh(
@@ -628,6 +650,7 @@ def process_model(
         fixed_gt_dir, combined_gt_dir, map_types,
     )
 
+    views_dict = VIEWS_6_Z_UP if dataset in DATASETS_Z_UP else VIEWS_6
     per_type_image_paths: dict[str, dict[str, Path]] = {}
     per_type_ranges:      dict[str, tuple[float, float]] = {}
 
@@ -664,7 +687,8 @@ def process_model(
             continue
 
         try:
-            image_paths = render_six_views(vertices, faces, vals01, out_dir, colormap)
+            image_paths = render_six_views(vertices, faces, vals01, out_dir,
+                                           colormap, views=views_dict)
         except Exception as exc:
             rows.append({**base_row, "status": "error",
                          "error_message": f"render error: {exc}"})
