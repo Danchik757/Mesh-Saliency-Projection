@@ -364,6 +364,43 @@ def _task_output_dir(job: SigmaSweepJob, args: argparse.Namespace) -> Path:
             / job.dataset / job.model / f"{job.method}_{job.sigma_tag}")
 
 
+# ── metric extraction ─────────────────────────────────────────────────────────
+
+def extract_metrics(report: dict, dataset: str, method: str) -> "dict[str, Any] | None":
+    """
+    Extract the canonical flat metrics dict {CC, SIM, KLD, ...} from a report.
+
+    Lookup order mirrors the actual evaluator report layouts:
+      MeshMamba *   : report["metrics_vs_gt"][method_key]
+      SAL3D fixed   : report["metrics_vs_fixed_face_gt"][method_key]  (preferred)
+      SAL3D raw GT  : report["metrics_vs_gt_covered_only"][method_key]
+      3DVA *        : report["metrics_vs_gt_combined"][method_key]["metrics_covered_only"]
+
+    method_key:  screen_space → "screen_space_gaussian"
+                 cone         → "cone_gaussian_on_mesh"
+
+    Returns None when no recognised metrics section is found; callers should
+    treat that as a failed job with error_type="missing_metrics".
+    """
+    method_key = "screen_space_gaussian" if method == "screen_space" else "cone_gaussian_on_mesh"
+
+    def _leaf(section: "Any", *keys: str) -> "dict | None":
+        node = section
+        for k in keys:
+            if not isinstance(node, dict) or k not in node:
+                return None
+            node = node[k]
+        return node if isinstance(node, dict) and "CC" in node else None
+
+    return (
+        _leaf(report.get("metrics_vs_gt"), method_key)
+        or _leaf(report.get("metrics_vs_fixed_face_gt"), method_key)
+        or _leaf(report.get("metrics_vs_gt_covered_only"), method_key)
+        or _leaf(report.get("metrics_vs_gt_combined"), method_key, "metrics_covered_only")
+        or _leaf(report.get("metrics_vs_gt_combined"), method_key, "metrics_full")
+    )
+
+
 # ── job execution ─────────────────────────────────────────────────────────────
 
 def execute_job(job: SigmaSweepJob, args: argparse.Namespace) -> dict[str, Any]:
@@ -435,13 +472,16 @@ def execute_job(job: SigmaSweepJob, args: argparse.Namespace) -> dict[str, Any]:
                    error_message=str(exc))
         return row
 
-    metrics = (
-        report.get("metrics_vs_gt_covered_only")
-        or report.get("metrics_vs_fixed_face_gt")
-        or report.get("metrics_full")
-        or report.get("metrics")
-        or {}
-    )
+    metrics = extract_metrics(report, job.dataset, job.method)
+    if metrics is None:
+        row.update(
+            status="failed",
+            error_type="missing_metrics",
+            error_message=(
+                f"no metrics section found; top-level keys: {list(report.keys())}"
+            ),
+        )
+        return row
     row["CC"]       = metrics.get("CC", "")
     row["SIM"]      = metrics.get("SIM", "")
     row["KLD"]      = metrics.get("KLD", "")
