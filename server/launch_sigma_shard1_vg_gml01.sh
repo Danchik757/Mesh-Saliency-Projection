@@ -19,7 +19,7 @@
 #   3. Reviewer/controller explicit start authorisation.
 #
 # Usage:
-#   export REPROJECT_SERVER_ROOT=/mnt/ssd1/29d_kon/acm_2026
+#   export REPROJECT_SERVER_ROOT=/home/29d_kon@lab.graphicon.ru/projects/acm2026
 #   export RUN_ID=rc3_sigma_sweep_YYYYMMDD_HHMMSS
 #   bash server/launch_sigma_shard1_vg_gml01.sh
 #
