@@ -82,11 +82,11 @@ ok "compileall clean"
         --extract-dir "${RELEASE_DATA_ROOT}"
 }
 
-SUMS_FILE="${RELEASE_DOWNLOAD_ROOT}/assets/SHA256SUMS"
+SUMS_FILE="${RELEASE_DOWNLOAD_ROOT}/SHA256SUMS"
 [[ -f "${SUMS_FILE}" ]] || fail "SHA256SUMS not found: ${SUMS_FILE}"
 
 echo "[preflight] verifying SHA256SUMS ..."
-cd "${RELEASE_DOWNLOAD_ROOT}/assets"
+cd "${RELEASE_DOWNLOAD_ROOT}"
 sha256_failures=0
 while IFS= read -r line; do
     [[ -z "${line}" ]] && continue
@@ -115,9 +115,9 @@ ok "fixation root: ${n_fix} files"
 
 # ── 7. SAL3D fixed GT ──────────────────────────────────────────────────────
 
-SAL3D_FIXED_GT_DIR="${RELEASE_DATA_ROOT}/sal3d_fixed_face_gt"
-[[ -d "${SAL3D_FIXED_GT_DIR}" ]] || fail "sal3d_fixed_face_gt not found: ${SAL3D_FIXED_GT_DIR}"
-ok "sal3d_fixed_face_gt present"
+SAL3D_FIXED_GT_DIR="${RELEASE_DATA_ROOT}/datasets/SAL3D_fixed"
+[[ -d "${SAL3D_FIXED_GT_DIR}" ]] || fail "SAL3D_fixed not found: ${SAL3D_FIXED_GT_DIR}"
+ok "SAL3D_fixed present"
 
 # ── 8. dry-run shard (sigma sweep, 2 jobs only) ───────────────────────────
 

@@ -45,7 +45,7 @@ export MESHMAMBA_RGB_TEXTURE_JSON_ROOT="${REPO_ROOT}/jsons/object_placement/mamb
 # ── SAL3D ─────────────────────────────────────────────────────────────────────
 export SAL3D_DATASET_ROOT="${RELEASE_DATA_ROOT}/datasets/SAL3D"
 export SAL3D_JSON_ROOT="${REPO_ROOT}/jsons/object_placement/sal3d_jsons"
-export SAL3D_FIXED_GT_DIR="${RELEASE_DATA_ROOT}/sal3d_fixed_face_gt"
+export SAL3D_FIXED_GT_DIR="${RELEASE_DATA_ROOT}/datasets/SAL3D_fixed"
 
 # ── parallelism ───────────────────────────────────────────────────────────────
 export OMP_NUM_THREADS=1
