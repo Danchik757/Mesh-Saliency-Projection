@@ -689,6 +689,10 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Allow rendering more than 120 frames (requires explicit approval). "
                          "Without this flag, renders are capped: 30 frames (CPU) or 120 frames (GPU). "
                          "Implied by --full-turn.")
+    ap.add_argument("--map-provenance-note", default="",
+                    dest="map_provenance_note",
+                    help="Free-text provenance label written to manifest.render.map_provenance_note. "
+                         "Use to distinguish rc3_full_metrics maps from pilot/geodesic smoke maps.")
     ap.add_argument("--skip-gpu-preflight", action="store_true",
                     help="Skip GPU backend probe (for automated testing only)")
     return ap
@@ -885,6 +889,7 @@ def main() -> None:
         print(f"[INFO] assembling video: {mp4_path}", flush=True)
         frames_to_mp4(tmp_path, mp4_path, fps)
 
+    pos_arr, fp_arr, up_arr, vfov_val = camera_params
     manifest_data = {
         "dataset":        canonical_ds,
         "texture_type":   texture_type,
@@ -893,6 +898,15 @@ def main() -> None:
         "map_file":       str(args.map_path.resolve()),
         "mesh_file":      str(mesh_path.resolve()),
         "placement_json": str(placement_path.resolve()),
+        "camera": {
+            "source":             "placement_json",
+            "decoding":           "view_matrix_R_T_decomposition",
+            "placement_json_path": str(placement_path.resolve()),
+            "position":           pos_arr.tolist(),
+            "focal_point":        fp_arr.tolist(),
+            "up":                 up_arr.tolist(),
+            "vert_fov_deg":       round(vfov_val, 6),
+        },
         "timing_contract": {
             "name":              args.timing_contract,
             "frame_offset":      start_idx,
@@ -903,18 +917,19 @@ def main() -> None:
             "dataset_turn_frames": TURN_FRAMES.get(args.dataset.lower()),
         },
         "render": {
-            "n_rendered_frames":  len(png_paths),
-            "fps":                fps,
-            "width":              args.width,
-            "height":             args.height,
-            "alpha":              args.alpha,
-            "colormap":           args.colormap,
-            "background_color":   args.background_color,
-            "extra_rotate_x_deg": extra_rot_x,
-            "map_domain":         map_domain,
-            "n_map_elements":     len(values),
-            "n_mesh_vertices":    n_vertices,
-            "n_mesh_faces":       n_faces,
+            "n_rendered_frames":     len(png_paths),
+            "fps":                   fps,
+            "width":                 args.width,
+            "height":                args.height,
+            "alpha":                 args.alpha,
+            "colormap":              args.colormap,
+            "background_color":      args.background_color,
+            "extra_rotate_x_deg":    extra_rot_x,
+            "map_domain":            map_domain,
+            "n_map_elements":        len(values),
+            "n_mesh_vertices":       n_vertices,
+            "n_mesh_faces":          n_faces,
+            "map_provenance_note":   args.map_provenance_note,
             **norm_stats,
         },
         "gpu_preflight":  gpu_info,
