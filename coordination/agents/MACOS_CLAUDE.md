@@ -1514,3 +1514,72 @@ Second dry-run (same args, same output dir):
   resume-skip: 3dva/A380/screen_space wm=cut_tail d=+0.1
   jobs: 9 total, 3 resume-skipped, 6 to run → all 6 skipped (wm not implemented)
 ```
+
+---
+
+### --frame-offset implementation — 2026-06-11
+
+**Branch:** `agent/rc3-release-and-ablation-infra`
+**Commit:** `80d99b7`
+
+#### Task
+
+Implement `--frame-offset INT` to enable cut_head and center window modes as
+real ablations (not skipped stubs).
+
+#### Files changed (9)
+
+**`utils/participant_loader.py`**
+- `_derive_timing_one_turn(... frame_offset=0)`: formula changed to
+  `gaze_start = frame_offset + max(0, d)` and
+  `placement_start = frame_offset + max(0, -d)`;
+  `frame_offset` added to timing dict and included in TimingValidationError message.
+- `_build_provenance(... frame_offset=0)`: `frame_offset` stored in provenance dict.
+- `load_processed_track(... frame_offset=0)`: passes to `_derive_timing_one_turn`
+  and `_build_provenance`; `InvalidFixationError` message includes `frame_offset`.
+- `guard_report_compatible(... frame_offset=None)`: `_check("frame_offset", frame_offset)`
+  added as final check.
+
+**6 evaluators** (`eval_3dva_screen_space_combined`, `eval_meshmamba_screen_space`,
+`eval_sal3d_screen_space`, `eval_3dva_cone_combined`, `eval_meshmamba_cone`,
+`eval_sal3d_cone`):
+- `--frame-offset INT` argparse argument (default 0, env `REPROJECT_FRAME_OFFSET`).
+- `frame_offset=getattr(args, "frame_offset", 0)` passed to `load_processed_track`.
+- `frame_offset=track.provenance.get("frame_offset", 0)` added to
+  `guard_report_compatible` call.
+
+**`test/launch/run_ablation_window_delay.py`**
+- `_WINDOW_MODE_EVALUATOR_READY` expanded to `{"cut_tail", "cut_head", "center"}`.
+- `build_command()`: computes `frame_offset` per window_mode:
+  `cut_tail=0`, `cut_head=tail`, `center=tail//2`; adds `--frame-offset` to cmd.
+- Docstring updated: cut_head/center now marked "evaluator-ready".
+
+**`test/test_participant_loader.py`**
+- 5 new tests: `test_frame_offset_cut_tail_default`, `test_frame_offset_cut_head_17s`,
+  `test_frame_offset_center_17s`, `test_frame_offset_cut_head_with_positive_delay_fails`,
+  `test_frame_offset_in_provenance_and_guard`.
+
+#### Test results
+
+```
+34 passed in 1.33s   (29 original + 5 new)
+compileall: all 9 modified files clean
+```
+
+#### Dry-run verification (3DVA/A380, all 3 window modes × 3 delays × 2 methods = 18 jobs)
+
+```
+cut_tail  --frame-offset 0   (all delays)  status=ok
+cut_head  --frame-offset 60  (all delays)  status=ok
+center    --frame-offset 30  (all delays)  status=ok
+done: ok=18 skipped=0 failed=0
+```
+
+Frame offsets confirmed correct: cut_head=60 (=510-450), center=30 (=(510-450)//2).
+
+#### Pending
+
+- No evaluator calls yet; server run requires separate authorization.
+- Two legacy evaluators (`eval_3dva_screen_space.py`, `eval_3dva_raycast_cone.py`)
+  not updated — they lack timing contract support and are not used by the ablation
+  runner; frame_offset is irrelevant for `cropped_reset` mode.
