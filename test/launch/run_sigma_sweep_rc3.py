@@ -71,6 +71,18 @@ Usage
   python3 test/launch/run_sigma_sweep_rc3.py --aggregate-only \\
       --no-plots --batch-output-dir <path>
 
+  # Tiny smoke run (1 job, actually invokes evaluator — catches CLI arg errors):
+  #   Requires: MESHMAMBA_JSON_ROOT, MESHMAMBA_NON_TEXTURE_ROOT, FIXATION_ROOT
+  #   set in env (or sourced from server/rc3_ablation_env.sh).
+  #   Use this instead of --dry-run when verifying CLI argument changes.
+  python3 test/launch/run_sigma_sweep_rc3.py \\
+      --datasets meshmamba_non_texture \\
+      --methods screen_space \\
+      --models Starfruit_L3 \\
+      --ss-multipliers 1.0 \\
+      --workers 1 \\
+      --batch-output-dir /tmp/sigma_smoke_$(date +%Y%m%d_%H%M%S)
+
 DO NOT RUN on servers without reviewer/controller approval.
 """
 
@@ -296,7 +308,7 @@ def _env_flags(cmd: list[str], mapping: dict[str, str]) -> None:
 def build_command(job: SigmaSweepJob, args: argparse.Namespace) -> list[str]:
     script = _EVAL[job.dataset][job.method]
     python = os.environ.get("REPROJECT_PYTHON", sys.executable)
-    cmd = [python, str(script), "--models", job.model]
+    cmd = [python, str(script), "--model", job.model]
     cmd += ["--timing-contract", TIMING_CONTRACT,
             "--delay-seconds", str(DELAY_SECONDS),
             "--frame-offset", str(FRAME_OFFSET)]
