@@ -23,6 +23,7 @@ from visualization.heatmap_six_view.render_six_view_heatmaps import (
     _rel,
     discover_models,
     load_and_prepare_map,
+    make_compare_collage,
     parse_obj,
     resolve_map_paths,
     resolve_obj_path,
@@ -518,3 +519,79 @@ class TestRel:
         p = Path("/completely/different/path.png")
         result = _rel(p, tmp_path)
         assert "/completely/different/path.png" in result
+
+
+# ---------------------------------------------------------------------------
+# make_compare_collage — colorbar display range
+# ---------------------------------------------------------------------------
+
+class TestCompareCollageColorbar:
+    def test_manifest_preserves_raw_input_range(self, tmp_path):
+        """write_manifest stores raw input_min/input_max, not the [0,1] display range."""
+        entry = {
+            "model": "alien2",
+            "map_type": "screen_space",
+            "input_min": 1.23e-6,
+            "input_max": 4.56e-5,
+            "display_normalization": "minmax_per_map",
+            "status": "ok",
+        }
+        manifest_path = write_manifest([entry], tmp_path)
+        loaded = json.loads(manifest_path.read_text())
+        assert loaded[0]["input_min"] == pytest.approx(1.23e-6)
+        assert loaded[0]["input_max"] == pytest.approx(4.56e-5)
+        assert loaded[0]["display_normalization"] == "minmax_per_map"
+
+    def test_collage_colorbar_uses_display_range(self, tmp_path):
+        """make_compare_collage colorbar is always [0,1] regardless of raw map scale."""
+        matplotlib = pytest.importorskip("matplotlib")
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as mplt
+
+        # Create 6 minimal dummy PNGs for one map type
+        for view_name in ["front", "back", "left", "right", "top", "bottom"]:
+            fig, ax = mplt.subplots(figsize=(1, 1))
+            ax.axis("off")
+            fig.savefig(str(tmp_path / f"{view_name}.png"), dpi=10)
+            mplt.close(fig)
+
+        img_paths = {v: tmp_path / f"{v}.png"
+                     for v in ["front", "back", "left", "right", "top", "bottom"]}
+        # Raw screen_space range is far from [0,1]; collage must not use it
+        per_type_image_paths = {"screen_space": img_paths}
+        out_path = tmp_path / "collage.png"
+
+        colorbar_ranges = make_compare_collage(
+            per_type_image_paths, "Test Title", out_path
+        )
+
+        assert out_path.exists()
+        assert colorbar_ranges == [(0.0, 1.0)]
+
+    def test_collage_returns_one_range_per_row(self, tmp_path):
+        """make_compare_collage returns exactly one (0,1) entry per rendered row."""
+        matplotlib = pytest.importorskip("matplotlib")
+        matplotlib.use("Agg")
+        import matplotlib.pyplot as mplt
+
+        for view_name in ["front", "back", "left", "right", "top", "bottom"]:
+            fig, ax = mplt.subplots(figsize=(1, 1))
+            ax.axis("off")
+            fig.savefig(str(tmp_path / f"{view_name}.png"), dpi=10)
+            mplt.close(fig)
+
+        img_paths = {v: tmp_path / f"{v}.png"
+                     for v in ["front", "back", "left", "right", "top", "bottom"]}
+        per_type_image_paths = {
+            "gt": img_paths,
+            "screen_space": img_paths,
+            "cone": img_paths,
+        }
+        out_path = tmp_path / "collage3.png"
+
+        colorbar_ranges = make_compare_collage(
+            per_type_image_paths, "Three rows", out_path
+        )
+
+        assert len(colorbar_ranges) == 3
+        assert all(r == (0.0, 1.0) for r in colorbar_ranges)

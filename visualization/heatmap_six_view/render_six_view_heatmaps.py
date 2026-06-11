@@ -471,16 +471,19 @@ def _cbar_fmt(vmin: float, vmax: float) -> str:
 
 def make_compare_collage(
     per_type_image_paths: dict[str, dict[str, Path]],
-    per_type_ranges: dict[str, tuple[float, float]],
     title: str,
     out_path: Path,
-) -> None:
+) -> list[tuple[float, float]]:
     """Write a 3×6 compare collage with method labels (left) and colorbars (right).
 
+    Colorbars always use display-scale [0, 1] because load_and_prepare_map normalises
+    every map to [0, 1] before rendering.  Raw input_min/input_max are preserved in
+    the manifest entry (built by process_model) but are not used here.
+
     per_type_image_paths : {map_type: {view_name: Path}}
-    per_type_ranges      : {map_type: (input_min, input_max)}
     Rows: gt / screen_space / cone (whichever are present).
     Cols: front / back / left / right / top / bottom.
+    Returns list of (vmin, vmax) used for each row's colorbar (always (0.0, 1.0)).
     """
     if plt is None:
         raise ImportError(f"matplotlib required: {_mpl_error}")
@@ -492,7 +495,7 @@ def make_compare_collage(
     row_order = [mt for mt in ("gt", "screen_space", "cone")
                  if mt in per_type_image_paths]
     if not row_order:
-        return
+        return []
 
     n_rows = len(row_order)
     n_cols = len(VIEW_ORDER)
@@ -514,6 +517,8 @@ def make_compare_collage(
         hspace=0.04, wspace=0.04,
         left=0.01, right=0.99, top=0.94, bottom=0.02,
     )
+
+    colorbar_ranges: list[tuple[float, float]] = []
 
     for r, map_type in enumerate(row_order):
         # left label
@@ -540,8 +545,9 @@ def make_compare_collage(
                 ax.set_title(view_name, color="white", fontsize=9, pad=3)
             ax.axis("off")
 
-        # right colorbar
-        vmin, vmax = per_type_ranges.get(map_type, (0.0, 1.0))
+        # right colorbar — always display-scale [0, 1]
+        vmin, vmax = 0.0, 1.0
+        colorbar_ranges.append((vmin, vmax))
         cbar_ax = fig.add_subplot(gs[r, n_cols + 1])
         sm = cm.ScalarMappable(
             cmap="jet",
@@ -552,14 +558,13 @@ def make_compare_collage(
         cb.ax.yaxis.set_tick_params(color="white", labelcolor="white", labelsize=7)
         for spine in cb.ax.spines.values():
             spine.set_edgecolor("#888888")
-        fmt = _cbar_fmt(vmin, vmax)
-        ticks = np.linspace(vmin, vmax, 5)
-        cb.set_ticks(ticks)
-        cb.set_ticklabels([fmt.format(t) for t in ticks])
+        cb.set_ticks([0.0, 0.25, 0.50, 0.75, 1.0])
+        cb.set_ticklabels(["0.00", "0.25", "0.50", "0.75", "1.00"])
 
     out_path.parent.mkdir(parents=True, exist_ok=True)
     fig.savefig(str(out_path), dpi=150, bbox_inches="tight", facecolor="#111111")
     plt.close(fig)
+    return colorbar_ranges
 
 
 # ---------------------------------------------------------------------------
@@ -652,7 +657,6 @@ def process_model(
 
     views_dict = VIEWS_6_Z_UP if dataset in DATASETS_Z_UP else VIEWS_6
     per_type_image_paths: dict[str, dict[str, Path]] = {}
-    per_type_ranges:      dict[str, tuple[float, float]] = {}
 
     for map_type in map_types:
         map_path = map_paths.get(map_type)
@@ -706,7 +710,6 @@ def process_model(
             continue
 
         per_type_image_paths[map_type] = image_paths
-        per_type_ranges[map_type]      = (vmin, vmax)
 
         manifest_entry = {
             "dataset":               dataset,
@@ -754,8 +757,7 @@ def process_model(
             collage_title += f" {texture_type}"
         collage_title += f" | {model} | gt / screen_space / cone"
         try:
-            make_compare_collage(per_type_image_paths, per_type_ranges,
-                                 collage_title, compare_path)
+            make_compare_collage(per_type_image_paths, collage_title, compare_path)
             rows.append({
                 "dataset": dataset, "texture_type": texture_type or "",
                 "model": model, "map_type": "_compare_collage",
