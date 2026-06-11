@@ -1755,5 +1755,44 @@ nice=0, sources rc3_ablation_env.sh, overrides BATCH_OUTPUT_DIR
 #### Pending (requires reviewer/controller start)
 
 1. Set `RUN_ID=rc3_sigma_sweep_YYYYMMDD_HHMMSS` (same on all servers).
-2. On each server: git pull --ff-only HEAD 4ec6151, run preflight_ablation.sh.
+2. On each server: git pull --ff-only HEAD 872e574, run preflight_ablation.sh.
 3. Reviewer/controller says "start" → operators run launch_sigma_shard*.sh.
+
+---
+
+### [2026-06-11] Stage-1 sigma sweep complete rewrite — commit 872e574
+
+Rewrote `test/launch/run_sigma_sweep_rc3.py` for stage-1 architecture.
+Prior version used a global sigma_screen grid (5040 jobs). New design:
+
+**Stage-1 design:**
+- Dataset-specific `base_sigma × multipliers` for screen_space
+  - base_sigma: 3dva=0.025, sal3d=0.014, meshmamba_non/rgb=0.050
+  - multipliers: 0.50, 0.70, 0.85, 1.00, 1.15, 1.30, 1.50
+  - Pixel conversion: MeshMamba → `--sigma-screen`, 3DVA/SAL3D → `--sigma-px` (×1920)
+- Cone: sigma_deg=[0.50,0.65,0.80,1.00,1.25,1.60,2.00], radius_sigma_mult=3.0 fixed
+- 25 models/dataset (5 quintile bins × 5), stratified by rc3 screen_space CC
+
+**Job counts (verified dry-run):**
+- Total: 1400 (700 screen_space + 700 cone)
+- Shard 0 (vg-iai,  32w): 464
+- Shard 1 (vg-gml01,40w): 461
+- Shard 2 (vg-gml02,40w): 475
+
+**New model list files (committed):**
+- `jsons/sigma_sweep_model_lists/3dva_25models.json`
+- `jsons/sigma_sweep_model_lists/meshmamba_non_texture_25models.json`
+- `jsons/sigma_sweep_model_lists/meshmamba_rgb_texture_25models.json`
+- `jsons/sigma_sweep_model_lists/sal3d_25models.json`
+
+**Live aggregation outputs:**
+- `sigma_sweep_rows.jsonl` (JSONL, appended per job)
+- `sigma_sweep_partial_long.csv` (all completed rows, long format)
+- `sigma_sweep_partial_summary.csv` (mean/std per sigma value per dataset/method)
+- `sigma_sweep_best_so_far.csv` (best sigma per model/method by CC)
+- `plots/` — 6 PNGs: cc/kld/sim vs sigma_screen_space and vs sigma_cone
+
+**Updated launch scripts:** `server/launch_sigma_shard{0,1,2}_*.sh` — updated header
+comments and exact job counts to reflect stage-1.
+
+**Status:** ready for server preflight + reviewer/controller start signal.
