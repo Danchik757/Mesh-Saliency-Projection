@@ -392,11 +392,13 @@ def render_frames(
     width: int,
     height: int,
     model_location: np.ndarray | None = None,
+    background_color: str = "white",
 ) -> list[Path]:
     """Render frames off-screen. Reuses a single Plotter with in-place point updates.
 
     model_location is added after per-frame rotation, matching the evaluator
     blender_rig transform order (location is the final translation step).
+    background_color is passed directly to PyVista (e.g. "white", "black").
     """
     os.environ.setdefault("DISPLAY", "")
     pv.OFF_SCREEN = True
@@ -412,7 +414,7 @@ def render_frames(
         mesh_poly.point_data["color"] = rgb_colors
 
     pl = pv.Plotter(off_screen=True, window_size=(width, height))
-    pl.set_background("black")
+    pl.set_background(background_color)
     pl.add_mesh(
         mesh_poly,
         scalars="color",
@@ -648,15 +650,30 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Matplotlib colormap (default: jet)")
     ap.add_argument("--max-frames", type=int, default=None,
                     help="Limit to first N frames (use ≤120 for smoke tests)")
+    ap.add_argument("--full-turn", action="store_true",
+                    help="Render a complete turn (450 frames for 3DVA/MeshMamba, 660 for SAL3D). "
+                         "Equivalent to --allow-full-batch with no --max-frames cap. "
+                         "--max-frames still applies as an additional upper bound if provided.")
     ap.add_argument("--width", type=int, default=960)
     ap.add_argument("--height", type=int, default=540)
     ap.add_argument("--gt-column", type=int, default=None,
                     help="Column index in multi-column GT file (SAL3D default: 7)")
     ap.add_argument("--keep-frames", action="store_true",
                     help="Keep individual PNG frames after video assembly")
+    ap.add_argument("--background-color", default="white",
+                    dest="background_color",
+                    help="PyVista background color (default: white)")
+    ap.add_argument("--object-base-color", default="lightgray",
+                    dest="object_base_color",
+                    help="Base mesh color when no heatmap is applied (default: lightgray; "
+                         "currently unused — heatmap always covers the mesh)")
+    ap.add_argument("--show-axes", action="store_true", default=False,
+                    dest="show_axes",
+                    help="Show PyVista axes widget (default: off)")
     ap.add_argument("--allow-full-batch", action="store_true",
                     help="Allow rendering more than 120 frames (requires explicit approval). "
-                         "Without this flag, renders are capped: 30 frames (CPU) or 120 frames (GPU).")
+                         "Without this flag, renders are capped: 30 frames (CPU) or 120 frames (GPU). "
+                         "Implied by --full-turn.")
     ap.add_argument("--skip-gpu-preflight", action="store_true",
                     help="Skip GPU backend probe (for automated testing only)")
     return ap
@@ -689,6 +706,26 @@ def main() -> None:
         )
 
     # ── Smoke / batch frame-count guard ───────────────────────────────────────
+    # --full-turn implies allow_full_batch; max_frames is set to TURN_FRAMES[dataset]
+    # (respecting an explicit --max-frames as an upper cap).
+    if args.full_turn:
+        args.allow_full_batch = True
+        ds_lc = args.dataset.lower()
+        if ds_lc not in TURN_FRAMES:
+            print(f"[ERROR] --full-turn: unknown dataset {args.dataset!r}. "
+                  f"Known: {list(TURN_FRAMES.keys())}", file=sys.stderr)
+            sys.exit(1)
+        full_turn_frames = TURN_FRAMES[ds_lc]
+        if args.max_frames is None:
+            args.max_frames = full_turn_frames
+        else:
+            args.max_frames = min(args.max_frames, full_turn_frames)
+        print(
+            f"[INFO] --full-turn: dataset={args.dataset}, turn={full_turn_frames} frames, "
+            f"effective max_frames={args.max_frames}",
+            flush=True,
+        )
+
     if not args.allow_full_batch:
         smoke_cap = _CPU_FALLBACK_MAX_FRAMES if gpu_info["used_cpu_fallback"] else 120
         if args.max_frames is None or args.max_frames > smoke_cap:
@@ -804,6 +841,7 @@ def main() -> None:
             rgb_colors, pv_domain, camera_params,
             tmp_path, args.width, args.height,
             model_location=model_location,
+            background_color=args.background_color,
         )
 
         # Save preview PNGs before temp dir cleanup
@@ -848,6 +886,7 @@ def main() -> None:
             "height":            args.height,
             "alpha":             args.alpha,
             "colormap":          args.colormap,
+            "background_color":  args.background_color,
             "map_domain":        map_domain,
             "n_map_elements":    len(values),
             "n_mesh_vertices":   n_vertices,

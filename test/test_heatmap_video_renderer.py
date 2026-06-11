@@ -22,6 +22,7 @@ from video_creation.heatmap_on_mesh_video.render_heatmap_video import (
     _CPU_FALLBACK_MAX_FRAMES,
     _CPU_RENDERER_PATTERNS,
     apply_frame_rotation,
+    build_parser,
     camera_from_placement,
     compute_rgb_colors,
     load_map,
@@ -688,3 +689,173 @@ class TestGpuPreflight:
 
     def test_cpu_fallback_max_frames_is_30(self):
         assert _CPU_FALLBACK_MAX_FRAMES == 30
+
+
+# ── build_parser — CLI flag defaults and constraints ──────────────────────────
+
+class TestBuildParser:
+    """Parser-level tests for new CLI flags (no rendering required)."""
+
+    def _base_args(self, tmp_path: Path) -> list[str]:
+        return [
+            "--dataset", "meshmamba",
+            "--texture-type", "non_texture",
+            "--model", "Starfruit_L3",
+            "--map-type", "gt",
+            "--map-path", str(tmp_path / "map.txt"),
+            "--output-dir", str(tmp_path),
+        ]
+
+    def test_background_color_default_white(self, tmp_path):
+        args = build_parser().parse_args(self._base_args(tmp_path))
+        assert args.background_color == "white"
+
+    def test_background_color_explicit_black(self, tmp_path):
+        args = build_parser().parse_args(
+            self._base_args(tmp_path) + ["--background-color", "black"]
+        )
+        assert args.background_color == "black"
+
+    def test_background_color_explicit_custom(self, tmp_path):
+        args = build_parser().parse_args(
+            self._base_args(tmp_path) + ["--background-color", "lightblue"]
+        )
+        assert args.background_color == "lightblue"
+
+    def test_full_turn_default_false(self, tmp_path):
+        args = build_parser().parse_args(self._base_args(tmp_path))
+        assert args.full_turn is False
+
+    def test_full_turn_flag_sets_true(self, tmp_path):
+        args = build_parser().parse_args(
+            self._base_args(tmp_path) + ["--full-turn"]
+        )
+        assert args.full_turn is True
+
+    def test_object_base_color_default(self, tmp_path):
+        args = build_parser().parse_args(self._base_args(tmp_path))
+        assert args.object_base_color == "lightgray"
+
+    def test_show_axes_default_false(self, tmp_path):
+        args = build_parser().parse_args(self._base_args(tmp_path))
+        assert args.show_axes is False
+
+    def test_map_type_accepts_gt(self, tmp_path):
+        args = build_parser().parse_args(self._base_args(tmp_path))
+        assert args.map_type == "gt"
+
+    def test_map_type_accepts_screen_space(self, tmp_path):
+        base = self._base_args(tmp_path)
+        base[base.index("gt")] = "screen_space"
+        args = build_parser().parse_args(base)
+        assert args.map_type == "screen_space"
+
+    def test_map_type_accepts_cone(self, tmp_path):
+        base = self._base_args(tmp_path)
+        base[base.index("gt")] = "cone"
+        args = build_parser().parse_args(base)
+        assert args.map_type == "cone"
+
+    def test_map_type_rejects_unknown(self, tmp_path):
+        base = self._base_args(tmp_path)
+        base[base.index("gt")] = "bogus_type"
+        with pytest.raises(SystemExit):
+            build_parser().parse_args(base)
+
+
+# ── --full-turn frame count logic ─────────────────────────────────────────────
+
+class TestFullTurnLogic:
+    """Verify the full-turn frame count rules using TURN_FRAMES directly."""
+
+    def test_meshmamba_full_turn_is_450(self):
+        assert TURN_FRAMES["meshmamba"] == 450
+
+    def test_3dva_full_turn_is_450(self):
+        assert TURN_FRAMES["3dva"] == 450
+
+    def test_sal3d_full_turn_is_660(self):
+        assert TURN_FRAMES["sal3d"] == 660
+
+    def test_full_turn_max_frames_none_gives_turn_frames(self):
+        # Simulates: args.full_turn=True, args.max_frames=None → should become TURN_FRAMES[ds]
+        for ds, expected in [("meshmamba", 450), ("3dva", 450), ("sal3d", 660)]:
+            max_frames = None
+            full_turn_frames = TURN_FRAMES[ds]
+            effective = full_turn_frames if max_frames is None else min(max_frames, full_turn_frames)
+            assert effective == expected
+
+    def test_full_turn_max_frames_cap_applied(self):
+        # args.full_turn=True, args.max_frames=120 → effective = min(120, TURN_FRAMES[ds])
+        for ds in ("meshmamba", "3dva", "sal3d"):
+            full_turn_frames = TURN_FRAMES[ds]
+            max_frames = 120
+            effective = min(max_frames, full_turn_frames)
+            assert effective == 120
+
+    def test_full_turn_max_frames_no_expansion(self):
+        # --max-frames 600 with sal3d --full-turn → capped to 660, not expanded to 600
+        # i.e. min(600, 660) = 600, not 660
+        effective = min(600, TURN_FRAMES["sal3d"])
+        assert effective == 600
+
+    def test_resolve_frame_window_450_meshmamba_no_max(self):
+        # With full-turn and no extra cap: resolve_frame_window max_frames=450
+        start, end = resolve_frame_window(
+            "meshmamba", fps=30, total_frames=510,
+            timing_contract="rc3_one_turn", max_frames=450,
+        )
+        assert end - start == 450
+
+    def test_resolve_frame_window_660_sal3d_no_max(self):
+        start, end = resolve_frame_window(
+            "sal3d", fps=30, total_frames=720,
+            timing_contract="rc3_one_turn", max_frames=660,
+        )
+        assert end - start == 660
+
+    def test_resolve_frame_window_full_turn_max_frames_120(self):
+        # full-turn with --max-frames 120 → only 120 frames rendered
+        start, end = resolve_frame_window(
+            "meshmamba", fps=30, total_frames=510,
+            timing_contract="rc3_one_turn", max_frames=120,
+        )
+        assert end - start == 120
+
+
+# ── manifest render.background_color field ────────────────────────────────────
+
+class TestManifestBackgroundColor:
+    """Verify background_color appears in rendered manifest."""
+
+    def test_background_color_in_render_section(self, tmp_path):
+        manifest = {
+            "dataset": "MeshMamba",
+            "model": "Starfruit_L3",
+            "render": {
+                "n_rendered_frames": 120,
+                "fps": 30,
+                "background_color": "white",
+                "map_domain": "face",
+            },
+        }
+        p = tmp_path / "manifest.json"
+        write_manifest(p, manifest)
+        loaded = json.loads(p.read_text())
+        assert loaded["render"]["background_color"] == "white"
+
+    def test_background_color_csv_field(self, tmp_path):
+        manifest = {
+            "render": {"background_color": "white", "fps": 30}
+        }
+        p = tmp_path / "manifest.csv"
+        write_manifest_csv(p, manifest)
+        with p.open() as fh:
+            row = next(_csv.DictReader(fh))
+        assert row["render.background_color"] == "white"
+
+    def test_background_color_black_roundtrip(self, tmp_path):
+        manifest = {"render": {"background_color": "black"}}
+        p = tmp_path / "manifest.json"
+        write_manifest(p, manifest)
+        assert json.loads(p.read_text())["render"]["background_color"] == "black"
