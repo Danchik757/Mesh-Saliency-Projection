@@ -209,7 +209,8 @@ def auto_resolve_placement_json(
         else:
             path = json_root / "mamba_rgb_jsons" / f"MeshMamba_rgb_texture_{model}.json"
     elif ds == "sal3d":
-        path = json_root / "sal3d_jsons" / f"SAL3D_{model}.json"
+        # Files on disk use "Sal3D_" prefix (mixed-case), not "SAL3D_"
+        path = json_root / "sal3d_jsons" / f"Sal3D_{model}.json"
     else:
         raise ValueError(f"Unknown dataset for placement JSON auto-resolve: {dataset!r}")
     if not path.exists():
