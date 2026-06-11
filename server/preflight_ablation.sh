@@ -113,11 +113,46 @@ n_fix=$(find "${FIXATION_ROOT}" -name "fixations.json" | wc -l | tr -d ' ')
 [[ "${n_fix}" -eq 298 ]] || fail "expected 298 fixations.json, found ${n_fix}"
 ok "fixation root: ${n_fix} files"
 
-# ── 7. SAL3D fixed GT ──────────────────────────────────────────────────────
+# ── 7. SAL3D fixed GT (deep checks) ───────────────────────────────────────
 
-SAL3D_FIXED_GT_DIR="${RELEASE_DATA_ROOT}/datasets/SAL3D_fixed"
-[[ -d "${SAL3D_FIXED_GT_DIR}" ]] || fail "SAL3D_fixed not found: ${SAL3D_FIXED_GT_DIR}"
-ok "SAL3D_fixed present"
+SAL3D_PKG_ROOT="${RELEASE_DATA_ROOT}/datasets/SAL3D_fixed/sal3d_benchmark_pkg"
+SAL3D_FIXED_GT_DIR="${SAL3D_PKG_ROOT}/sal3d_fixed_face_gt"
+SAL3D_MESH_ROOT="${SAL3D_PKG_ROOT}/Meshes"
+
+[[ -d "${SAL3D_FIXED_GT_DIR}" ]] \
+    || fail "SAL3D_FIXED_GT_DIR not found: ${SAL3D_FIXED_GT_DIR}"
+
+n_faces_txt=$(find "${SAL3D_FIXED_GT_DIR}" -name "*_faces.txt" | wc -l | tr -d ' ')
+[[ "${n_faces_txt}" -gt 0 ]] \
+    || fail "no *_faces.txt files in ${SAL3D_FIXED_GT_DIR}"
+
+[[ -f "${SAL3D_FIXED_GT_DIR}/alien2_faces.txt" ]] \
+    || fail "alien2_faces.txt missing from ${SAL3D_FIXED_GT_DIR}"
+
+[[ -f "${SAL3D_MESH_ROOT}/alien2.obj" ]] \
+    || fail "alien2.obj missing from ${SAL3D_MESH_ROOT}"
+
+echo "[preflight] checking alien2 face-count compatibility ..."
+"${REPROJECT_PYTHON}" - <<PYEOF
+import sys, pathlib
+gt_file  = pathlib.Path("${SAL3D_FIXED_GT_DIR}/alien2_faces.txt")
+obj_file = pathlib.Path("${SAL3D_MESH_ROOT}/alien2.obj")
+gt_faces = len([l for l in gt_file.read_text().splitlines() if l.strip()])
+try:
+    import trimesh
+    mesh = trimesh.load(str(obj_file), process=False, force="mesh")
+    n_faces = len(mesh.faces)
+except Exception as e:
+    print(f"[preflight] trimesh load error: {e}", file=sys.stderr)
+    sys.exit(1)
+if gt_faces != n_faces:
+    print(f"[preflight] FAIL: alien2 GT={gt_faces} faces != mesh={n_faces} faces", file=sys.stderr)
+    sys.exit(1)
+print(f"[preflight] alien2 face match: GT={gt_faces} == mesh={n_faces}")
+PYEOF
+[[ $? -eq 0 ]] || fail "alien2 face-count mismatch — SAL3D paths are wrong"
+
+ok "SAL3D fixed GT: ${n_faces_txt} *_faces.txt, alien2 face-count matches"
 
 # ── 8. dry-run shard (sigma sweep, 2 jobs only) ───────────────────────────
 

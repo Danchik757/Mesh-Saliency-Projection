@@ -43,9 +43,11 @@ export MESHMAMBA_JSON_ROOT="${REPO_ROOT}/jsons/object_placement/mamba_non_jsons"
 export MESHMAMBA_RGB_TEXTURE_JSON_ROOT="${REPO_ROOT}/jsons/object_placement/mamba_rgb_jsons"
 
 # ── SAL3D ─────────────────────────────────────────────────────────────────────
-export SAL3D_DATASET_ROOT="${RELEASE_DATA_ROOT}/datasets/SAL3D"
+# SAL3D_DATASET_ROOT and SAL3D_FIXED_GT_DIR both point into the fixed/repaired
+# mesh package; the raw mesh root (datasets/SAL3D) has mismatched face counts.
+export SAL3D_DATASET_ROOT="${RELEASE_DATA_ROOT}/datasets/SAL3D_fixed/sal3d_benchmark_pkg"
 export SAL3D_JSON_ROOT="${REPO_ROOT}/jsons/object_placement/sal3d_jsons"
-export SAL3D_FIXED_GT_DIR="${RELEASE_DATA_ROOT}/datasets/SAL3D_fixed"
+export SAL3D_FIXED_GT_DIR="${RELEASE_DATA_ROOT}/datasets/SAL3D_fixed/sal3d_benchmark_pkg/sal3d_fixed_face_gt"
 
 # ── parallelism ───────────────────────────────────────────────────────────────
 export OMP_NUM_THREADS=1
