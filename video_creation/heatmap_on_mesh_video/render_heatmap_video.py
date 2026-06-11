@@ -331,12 +331,15 @@ def compute_rgb_colors(
     *,
     colormap: str = "jet",
     alpha: float = 1.0,
-) -> tuple[np.ndarray, str]:
+) -> tuple[np.ndarray, str, dict]:
     """Map saliency values to blended RGB (uint8).
 
     alpha=1.0 → pure heatmap; alpha=0.0 → neutral gray.
     Constant-value maps normalize to all-zero (cold end of colormap) with a warning.
-    Returns (rgb (N,3) uint8, pv_domain) where pv_domain is 'cell' or 'point'.
+    Returns (rgb (N,3) uint8, pv_domain, norm_stats) where:
+      pv_domain is 'cell' or 'point'
+      norm_stats is {"input_min", "input_max", "display_normalization"}
+    Metric values are NOT modified — normalization is display-only.
     """
     cmap = _get_cmap(colormap)
     vmin, vmax = float(values.min()), float(values.max())
@@ -357,7 +360,12 @@ def compute_rgb_colors(
     rgb_u8 = (np.clip(blended, 0.0, 1.0) * 255).astype(np.uint8)
 
     pv_domain = "cell" if domain == "face" else "point"
-    return rgb_u8, pv_domain
+    norm_stats = {
+        "input_min": vmin,
+        "input_max": vmax,
+        "display_normalization": "minmax_per_map",
+    }
+    return rgb_u8, pv_domain, norm_stats
 
 
 # ── PyVista mesh ───────────────────────────────────────────────────────────────
@@ -774,7 +782,7 @@ def main() -> None:
 
     base_verts = precompute_base_transform(vertices, placement)
     model_location = np.asarray(placement["model_static"]["location"], dtype=np.float64)
-    rgb_colors, pv_domain = compute_rgb_colors(
+    rgb_colors, pv_domain, norm_stats = compute_rgb_colors(
         values, map_domain, colormap=args.colormap, alpha=args.alpha
     )
     camera_params = camera_from_placement(placement)
@@ -843,6 +851,7 @@ def main() -> None:
             "n_map_elements":    len(values),
             "n_mesh_vertices":   n_vertices,
             "n_mesh_faces":      n_faces,
+            **norm_stats,
         },
         "gpu_preflight":  gpu_info,
         "output_files": {

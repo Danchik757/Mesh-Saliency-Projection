@@ -496,32 +496,56 @@ class TestRc3FrameWindow:
 class TestMinMaxNormalization:
     def test_normal_range_full_spectrum(self):
         values = np.linspace(0.0, 1.0, 256)
-        rgb, pv_domain = compute_rgb_colors(values, "face", colormap="jet", alpha=1.0)
+        rgb, pv_domain, stats = compute_rgb_colors(values, "face", colormap="jet", alpha=1.0)
         assert rgb.shape == (256, 3)
         assert rgb.dtype == np.uint8
         assert pv_domain == "cell"
 
     def test_vertex_domain_returns_point(self):
         values = np.array([0.0, 0.5, 1.0])
-        _, pv_domain = compute_rgb_colors(values, "vertex")
+        _, pv_domain, _ = compute_rgb_colors(values, "vertex")
         assert pv_domain == "point"
 
     def test_constant_map_does_not_raise(self):
         values = np.ones(50) * 0.5
-        rgb, _ = compute_rgb_colors(values, "face")
+        rgb, _, _ = compute_rgb_colors(values, "face")
         assert rgb.shape == (50, 3)
 
     def test_alpha_zero_gives_gray(self):
         values = np.array([0.0, 1.0])
-        rgb, _ = compute_rgb_colors(values, "face", alpha=0.0)
+        rgb, _, _ = compute_rgb_colors(values, "face", alpha=0.0)
         # alpha=0 → pure gray (128, 128, 128)
         assert np.allclose(rgb, 128, atol=1)
 
     def test_output_clipped_uint8(self):
         values = np.array([0.0, 0.5, 1.0])
-        rgb, _ = compute_rgb_colors(values, "face", alpha=1.0)
+        rgb, _, _ = compute_rgb_colors(values, "face", alpha=1.0)
         assert rgb.min() >= 0
         assert rgb.max() <= 255
+
+    def test_norm_stats_keys(self):
+        values = np.linspace(2.0, 5.0, 100)
+        _, _, stats = compute_rgb_colors(values, "face")
+        assert "input_min" in stats
+        assert "input_max" in stats
+        assert "display_normalization" in stats
+
+    def test_norm_stats_input_min_max(self):
+        values = np.linspace(2.0, 5.0, 100)
+        _, _, stats = compute_rgb_colors(values, "face")
+        assert stats["input_min"] == pytest.approx(2.0)
+        assert stats["input_max"] == pytest.approx(5.0)
+
+    def test_norm_stats_display_normalization_value(self):
+        values = np.linspace(0.0, 1.0, 50)
+        _, _, stats = compute_rgb_colors(values, "face")
+        assert stats["display_normalization"] == "minmax_per_map"
+
+    def test_norm_stats_do_not_modify_input_values(self):
+        values = np.array([1.0, 3.0, 5.0])
+        orig = values.copy()
+        compute_rgb_colors(values, "face")
+        np.testing.assert_array_equal(values, orig)
 
 
 # ── select_preview_indices ────────────────────────────────────────────────────
