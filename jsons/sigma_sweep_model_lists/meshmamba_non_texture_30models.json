@@ -1,0 +1,160 @@
+{
+  "dataset": "meshmamba_non_texture",
+  "selection_method": "stratified_quintile_5x6",
+  "source_metrics": "rc3_full_metrics_20260611_004003",
+  "metric_used": "screen_space_CC",
+  "total_pool": 105,
+  "n_selected": 30,
+  "models": [
+    {
+      "model": "Chips_v1_L3",
+      "cc_screen_space": -0.377724,
+      "quintile": 1
+    },
+    {
+      "model": "Pirate_Shipmate_Old_v1_L1",
+      "cc_screen_space": -0.189211,
+      "quintile": 1
+    },
+    {
+      "model": "Penguin_V2_L3",
+      "cc_screen_space": -0.152048,
+      "quintile": 1
+    },
+    {
+      "model": "GrayAlien_v01_L3",
+      "cc_screen_space": -0.104156,
+      "quintile": 1
+    },
+    {
+      "model": "Rocket_Ship_v1_L3",
+      "cc_screen_space": -0.095231,
+      "quintile": 1
+    },
+    {
+      "model": "UFO_v1_L2",
+      "cc_screen_space": -0.056061,
+      "quintile": 1
+    },
+    {
+      "model": "Camel_toy_v03_L3",
+      "cc_screen_space": -0.035504,
+      "quintile": 2
+    },
+    {
+      "model": "Seagull_v1_L3",
+      "cc_screen_space": -0.021967,
+      "quintile": 2
+    },
+    {
+      "model": "watch_digital_v1_L3",
+      "cc_screen_space": -0.000624,
+      "quintile": 2
+    },
+    {
+      "model": "Tricorn_Hat_v1_L2",
+      "cc_screen_space": 0.013131,
+      "quintile": 2
+    },
+    {
+      "model": "Aquarium_Skull_v1_L1",
+      "cc_screen_space": 0.046264,
+      "quintile": 2
+    },
+    {
+      "model": "Hover_Truck_v1_L2",
+      "cc_screen_space": 0.067585,
+      "quintile": 2
+    },
+    {
+      "model": "Diavolo_Mask_v1_L3",
+      "cc_screen_space": 0.068669,
+      "quintile": 3
+    },
+    {
+      "model": "Jambu_Fruit_Dove_v1_L3",
+      "cc_screen_space": 0.094784,
+      "quintile": 3
+    },
+    {
+      "model": "Raptor_Claw_Fossil_v2_L3",
+      "cc_screen_space": 0.13357,
+      "quintile": 3
+    },
+    {
+      "model": "Ichthyosaurus_V1_L2",
+      "cc_screen_space": 0.149712,
+      "quintile": 3
+    },
+    {
+      "model": "NYC_Fire_Hydrant_v2_L3",
+      "cc_screen_space": 0.157692,
+      "quintile": 3
+    },
+    {
+      "model": "Wicker_Basket_v1_L3",
+      "cc_screen_space": 0.182621,
+      "quintile": 3
+    },
+    {
+      "model": "Domestic_cat_V2_L3",
+      "cc_screen_space": 0.185265,
+      "quintile": 4
+    },
+    {
+      "model": "Charging_Bull_Statue_of_Wall_Street_v1",
+      "cc_screen_space": 0.20767,
+      "quintile": 4
+    },
+    {
+      "model": "StandingBaby_v2_L1",
+      "cc_screen_space": 0.251148,
+      "quintile": 4
+    },
+    {
+      "model": "Mango_L3",
+      "cc_screen_space": 0.278185,
+      "quintile": 4
+    },
+    {
+      "model": "robot_v1_L3",
+      "cc_screen_space": 0.286847,
+      "quintile": 4
+    },
+    {
+      "model": "Pierrot_Mask_v1_L3",
+      "cc_screen_space": 0.318419,
+      "quintile": 4
+    },
+    {
+      "model": "King_Cake_v2_L2",
+      "cc_screen_space": 0.319879,
+      "quintile": 5
+    },
+    {
+      "model": "doll_v3_L3",
+      "cc_screen_space": 0.361585,
+      "quintile": 5
+    },
+    {
+      "model": "Gold_Doubloon_v1_L1",
+      "cc_screen_space": 0.395385,
+      "quintile": 5
+    },
+    {
+      "model": "Ice_Cream_V1_L3",
+      "cc_screen_space": 0.431358,
+      "quintile": 5
+    },
+    {
+      "model": "Statue_v1_L2_David",
+      "cc_screen_space": 0.480358,
+      "quintile": 5
+    },
+    {
+      "model": "Watermelon_V1_L3",
+      "cc_screen_space": 0.779479,
+      "quintile": 5
+    }
+  ]
+}

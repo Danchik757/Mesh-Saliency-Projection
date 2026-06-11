@@ -1631,3 +1631,77 @@ timing_contract: `one_turn_from_start`
 2. Controller sets `RUN_ID=rc3_window_delay_ablation_YYYYMMDD_HHMMSS` (same on all three servers).
 3. Reviewer/controller says "start" → operators run `launch_shard{0,1,2}_*.sh` on each server.
 4. Monitor `runner.log` per shard; collect outputs from `${BATCH_OUTPUT_DIR}`.
+
+---
+
+### 2026-06-11 — sigma sweep rc3 preparation (session 3 continued)
+
+#### Task
+
+Sigma sweep runner for rc3 release: fixed timing, varying Gaussian blur params.
+
+Timing locked: timing_contract=one_turn_from_start, delay=0.0, frame_offset=0,
+window_mode=cut_tail, fixation_data_tag=processed_fixations_offset0_full_cleaned.
+
+#### Model selection
+
+30 models per dataset, stratified into 5 quintile bins (6 per bin) by screen_space CC
+from rc3_full_metrics_20260611_004003. Lists saved to
+`jsons/sigma_sweep_model_lists/{dataset}_30models.json`.
+
+| Dataset | Pool | Selected | Notes |
+|---------|------|----------|-------|
+| 3dva | 31 valid | 30 | `jessi` excluded (missing_report in rc3) |
+| sal3d | 54 valid | 30 | all 54 have fixed_gt_file; 30 stratified |
+| meshmamba_non_texture | 105 valid | 30 | CC range [-0.378, 0.779] |
+| meshmamba_rgb_texture | 105 valid | 30 | CC range [-0.496, 0.658] |
+
+#### Sigma grids
+
+screen_space (`sigma_screen`, fraction of image width):
+  0.010, 0.014, 0.020, 0.025, 0.035, 0.050, 0.065, 0.080, 0.100
+  → 3DVA/SAL3D (1920px): multiply × 1920 → --sigma-px
+  → MeshMamba (256px): pass directly → --sigma-screen
+  0.014 ≈ SAL3D current default (26.3/1920)
+  0.025 ≈ 3DVA current default  (49.0/1920)
+  0.050 = MeshMamba current default
+
+cone (`sigma_deg` × `radius_sigma_mult`):
+  sigma_deg:         0.25, 0.50, 0.75, 1.00, 1.50, 2.00, 3.00  (7 values)
+  radius_sigma_mult: 2.0, 3.0, 4.0  (3 values)
+  Full grid: 7 × 3 = 21 combinations
+
+#### Job counts
+
+Total: 3600 jobs (4 datasets × 30 models = 120; screen_space 9 values + cone 21 combos)
+
+Shard distribution (MD5 mod 3):
+  Shard 0: 1232  Shard 1: 1217  Shard 2: 1151
+
+Method breakdown: screen_space=1080, cone=2520
+Per dataset: 3dva=900, meshmamba_non_texture=900, meshmamba_rgb_texture=900, sal3d=900
+
+dry-run: ok=3600 skipped=0 failed=0
+
+#### Bug noted in run_ablation_window_delay.py
+
+`_env_flags` maps `MESHMAMBA_JSON_ROOT → --json-root` for BOTH non_texture and
+rgb_texture, but rgb JSONs are in `jsons/object_placement/mamba_rgb_jsons/` not
+`mamba_non_jsons/`. Fixed in sigma sweep runner (uses `MESHMAMBA_RGB_TEXTURE_JSON_ROOT`
+for rgb_texture). The ablation runner bug is latent and won't affect dry-runs.
+
+#### New files
+
+- `test/launch/run_sigma_sweep_rc3.py` — sigma sweep runner
+- `jsons/sigma_sweep_model_lists/3dva_30models.json`
+- `jsons/sigma_sweep_model_lists/meshmamba_non_texture_30models.json`
+- `jsons/sigma_sweep_model_lists/meshmamba_rgb_texture_30models.json`
+- `jsons/sigma_sweep_model_lists/sal3d_30models.json`
+
+#### Pending (requires reviewer/controller authorisation)
+
+1. Confirm sigma grid values (current defaults are proposals).
+2. Decide shard assignment to servers (same 3 servers as window/delay ablation?).
+3. Write server env script for sigma sweep (`server/rc3_sigma_env.sh`) — or reuse `rc3_ablation_env.sh` with different BATCH_OUTPUT_DIR.
+4. Run `preflight_ablation.sh` on each server (unchanged, same HEAD 951f224).
+5. Reviewer/controller says "start" → launch.

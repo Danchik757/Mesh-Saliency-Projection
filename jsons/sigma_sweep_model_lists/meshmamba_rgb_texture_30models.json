@@ -1,0 +1,160 @@
+{
+  "dataset": "meshmamba_rgb_texture",
+  "selection_method": "stratified_quintile_5x6",
+  "source_metrics": "rc3_full_metrics_20260611_004003",
+  "metric_used": "screen_space_CC",
+  "total_pool": 105,
+  "n_selected": 30,
+  "models": [
+    {
+      "model": "Chips_v1_L3",
+      "cc_screen_space": -0.496134,
+      "quintile": 1
+    },
+    {
+      "model": "Bird_v1_L3",
+      "cc_screen_space": -0.147405,
+      "quintile": 1
+    },
+    {
+      "model": "Elephant_v01_l3",
+      "cc_screen_space": -0.104434,
+      "quintile": 1
+    },
+    {
+      "model": "Holsteind_v2_L3",
+      "cc_screen_space": -0.086682,
+      "quintile": 1
+    },
+    {
+      "model": "MansWorkCasual_v02_L3",
+      "cc_screen_space": -0.075034,
+      "quintile": 1
+    },
+    {
+      "model": "SeaHorse_v2_L3",
+      "cc_screen_space": -0.046147,
+      "quintile": 1
+    },
+    {
+      "model": "Handheld_Game_unit_v1_L3",
+      "cc_screen_space": -0.035419,
+      "quintile": 2
+    },
+    {
+      "model": "Peach_L3",
+      "cc_screen_space": -0.027187,
+      "quintile": 2
+    },
+    {
+      "model": "Lamb_v1_L2",
+      "cc_screen_space": -0.008997,
+      "quintile": 2
+    },
+    {
+      "model": "Whale_v4_L3",
+      "cc_screen_space": 0.002199,
+      "quintile": 2
+    },
+    {
+      "model": "modern_tabletop_radio_v1_L1",
+      "cc_screen_space": 0.036984,
+      "quintile": 2
+    },
+    {
+      "model": "Spark_Plug_v1_L3",
+      "cc_screen_space": 0.048505,
+      "quintile": 2
+    },
+    {
+      "model": "SLR_Camera_V1_L3",
+      "cc_screen_space": 0.064191,
+      "quintile": 3
+    },
+    {
+      "model": "football_v2_L3",
+      "cc_screen_space": 0.076774,
+      "quintile": 3
+    },
+    {
+      "model": "Frog_v1_L3",
+      "cc_screen_space": 0.096404,
+      "quintile": 3
+    },
+    {
+      "model": "Flying_saucer_v1_L3",
+      "cc_screen_space": 0.124952,
+      "quintile": 3
+    },
+    {
+      "model": "Great_Dane_v1_L3",
+      "cc_screen_space": 0.138349,
+      "quintile": 3
+    },
+    {
+      "model": "Rubber_Duck_v1_L3",
+      "cc_screen_space": 0.156595,
+      "quintile": 3
+    },
+    {
+      "model": "Statue_v1_L2_David",
+      "cc_screen_space": 0.169654,
+      "quintile": 4
+    },
+    {
+      "model": "egypt_sphinx_V2_L3",
+      "cc_screen_space": 0.195815,
+      "quintile": 4
+    },
+    {
+      "model": "Ichthyosaurus_V1_L2",
+      "cc_screen_space": 0.23645,
+      "quintile": 4
+    },
+    {
+      "model": "Mushroom_v2_L1",
+      "cc_screen_space": 0.264448,
+      "quintile": 4
+    },
+    {
+      "model": "Sheep_doll_v1_L3",
+      "cc_screen_space": 0.284433,
+      "quintile": 4
+    },
+    {
+      "model": "SittingBaby_v1_L1",
+      "cc_screen_space": 0.309857,
+      "quintile": 4
+    },
+    {
+      "model": "Christmas_Bear",
+      "cc_screen_space": 0.326671,
+      "quintile": 5
+    },
+    {
+      "model": "Jukebox_bubbler_style_V2_L1",
+      "cc_screen_space": 0.369813,
+      "quintile": 5
+    },
+    {
+      "model": "Gold_Doubloon_v1_L1",
+      "cc_screen_space": 0.381215,
+      "quintile": 5
+    },
+    {
+      "model": "Cat_v1_L3",
+      "cc_screen_space": 0.460233,
+      "quintile": 5
+    },
+    {
+      "model": "BastetCat_v2_L2",
+      "cc_screen_space": 0.536796,
+      "quintile": 5
+    },
+    {
+      "model": "Watermelon_V1_L3",
+      "cc_screen_space": 0.657676,
+      "quintile": 5
+    }
+  ]
+}
