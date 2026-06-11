@@ -91,6 +91,16 @@ _DATASET_CANONICAL: dict[str, str] = {
     "sal3d":     "SAL3D",
 }
 
+# Per-dataset X-rotation applied to OBJ vertices to match Blender import convention.
+# 3DVA render script imports OBJ with up_axis='Z' (already Z-up) → no extra X rotation.
+# MeshMamba/SAL3D use default Y-up OBJ import → Blender applies rotX(90°) internally.
+# Matches evaluator defaults: eval_3dva_raycast_cone default=0°, eval_sal3d/meshmamba default=90°.
+_DATASET_EXTRA_ROTATE_X: dict[str, float] = {
+    "3dva":      0.0,
+    "meshmamba": 90.0,
+    "sal3d":     90.0,
+}
+
 
 def resolve_frame_window(
     dataset: str,
@@ -656,6 +666,11 @@ def build_parser() -> argparse.ArgumentParser:
                          "--max-frames still applies as an additional upper bound if provided.")
     ap.add_argument("--width", type=int, default=960)
     ap.add_argument("--height", type=int, default=540)
+    ap.add_argument("--extra-rotate-x-deg", type=float, default=None,
+                    dest="extra_rotate_x_deg",
+                    help="Extra X rotation (degrees) applied to OBJ vertices before per-frame Z rotation. "
+                         "Auto-selected per dataset when omitted: 3DVA=0°, SAL3D/MeshMamba=90°. "
+                         "Matches evaluator blender_rig conventions.")
     ap.add_argument("--gt-column", type=int, default=None,
                     help="Column index in multi-column GT file (SAL3D default: 7)")
     ap.add_argument("--keep-frames", action="store_true",
@@ -818,7 +833,15 @@ def main() -> None:
     )
     print(f"[INFO] map: {len(values)} elements, domain={map_domain}", flush=True)
 
-    base_verts = precompute_base_transform(vertices, placement)
+    # Per-dataset X-rotation: auto-select from table unless overridden by CLI flag.
+    ds_lc_for_rot = args.dataset.lower()
+    extra_rot_x = (
+        args.extra_rotate_x_deg
+        if args.extra_rotate_x_deg is not None
+        else _DATASET_EXTRA_ROTATE_X.get(ds_lc_for_rot, 90.0)
+    )
+    print(f"[INFO] extra_rotate_x_deg={extra_rot_x} (dataset={args.dataset})", flush=True)
+    base_verts = precompute_base_transform(vertices, placement, extra_rotate_x_deg=extra_rot_x)
     model_location = np.asarray(placement["model_static"]["location"], dtype=np.float64)
     rgb_colors, pv_domain, norm_stats = compute_rgb_colors(
         values, map_domain, colormap=args.colormap, alpha=args.alpha
@@ -880,17 +903,18 @@ def main() -> None:
             "dataset_turn_frames": TURN_FRAMES.get(args.dataset.lower()),
         },
         "render": {
-            "n_rendered_frames": len(png_paths),
-            "fps":               fps,
-            "width":             args.width,
-            "height":            args.height,
-            "alpha":             args.alpha,
-            "colormap":          args.colormap,
-            "background_color":  args.background_color,
-            "map_domain":        map_domain,
-            "n_map_elements":    len(values),
-            "n_mesh_vertices":   n_vertices,
-            "n_mesh_faces":      n_faces,
+            "n_rendered_frames":  len(png_paths),
+            "fps":                fps,
+            "width":              args.width,
+            "height":             args.height,
+            "alpha":              args.alpha,
+            "colormap":           args.colormap,
+            "background_color":   args.background_color,
+            "extra_rotate_x_deg": extra_rot_x,
+            "map_domain":         map_domain,
+            "n_map_elements":     len(values),
+            "n_mesh_vertices":    n_vertices,
+            "n_mesh_faces":       n_faces,
             **norm_stats,
         },
         "gpu_preflight":  gpu_info,

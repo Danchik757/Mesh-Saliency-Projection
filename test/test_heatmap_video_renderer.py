@@ -21,6 +21,7 @@ from video_creation.heatmap_on_mesh_video.render_heatmap_video import (
     TURN_FRAMES,
     _CPU_FALLBACK_MAX_FRAMES,
     _CPU_RENDERER_PATTERNS,
+    _DATASET_EXTRA_ROTATE_X,
     apply_frame_rotation,
     build_parser,
     camera_from_placement,
@@ -859,3 +860,66 @@ class TestManifestBackgroundColor:
         p = tmp_path / "manifest.json"
         write_manifest(p, manifest)
         assert json.loads(p.read_text())["render"]["background_color"] == "black"
+
+
+# ── per-dataset extra_rotate_x convention ─────────────────────────────────────
+
+class TestDatasetExtraRotateX:
+    """Verify per-dataset X-rotation table matches evaluator defaults.
+
+    3DVA render script uses up_axis='Z' (OBJ already Z-up) → no X rotation.
+    SAL3D/MeshMamba use default Y-up OBJ import → Blender applies rotX(90°).
+    Matches eval_3dva_raycast_cone default=0° and eval_sal3d/meshmamba default=90°.
+    """
+
+    def test_3dva_extra_rotate_x_is_zero(self):
+        assert _DATASET_EXTRA_ROTATE_X["3dva"] == 0.0
+
+    def test_meshmamba_extra_rotate_x_is_90(self):
+        assert _DATASET_EXTRA_ROTATE_X["meshmamba"] == 90.0
+
+    def test_sal3d_extra_rotate_x_is_90(self):
+        assert _DATASET_EXTRA_ROTATE_X["sal3d"] == 90.0
+
+    def test_all_three_datasets_present(self):
+        for ds in ("3dva", "meshmamba", "sal3d"):
+            assert ds in _DATASET_EXTRA_ROTATE_X
+
+    def test_3dva_no_x_rotation_leaves_z_up_unchanged(self):
+        # A point on Z axis should be unchanged with rotX(0°)
+        v = np.array([[0.0, 0.0, 1.0]])
+        result = precompute_base_transform(
+            v, _make_placement(scale=1.0), recenter=False, extra_rotate_x_deg=0.0
+        )
+        np.testing.assert_array_almost_equal(result, [[0.0, 0.0, 1.0]])
+
+    def test_meshmamba_90_rotates_y_to_z(self):
+        # In Y-up OBJ space: a point at [0,1,0] (top of object)
+        # After rotX(90°): should map to [0,0,1] (Z-up Blender world = standing upright)
+        v = np.array([[0.0, 1.0, 0.0]])
+        result = precompute_base_transform(
+            v, _make_placement(scale=1.0), recenter=False, extra_rotate_x_deg=90.0
+        )
+        np.testing.assert_array_almost_equal(result, [[0.0, 0.0, 1.0]], decimal=10)
+
+    def test_extra_rotate_x_cli_default_is_none(self, tmp_path):
+        # Parser default must be None so auto-selection from table is triggered
+        base = [
+            "--dataset", "meshmamba", "--texture-type", "non_texture",
+            "--model", "Starfruit_L3", "--map-type", "gt",
+            "--map-path", str(tmp_path / "map.txt"),
+            "--output-dir", str(tmp_path),
+        ]
+        args = build_parser().parse_args(base)
+        assert args.extra_rotate_x_deg is None
+
+    def test_extra_rotate_x_cli_override(self, tmp_path):
+        base = [
+            "--dataset", "meshmamba", "--texture-type", "non_texture",
+            "--model", "Starfruit_L3", "--map-type", "gt",
+            "--map-path", str(tmp_path / "map.txt"),
+            "--output-dir", str(tmp_path),
+            "--extra-rotate-x-deg", "45.0",
+        ]
+        args = build_parser().parse_args(base)
+        assert args.extra_rotate_x_deg == pytest.approx(45.0)
