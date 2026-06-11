@@ -626,3 +626,48 @@ python3 video_creation/heatmap_on_mesh_video/render_heatmap_video.py \
 
 **Output root:** `/tmp/heatmap_3d_smoke_rc3/`  
 **Note:** GT maps are MeshMamba per-face CSV and SAL3D fixed-face GT — correct for renderer technical smoke. Prediction smoke (screen_space/cone) blocked pending rc3_full_metrics outputs.
+
+---
+
+## Task 2 Phase 3 — Visual improvements + white-bg renders (2026-06-11)
+
+**Branch:** `agent/windows-video-overlays-rc3`  
+**HEAD:** `89eb88a`  
+**Pushed:** yes
+
+### New CLI flags in render_heatmap_video.py
+
+| Flag | Default | Description |
+|---|---|---|
+| `--background-color` | `white` | PyVista background color; written to `render.background_color` in manifest |
+| `--full-turn` | off | Render complete turn (450f for 3DVA/MeshMamba, 660f for SAL3D); implies `--allow-full-batch`; `--max-frames` still applies as upper cap |
+| `--object-base-color` | `lightgray` | Base mesh color (flag added; currently unused — heatmap always covers mesh) |
+| `--show-axes` | off | PyVista axes widget |
+
+`render.background_color` field added to manifest JSON and CSV.
+
+### Tests
+
+102 tests pass. New test classes added:
+- `TestBuildParser` (11 tests) — default values, explicit flags, map_type choices, map_type rejection
+- `TestFullTurnLogic` (9 tests) — TURN_FRAMES constants, effective max logic, resolve_frame_window integration
+- `TestManifestBackgroundColor` (3 tests) — JSON roundtrip, CSV field, black variant
+
+### White-bg renders — Starfruit_L3 GT
+
+| Run | Frames | Time | Output |
+|---|---|---|---|
+| Smoke (white bg) | 120 | 9.9s | `/tmp/heatmap_3d_smoke_whitebg/.../heatmap_video.mp4` |
+| Full-turn (white bg) | 450 | 23.1s | `/tmp/heatmap_3d_smoke_whitebg_fullturn/.../heatmap_video.mp4` |
+
+**GPU:** RTX 2060 via Mesa D3D12, ~0.051s/frame (full-turn), white background confirmed in manifest.
+
+**Copied to Windows:** `C:\Users\Danya\Downloads\heatmap_3d_preview_starfruit_white\`
+- `Starfruit_L3_gt_white_120f.mp4`
+- `Starfruit_L3_gt_white_full_turn.mp4`
+- 5× `preview_frame_*.png` (from full-turn)
+- `Starfruit_L3_gt_white_full_turn_manifest.json`
+
+### Constraints
+
+No full batch, no server jobs, no prediction maps (still blocked on rc3_full_metrics).
