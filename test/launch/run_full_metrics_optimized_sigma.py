@@ -48,8 +48,11 @@ Environment variables (set in configs/server_vg_intellect.env or equivalent):
 
 Usage
 -----
-  # Dry-run — print job counts and sample commands:
+  # Dry-run — print job counts AND sample commands (no execution):
   python3 test/launch/run_full_metrics_optimized_sigma.py --dry-run
+
+  # Print counts only (no commands, no output dir created):
+  python3 test/launch/run_full_metrics_optimized_sigma.py --print-counts
 
   # Smoke run — 1 model per dataset/method pair:
   python3 test/launch/run_full_metrics_optimized_sigma.py \\
@@ -272,10 +275,11 @@ def build_command(
         cmd += ["--texture-type", "rgb_texture"]
     elif dataset == "sal3d":
         _env_flags(cmd, {
-            "SAL3D_JSON_ROOT":      "--json-root",
-            "SAL3D_DATASET_ROOT":   "--dataset-root",
-            "SAL3D_FIXED_GT_DIR":   "--fixed-gt-dir",
+            "SAL3D_JSON_ROOT":       "--json-root",
+            "SAL3D_DATASET_ROOT":    "--dataset-root",
+            "SAL3D_FIXED_GT_DIR":    "--fixed-gt-dir",
             "SAL3D_SMOOTH_GAZE_DIR": "--smooth-gaze-dir",
+            "SAL3D_MANIFEST":        "--sal3d-manifest",
         })
 
     if method == "screen_space":
@@ -457,13 +461,19 @@ def execute_job(
                   "AUC_Judd_gt_top_10pct_proxy", "AUC_Judd_gt_top_5pct_proxy",
                   "AUC_Judd_gt_top_1pct_proxy",
                   "NSS_gt_top_10pct_proxy", "NSS_gt_top_5pct_proxy",
-                  "NSS_gt_top_1pct_proxy", "hit_rate"):
+                  "NSS_gt_top_1pct_proxy"):
         row[key_m] = metrics.get(key_m, "")
     # fallbacks for proxy names
     if not row.get("NSS"):
         row["NSS"] = metrics.get("NSS_gt_top_10pct_proxy", "")
     if not row.get("AUC_Judd"):
         row["AUC_Judd"] = metrics.get("AUC_Judd_gt_top_10pct_proxy", "")
+    # hit_rate: reports store this in run_stats, not inside the metrics leaf
+    run_stats = report.get("run_stats", {})
+    row["hit_rate"] = (
+        run_stats.get("hit_rate", "")
+        or metrics.get("hit_rate", "")
+    )
 
     prov = report.get("participant_input", {})
     row["gaze_start_frame"]      = prov.get("gaze_start_frame", "")
@@ -662,7 +672,8 @@ def main() -> int:
     for ds in args.datasets:
         job_plan[ds] = resolve_model_list(ds, explicit_models, args.smoke)
 
-    if args.print_counts:
+    # count summary — always printed for --print-counts; also printed inside --dry-run
+    def _print_counts() -> None:
         total = 0
         for ds in args.datasets:
             n_models = len(job_plan[ds])
@@ -671,6 +682,9 @@ def main() -> int:
             total += n_jobs
             print(f"  {ds:35s}  {n_models:4d} models × {n_methods} methods = {n_jobs} jobs")
         print(f"  {'TOTAL':35s}  {total} jobs")
+
+    if args.print_counts and not args.dry_run:
+        _print_counts()
         return 0
 
     # build flat job list
@@ -700,6 +714,8 @@ def main() -> int:
         print(f"  {ds:35s} {len(ds_pending):4d} pending")
 
     if args.dry_run:
+        print("\n[dry-run] expected job counts:")
+        _print_counts()
         print("\n[dry-run] sample commands:")
         for ds, method, model in pending[:4]:
             task_out = _task_output_dir(ds, method, model, batch_dir)
