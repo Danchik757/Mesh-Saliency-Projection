@@ -312,9 +312,10 @@ class TestResolveObjPath:
 
     def test_meshmamba_obj(self, tmp_path):
         dataset_root = tmp_path / "ds"
-        mesh_dir = dataset_root / "MeshFile" / "non_texture"
-        mesh_dir.mkdir(parents=True)
-        obj = mesh_dir / "chair.obj"
+        model_dir = dataset_root / "MeshFile" / "non_texture" / "chair"
+        model_dir.mkdir(parents=True)
+        # actual OBJ filename may differ from model name (as on server)
+        obj = model_dir / "chair-v1.obj"
         obj.touch()
         result = resolve_obj_path("meshmamba", dataset_root, "chair", "non_texture")
         assert result == obj

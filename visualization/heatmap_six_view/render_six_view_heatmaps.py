@@ -224,8 +224,14 @@ def resolve_obj_path(
         return _find_file_casefold(mesh_dir, model, ".obj")
     if dataset == "meshmamba":
         assert texture_type is not None
-        mesh_dir = dataset_root / "MeshFile" / texture_type
-        return _find_file_casefold(mesh_dir, model, ".obj")
+        # OBJ lives inside a per-model subdirectory; the filename may differ
+        # (e.g. Starfruit_L3/ contains Starfruit-L3.obj)
+        model_subdir = dataset_root / "MeshFile" / texture_type / model
+        if model_subdir.is_dir():
+            objs = [p for p in model_subdir.iterdir() if p.suffix.lower() == ".obj"]
+            return objs[0] if objs else None
+        # flat fallback (shouldn't be needed)
+        return _find_file_casefold(dataset_root / "MeshFile" / texture_type, model, ".obj")
     if dataset == "3dva":
         mesh_dir = dataset_root / "3DModels-Simplif-up"
         exact = mesh_dir / f"{model}.obj"
