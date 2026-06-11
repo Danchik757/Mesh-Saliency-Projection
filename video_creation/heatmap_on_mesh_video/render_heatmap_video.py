@@ -455,6 +455,120 @@ def frames_to_mp4(frames_dir: Path, output_mp4: Path, fps: int) -> None:
         raise RuntimeError(f"ffmpeg failed:\n{result.stderr[-2000:]}")
 
 
+# ── GPU preflight ─────────────────────────────────────────────────────────────
+
+# Renderer strings that indicate CPU software rasterization.
+_CPU_RENDERER_PATTERNS = ("llvmpipe", "softpipe", "mesa software", "virtualbox", "vmware")
+
+# Minimum frame cap when running on CPU fallback.
+_CPU_FALLBACK_MAX_FRAMES = 30
+
+
+def probe_gpu_backend() -> dict:
+    """Probe the OpenGL/VTK backend and return a preflight result dict.
+
+    Sets GALLIUM_DRIVER=d3d12 / MESA_D3D12_DEFAULT_ADAPTER_NAME=NVIDIA before
+    VTK initialises its render context so WSL's Mesa D3D12 bridge uses the
+    physical GPU instead of llvmpipe.
+
+    Returns a dict with keys:
+      gpu_available        bool  — True if nvidia-smi found a GPU
+      opengl_renderer      str   — GL_RENDERER string (or error message)
+      opengl_vendor        str   — GL_VENDOR string
+      opengl_version       str   — GL_VERSION string
+      pyvista_version      str
+      vtk_version          str
+      pyvista_backend      str   — "d3d12_gpu" | "cpu_software" | "unknown"
+      offscreen_backend    str   — "vtk_offscreen" | "error:<msg>"
+      used_cpu_fallback    bool  — True when renderer matches a software rasterizer
+    """
+    import ctypes
+    import ctypes.util
+
+    # ── 1. nvidia-smi ──────────────────────────────────────────────────────────
+    gpu_available = False
+    gpu_name = ""
+    try:
+        r = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name", "--format=csv,noheader"],
+            capture_output=True, text=True, timeout=10,
+        )
+        if r.returncode == 0 and r.stdout.strip():
+            gpu_available = True
+            gpu_name = r.stdout.strip().splitlines()[0]
+    except Exception:
+        pass
+
+    # ── 2. Try to steer Mesa to the D3D12 (NVIDIA) backend ────────────────────
+    # Must be set before VTK creates its first render window.
+    if gpu_available and "GALLIUM_DRIVER" not in os.environ:
+        os.environ["GALLIUM_DRIVER"] = "d3d12"
+        os.environ.setdefault("MESA_D3D12_DEFAULT_ADAPTER_NAME", "NVIDIA")
+
+    # ── 3. Create a minimal off-screen VTK context and query GL strings ───────
+    opengl_renderer = "unknown"
+    opengl_vendor   = "unknown"
+    opengl_version  = "unknown"
+    offscreen_backend = "vtk_offscreen"
+    try:
+        import vtk as _vtk
+        rw = _vtk.vtkRenderWindow()
+        rw.SetOffScreenRendering(1)
+        rw.Initialize()
+        _vtk.vtkRenderer()  # ignored; just need the context
+        rw.Render()
+        try:
+            lib = ctypes.CDLL(ctypes.util.find_library("GL") or "libGL.so.1")
+            lib.glGetString.restype = ctypes.c_char_p
+            def _gl(e: int) -> str:
+                v = lib.glGetString(e)
+                return v.decode() if v else "unknown"
+            opengl_vendor   = _gl(0x1F00)
+            opengl_renderer = _gl(0x1F01)
+            opengl_version  = _gl(0x1F02)
+        except Exception as gl_err:
+            opengl_renderer = f"ctypes-error:{gl_err}"
+        finally:
+            rw.Finalize()
+    except Exception as vtk_err:
+        offscreen_backend = f"error:{vtk_err}"
+
+    # ── 4. Classify backend ────────────────────────────────────────────────────
+    renderer_lc = opengl_renderer.lower()
+    used_cpu_fallback = any(p in renderer_lc for p in _CPU_RENDERER_PATTERNS)
+    if used_cpu_fallback:
+        pyvista_backend = "cpu_software"
+    elif "d3d12" in renderer_lc or (gpu_available and not used_cpu_fallback):
+        pyvista_backend = "d3d12_gpu"
+    else:
+        pyvista_backend = "unknown"
+
+    pyvista_ver = vtk_ver = "not_installed"
+    try:
+        import pyvista as _pv
+        pyvista_ver = _pv.__version__
+    except ImportError:
+        pass
+    try:
+        import vtk as _vtk2
+        vtk_ver = _vtk2.vtkVersion.GetVTKVersion()
+    except ImportError:
+        pass
+
+    return {
+        "gpu_available":     gpu_available,
+        "gpu_name":          gpu_name,
+        "opengl_renderer":   opengl_renderer,
+        "opengl_vendor":     opengl_vendor,
+        "opengl_version":    opengl_version,
+        "pyvista_version":   pyvista_ver,
+        "vtk_version":       vtk_ver,
+        "pyvista_backend":   pyvista_backend,
+        "offscreen_backend": offscreen_backend,
+        "used_cpu_fallback": used_cpu_fallback,
+    }
+
+
 # ── manifest ──────────────────────────────────────────────────────────────────
 
 def write_manifest(path: Path, data: dict) -> None:
@@ -531,6 +645,11 @@ def build_parser() -> argparse.ArgumentParser:
                     help="Column index in multi-column GT file (SAL3D default: 7)")
     ap.add_argument("--keep-frames", action="store_true",
                     help="Keep individual PNG frames after video assembly")
+    ap.add_argument("--allow-full-batch", action="store_true",
+                    help="Allow rendering more than 120 frames (requires explicit approval). "
+                         "Without this flag, renders are capped: 30 frames (CPU) or 120 frames (GPU).")
+    ap.add_argument("--skip-gpu-preflight", action="store_true",
+                    help="Skip GPU backend probe (for automated testing only)")
     return ap
 
 
@@ -540,6 +659,53 @@ def main() -> None:
         sys.exit(1)
 
     args = build_parser().parse_args()
+
+    # ── GPU preflight ──────────────────────────────────────────────────────────
+    if args.skip_gpu_preflight:
+        gpu_info: dict = {
+            "gpu_available": False, "gpu_name": "",
+            "opengl_renderer": "skipped", "opengl_vendor": "skipped",
+            "opengl_version": "skipped", "pyvista_version": "skipped",
+            "vtk_version": "skipped", "pyvista_backend": "skipped",
+            "offscreen_backend": "skipped", "used_cpu_fallback": False,
+        }
+    else:
+        print("[INFO] running GPU backend preflight ...", flush=True)
+        gpu_info = probe_gpu_backend()
+        print(
+            f"[INFO] renderer={gpu_info['opengl_renderer']!r}  "
+            f"backend={gpu_info['pyvista_backend']}  "
+            f"cpu_fallback={gpu_info['used_cpu_fallback']}",
+            flush=True,
+        )
+
+    # ── Smoke / batch frame-count guard ───────────────────────────────────────
+    if not args.allow_full_batch:
+        smoke_cap = _CPU_FALLBACK_MAX_FRAMES if gpu_info["used_cpu_fallback"] else 120
+        if args.max_frames is None or args.max_frames > smoke_cap:
+            if args.max_frames is None:
+                print(
+                    f"[GUARD] --allow-full-batch not set. "
+                    f"Capping to {smoke_cap} frames "
+                    f"({'CPU fallback' if gpu_info['used_cpu_fallback'] else 'GPU smoke limit'}). "
+                    f"Pass --allow-full-batch for full render.",
+                    flush=True,
+                )
+            else:
+                print(
+                    f"[GUARD] --max-frames {args.max_frames} exceeds smoke cap {smoke_cap}. "
+                    f"Capping. Pass --allow-full-batch to override.",
+                    flush=True,
+                )
+            args.max_frames = smoke_cap
+
+    if gpu_info.get("used_cpu_fallback") and args.allow_full_batch:
+        print(
+            "[WARN] CPU software rasterizer detected (llvmpipe/softpipe). "
+            "Full batch allowed by --allow-full-batch but will be very slow. "
+            "Notify reviewer/controller before proceeding.",
+            file=sys.stderr,
+        )
 
     # Resolve texture_type: --texture-type takes precedence over --track
     texture_type = args.texture_type or (args.track or "")
@@ -678,6 +844,7 @@ def main() -> None:
             "n_mesh_vertices":   n_vertices,
             "n_mesh_faces":      n_faces,
         },
+        "gpu_preflight":  gpu_info,
         "output_files": {
             "video":    str(mp4_path),
             "manifest": str(out_subdir / "manifest.json"),

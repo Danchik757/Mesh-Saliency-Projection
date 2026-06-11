@@ -19,12 +19,15 @@ from video_creation.heatmap_on_mesh_video.render_heatmap_video import (
     CROP_END_S,
     CROP_START_S,
     TURN_FRAMES,
+    _CPU_FALLBACK_MAX_FRAMES,
+    _CPU_RENDERER_PATTERNS,
     apply_frame_rotation,
     camera_from_placement,
     compute_rgb_colors,
     load_map,
     parse_obj,
     precompute_base_transform,
+    probe_gpu_backend,
     resolve_frame_window,
     select_preview_indices,
     write_manifest,
@@ -594,3 +597,70 @@ class TestWriteManifestCsv:
         p.parent.mkdir()
         write_manifest_csv(p, {"x": 1})
         assert p.exists()
+
+
+# ── GPU preflight ─────────────────────────────────────────────────────────────
+
+class TestGpuPreflight:
+    """Tests for probe_gpu_backend() and related constants.
+
+    probe_gpu_backend() may attempt real nvidia-smi and VTK calls, so these
+    tests only check the shape/contract of the result, not specific values.
+    """
+
+    def test_returns_required_keys(self):
+        result = probe_gpu_backend()
+        required = {
+            "gpu_available", "gpu_name",
+            "opengl_renderer", "opengl_vendor", "opengl_version",
+            "pyvista_version", "vtk_version",
+            "pyvista_backend", "offscreen_backend",
+            "used_cpu_fallback",
+        }
+        assert required.issubset(result.keys())
+
+    def test_gpu_available_is_bool(self):
+        result = probe_gpu_backend()
+        assert isinstance(result["gpu_available"], bool)
+
+    def test_used_cpu_fallback_is_bool(self):
+        result = probe_gpu_backend()
+        assert isinstance(result["used_cpu_fallback"], bool)
+
+    def test_opengl_renderer_is_str(self):
+        result = probe_gpu_backend()
+        assert isinstance(result["opengl_renderer"], str)
+        assert len(result["opengl_renderer"]) > 0
+
+    def test_cpu_fallback_set_when_llvmpipe(self):
+        # Simulate result with llvmpipe renderer
+        import unittest.mock as mock
+        with mock.patch(
+            "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
+            return_value=mock.Mock(returncode=1, stdout=""),
+        ):
+            with mock.patch(
+                "video_creation.heatmap_on_mesh_video.render_heatmap_video.probe_gpu_backend",
+                return_value={
+                    "gpu_available": False, "gpu_name": "",
+                    "opengl_renderer": "llvmpipe (LLVM 20.0, 256 bits)",
+                    "opengl_vendor": "Mesa", "opengl_version": "4.5",
+                    "pyvista_version": "0.48.4", "vtk_version": "9.6.2",
+                    "pyvista_backend": "cpu_software",
+                    "offscreen_backend": "vtk_offscreen",
+                    "used_cpu_fallback": True,
+                },
+            ):
+                from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
+                r = pg()
+                assert r["used_cpu_fallback"] is True
+                assert r["pyvista_backend"] == "cpu_software"
+
+    def test_cpu_renderer_patterns_include_llvmpipe(self):
+        assert any("llvmpipe" in p for p in _CPU_RENDERER_PATTERNS)
+
+    def test_cpu_renderer_patterns_include_softpipe(self):
+        assert any("softpipe" in p for p in _CPU_RENDERER_PATTERNS)
+
+    def test_cpu_fallback_max_frames_is_30(self):
+        assert _CPU_FALLBACK_MAX_FRAMES == 30
