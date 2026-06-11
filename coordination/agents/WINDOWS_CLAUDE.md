@@ -549,3 +549,57 @@ Smoke not yet run — awaiting server approval and rc3 source_videos availabilit
 Post-review fix: added --limit N to run_batch_gaze_overlay.py (applied after --models filter).
 Full batch without --models or --limit would process all 297 non-excluded models — --limit is
 the intended safety gate for smoke runs.
+
+---
+
+## Task 2 Progress — 3D Heatmap-on-Mesh Video Renderer (rc3 timing)
+
+**Branch:** `agent/windows-video-overlays-rc3`
+
+**Changed files:**
+- `video_creation/heatmap_on_mesh_video/render_heatmap_video.py` — extended existing renderer
+- `test/test_heatmap_video_renderer.py` — added tests for new rc3 features
+
+**Key changes to renderer:**
+1. rc3 timing contract (`rc3_one_turn`): `start_idx=0`, `end_idx=TURN_FRAMES[dataset]`
+   - `TURN_FRAMES = {3dva: 450, meshmamba: 450, sal3d: 660}`
+   - rc2 legacy timing preserved as `--timing-contract rc2_cropped`
+2. `resolve_frame_window(dataset, fps, total_frames, *, timing_contract, max_frames)` — exported
+3. `select_preview_indices(n_frames)` — returns [0, 25%, 50%, 75%, last]
+4. `write_manifest_csv(path, manifest)` — flattened CSV alongside manifest.json
+5. `auto_resolve_obj / auto_resolve_placement_json` — path helpers from dataset/json roots
+6. CLI additions: `--timing-contract`, `--texture-type`, `--dataset-root`, `--json-root`,
+   `--map-path` (alias for --map-file), `--output-root` (alias for --output-dir)
+7. `compute_rgb_colors`: constant-map warning; matplotlib imported eagerly (not with pyvista)
+
+**Tests:** 67 passed, 0 warnings (was 44; +23 new tests)
+- `TestRc3FrameWindow` (13 tests): frame window 0→450/660, clamping, case-insensitive, rc2 compat
+- `TestMinMaxNormalization` (5 tests): constant map, alpha=0 gray, dtype/range
+- `TestSelectPreviewIndices` (6 tests): boundary cases, sorted, zero-length
+- `TestWriteManifestCsv` (4 tests): flat fields, nested dot-notation, timing_contract fields
+
+**py_compile:** OK (both renderer and test file)
+
+**NOT run:**
+- Smoke render (requires separate approval + available dataset roots for OBJ/saliency maps)
+- Full batch
+
+**Exact smoke commands (do not run without reviewer/controller approval):**
+```bash
+python3 video_creation/heatmap_on_mesh_video/render_heatmap_video.py \
+  --dataset meshmamba --texture-type non_texture --model Starfruit_L3 \
+  --map-type screen_space \
+  --map-path /path/to/Starfruit_L3_screen_space_faces.txt \
+  --dataset-root /data/MeshMambaSaliency \
+  --output-dir /tmp/heatmap_3d_smoke \
+  --max-frames 120
+
+# SAL3D:
+python3 video_creation/heatmap_on_mesh_video/render_heatmap_video.py \
+  --dataset sal3d --model alien \
+  --map-type gt \
+  --map-path /path/to/alien_faces.txt \
+  --mesh /path/to/SAL3D/Meshes/alien.obj \
+  --output-dir /tmp/heatmap_3d_smoke \
+  --max-frames 120
+```

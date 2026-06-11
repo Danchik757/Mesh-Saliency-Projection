@@ -13,15 +13,22 @@ from pathlib import Path
 import numpy as np
 import pytest
 
+import csv as _csv
+
 from video_creation.heatmap_on_mesh_video.render_heatmap_video import (
     CROP_END_S,
     CROP_START_S,
+    TURN_FRAMES,
     apply_frame_rotation,
     camera_from_placement,
+    compute_rgb_colors,
     load_map,
     parse_obj,
     precompute_base_transform,
+    resolve_frame_window,
+    select_preview_indices,
     write_manifest,
+    write_manifest_csv,
     _rotate_x,
     _rotate_z,
 )
@@ -405,4 +412,185 @@ class TestWriteManifest:
         p = tmp_path / "a" / "b" / "manifest.json"
         p.parent.mkdir(parents=True)
         write_manifest(p, data)
+        assert p.exists()
+
+
+# ── rc3 frame window ───────────────────────────────────────────────────────────
+
+class TestRc3FrameWindow:
+    def test_3dva_start_zero_end_450(self):
+        start, end = resolve_frame_window("3dva", fps=30, total_frames=510,
+                                          timing_contract="rc3_one_turn")
+        assert start == 0
+        assert end == 450
+
+    def test_meshmamba_start_zero_end_450(self):
+        start, end = resolve_frame_window("meshmamba", fps=30, total_frames=510,
+                                          timing_contract="rc3_one_turn")
+        assert start == 0
+        assert end == 450
+
+    def test_sal3d_start_zero_end_660(self):
+        start, end = resolve_frame_window("sal3d", fps=30, total_frames=720,
+                                          timing_contract="rc3_one_turn")
+        assert start == 0
+        assert end == 660
+
+    def test_max_frames_truncates_end(self):
+        start, end = resolve_frame_window("3dva", fps=30, total_frames=510,
+                                          timing_contract="rc3_one_turn", max_frames=120)
+        assert start == 0
+        assert end == 120
+
+    def test_short_total_frames_clamped(self):
+        # total_frames < TURN_FRAMES → end capped at total_frames
+        start, end = resolve_frame_window("3dva", fps=30, total_frames=100,
+                                          timing_contract="rc3_one_turn")
+        assert end == 100
+
+    def test_dataset_case_insensitive(self):
+        start, end = resolve_frame_window("MeshMamba", fps=30, total_frames=510,
+                                          timing_contract="rc3_one_turn")
+        assert end == 450
+
+    def test_rc2_compat_start_54(self):
+        start, end = resolve_frame_window("3dva", fps=30, total_frames=510,
+                                          timing_contract="rc2_cropped")
+        assert start == round(CROP_START_S * 30)  # 54
+
+    def test_rc2_meshmamba_n_frames_450(self):
+        start, end = resolve_frame_window("meshmamba", fps=30, total_frames=510,
+                                          timing_contract="rc2_cropped")
+        assert end - start == 450
+
+    def test_rc2_sal3d_n_frames_660(self):
+        start, end = resolve_frame_window("sal3d", fps=30, total_frames=720,
+                                          timing_contract="rc2_cropped")
+        assert end - start == 660
+
+    def test_unknown_dataset_raises(self):
+        with pytest.raises(ValueError, match="Unknown dataset"):
+            resolve_frame_window("bogus", fps=30, total_frames=510,
+                                 timing_contract="rc3_one_turn")
+
+    def test_unknown_contract_raises(self):
+        with pytest.raises(ValueError, match="Unknown timing_contract"):
+            resolve_frame_window("3dva", fps=30, total_frames=510,
+                                 timing_contract="not_a_contract")
+
+    def test_turn_frames_constant_keys(self):
+        for ds in ("3dva", "meshmamba", "sal3d"):
+            assert ds in TURN_FRAMES
+
+    def test_turn_frames_values(self):
+        assert TURN_FRAMES["3dva"] == 450
+        assert TURN_FRAMES["meshmamba"] == 450
+        assert TURN_FRAMES["sal3d"] == 660
+
+
+# ── minmax normalization ───────────────────────────────────────────────────────
+
+class TestMinMaxNormalization:
+    def test_normal_range_full_spectrum(self):
+        values = np.linspace(0.0, 1.0, 256)
+        rgb, pv_domain = compute_rgb_colors(values, "face", colormap="jet", alpha=1.0)
+        assert rgb.shape == (256, 3)
+        assert rgb.dtype == np.uint8
+        assert pv_domain == "cell"
+
+    def test_vertex_domain_returns_point(self):
+        values = np.array([0.0, 0.5, 1.0])
+        _, pv_domain = compute_rgb_colors(values, "vertex")
+        assert pv_domain == "point"
+
+    def test_constant_map_does_not_raise(self):
+        values = np.ones(50) * 0.5
+        rgb, _ = compute_rgb_colors(values, "face")
+        assert rgb.shape == (50, 3)
+
+    def test_alpha_zero_gives_gray(self):
+        values = np.array([0.0, 1.0])
+        rgb, _ = compute_rgb_colors(values, "face", alpha=0.0)
+        # alpha=0 → pure gray (128, 128, 128)
+        assert np.allclose(rgb, 128, atol=1)
+
+    def test_output_clipped_uint8(self):
+        values = np.array([0.0, 0.5, 1.0])
+        rgb, _ = compute_rgb_colors(values, "face", alpha=1.0)
+        assert rgb.min() >= 0
+        assert rgb.max() <= 255
+
+
+# ── select_preview_indices ────────────────────────────────────────────────────
+
+class TestSelectPreviewIndices:
+    def test_100_frames_five_points(self):
+        idxs = select_preview_indices(100)
+        assert idxs[0] == 0
+        assert idxs[-1] == 99
+        assert len(idxs) == 5
+
+    def test_one_frame(self):
+        assert select_preview_indices(1) == [0]
+
+    def test_two_frames_no_duplicates(self):
+        idxs = select_preview_indices(2)
+        assert len(idxs) == len(set(idxs))
+        assert 0 in idxs
+        assert 1 in idxs
+
+    def test_zero_frames_empty(self):
+        assert select_preview_indices(0) == []
+
+    def test_sorted(self):
+        idxs = select_preview_indices(200)
+        assert idxs == sorted(idxs)
+
+    def test_450_frames_covers_boundaries(self):
+        idxs = select_preview_indices(450)
+        assert idxs[0] == 0
+        assert idxs[-1] == 449
+
+
+# ── write_manifest_csv ────────────────────────────────────────────────────────
+
+class TestWriteManifestCsv:
+    def test_flat_fields_present(self, tmp_path):
+        manifest = {"dataset": "3DVA", "model": "A380", "map_type": "gt"}
+        p = tmp_path / "manifest.csv"
+        write_manifest_csv(p, manifest)
+        with p.open() as fh:
+            row = next(_csv.DictReader(fh))
+        assert row["dataset"] == "3DVA"
+        assert row["model"] == "A380"
+
+    def test_nested_dict_flattened_with_dot(self, tmp_path):
+        manifest = {"render": {"fps": 30, "n_rendered_frames": 450}}
+        p = tmp_path / "m.csv"
+        write_manifest_csv(p, manifest)
+        with p.open() as fh:
+            row = next(_csv.DictReader(fh))
+        assert row["render.fps"] == "30"
+        assert row["render.n_rendered_frames"] == "450"
+
+    def test_timing_contract_fields(self, tmp_path):
+        manifest = {
+            "timing_contract": {
+                "name": "rc3_one_turn",
+                "start_frame_idx": 0,
+                "end_frame_idx": 450,
+            }
+        }
+        p = tmp_path / "m.csv"
+        write_manifest_csv(p, manifest)
+        with p.open() as fh:
+            row = next(_csv.DictReader(fh))
+        assert row["timing_contract.name"] == "rc3_one_turn"
+        assert row["timing_contract.start_frame_idx"] == "0"
+        assert row["timing_contract.end_frame_idx"] == "450"
+
+    def test_creates_file(self, tmp_path):
+        p = tmp_path / "sub" / "manifest.csv"
+        p.parent.mkdir()
+        write_manifest_csv(p, {"x": 1})
         assert p.exists()

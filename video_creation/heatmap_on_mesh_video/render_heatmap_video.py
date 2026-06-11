@@ -5,26 +5,42 @@ Render per-frame heatmap-on-mesh video using object-placement JSON pose.
 Produces:
   {output-dir}/{dataset}/{track}/{model}/{map-type}/heatmap_video.mp4
   {output-dir}/{dataset}/{track}/{model}/{map-type}/manifest.json
+  {output-dir}/{dataset}/{track}/{model}/{map-type}/manifest.csv
+  {output-dir}/{dataset}/{track}/{model}/{map-type}/preview_frame_*.png
 
 Transform contract (blender_rig, canonical):
-  recenter → scale → rotate_x(90°) → rotate_z(per-frame)
+  recenter → scale → rotate_x(90°) → rotate_z(per-frame) → +location
 
-Timing contract:
-  crop_start = 1.8 s, crop_end = 0.2 s (one full object revolution)
+Timing contracts:
+  rc3_one_turn (default):
+    start_idx = 0  (frame_offset=0, delay_seconds=0.0)
+    end_idx   = TURN_FRAMES[dataset]  (450 for 3DVA/MeshMamba, 660 for SAL3D)
+  rc2_cropped (legacy):
+    start_idx = round(1.8 * fps)   # = 54
+    end_idx   = total_frames - round(0.2 * fps)
 
 Usage:
   python render_heatmap_video.py \\
-    --dataset MeshMamba --track non_texture --model Starfruit_L3 \\
+    --dataset meshmamba --texture-type non_texture --model Starfruit_L3 \\
     --map-type screen_space \\
-    --map-file /path/to/Starfruit_L3_screen_space_faces.txt \\
+    --map-path /path/to/Starfruit_L3_screen_space_faces.txt \\
     --mesh /path/to/Starfruit_L3.obj \\
     --placement-json jsons/object_placement/mamba_non_jsons/MeshMamba_non_texture_Starfruit_L3.json \\
     --output-dir /tmp/heatmap_videos \\
-    --fps 30 --alpha 0.8 --colormap jet --max-frames 120
+    --max-frames 120 --alpha 0.8 --colormap jet
+
+  # Auto-resolve OBJ and placement JSON from dataset roots:
+  python render_heatmap_video.py \\
+    --dataset meshmamba --texture-type non_texture --model Starfruit_L3 \\
+    --map-type screen_space --map-path /path/to/map.txt \\
+    --dataset-root /data/MeshMambaSaliency \\
+    --json-root jsons/object_placement \\
+    --output-dir /tmp/heatmap_videos --max-frames 120
 """
 from __future__ import annotations
 
 import argparse
+import csv
 import json
 import math
 import os
@@ -36,29 +52,99 @@ from pathlib import Path
 
 import numpy as np
 
-# Rendering deps — imported lazily so py_compile and pure-logic tests work without them.
+# matplotlib is available in the test environment; import eagerly so
+# compute_rgb_colors works in tests (pyvista/PIL are not needed for pure-logic).
+import matplotlib
+matplotlib.use("Agg")
+from matplotlib import colormaps as _mpl_colormaps
+
+
+def _get_cmap(name: str):
+    return _mpl_colormaps[name]
+
+# Heavy rendering deps (pyvista, PIL) — lazy so py_compile and pure-logic tests
+# work without a display or GPU.
 _import_error: Exception | None = None
 try:
     import pyvista as pv
-    import matplotlib
-    matplotlib.use("Agg")
-    from matplotlib.cm import get_cmap
     from PIL import Image
 except ImportError as _exc:
     _import_error = _exc
 
+# ── timing ────────────────────────────────────────────────────────────────────
+
+# rc2 legacy constants (kept for backward-compat with existing tests/callers)
 CROP_START_S = 1.8
 CROP_END_S   = 0.2
 
-# Timing contract (rc2 / A3 cropped-reset format):
-#   start_idx = round(1.8 * fps)          # 54 for all 30-fps datasets
-#   end_idx   = total_frames - round(0.2 * fps)   # 504 (MeshMamba) / 714 (SAL3D)
-#   Renderer iterates placement[start_idx : end_idx] for object rotation.
-#
-#   Evaluators consume processed_gaze[0 : usable_count] where
-#   processed_gaze[k] corresponds to placement[start_idx + k].
-#   The renderer does NOT index processed_gaze directly; it only reads the
-#   pre-aggregated saliency map produced by the evaluator.
+# rc3 one-turn-from-start timing: frames per dataset turn
+TURN_FRAMES: dict[str, int] = {
+    "3dva":       450,
+    "meshmamba":  450,
+    "sal3d":      660,
+}
+
+# Canonical dataset names for output paths / manifest
+_DATASET_CANONICAL: dict[str, str] = {
+    "3dva":      "3DVA",
+    "meshmamba": "MeshMamba",
+    "sal3d":     "SAL3D",
+}
+
+
+def resolve_frame_window(
+    dataset: str,
+    fps: int,
+    total_frames: int,
+    *,
+    timing_contract: str = "rc3_one_turn",
+    max_frames: int | None = None,
+) -> tuple[int, int]:
+    """Return (start_idx, end_idx) for frame iteration.
+
+    rc3_one_turn: start=0, end=TURN_FRAMES[dataset] (capped at total_frames).
+    rc2_cropped:  start=round(1.8*fps), end=total_frames-round(0.2*fps).
+    """
+    dataset_lc = dataset.lower()
+    if timing_contract == "rc3_one_turn":
+        start_idx = 0
+        turn = TURN_FRAMES.get(dataset_lc)
+        if turn is None:
+            raise ValueError(
+                f"Unknown dataset for rc3 timing: {dataset!r}. "
+                f"Known: {list(TURN_FRAMES.keys())}"
+            )
+        end_idx = min(turn, total_frames)
+    elif timing_contract == "rc2_cropped":
+        start_idx = round(CROP_START_S * fps)
+        end_idx = total_frames - round(CROP_END_S * fps)
+    else:
+        raise ValueError(f"Unknown timing_contract: {timing_contract!r}")
+
+    if max_frames is not None:
+        end_idx = min(end_idx, start_idx + max_frames)
+    if end_idx <= start_idx:
+        raise ValueError(
+            f"Empty frame window: start={start_idx} end={end_idx} "
+            f"(total_frames={total_frames}, timing={timing_contract})"
+        )
+    return start_idx, end_idx
+
+
+# ── preview frame selection ───────────────────────────────────────────────────
+
+def select_preview_indices(n_frames: int) -> list[int]:
+    """Return sorted frame indices for preview PNGs: 0, 25%, 50%, 75%, last."""
+    if n_frames <= 0:
+        return []
+    idxs = {
+        0,
+        n_frames // 4,
+        n_frames // 2,
+        3 * n_frames // 4,
+        n_frames - 1,
+    }
+    return sorted(idxs)
 
 
 # ── OBJ ──────────────────────────────────────────────────────────────────────
@@ -75,6 +161,60 @@ def parse_obj(path: Path) -> tuple[np.ndarray, np.ndarray]:
                 p = line.split()
                 faces.append([int(t.split("/")[0]) - 1 for t in p[1:4]])
     return np.array(vertices, dtype=np.float64), np.array(faces, dtype=np.int32)
+
+
+# ── path auto-resolution ─────────────────────────────────────────────────────
+
+def _casefold_find(directory: Path, stem: str, suffix: str) -> Path | None:
+    if not directory.is_dir():
+        return None
+    target = stem.lower()
+    for f in directory.iterdir():
+        if f.suffix.lower() == suffix and f.stem.lower() == target:
+            return f
+    return None
+
+
+def auto_resolve_obj(
+    dataset: str, texture_type: str, model: str, dataset_root: Path
+) -> Path:
+    """Construct OBJ path from dataset root using per-dataset conventions."""
+    ds = dataset.lower()
+    if ds == "3dva":
+        candidate = _casefold_find(dataset_root / "3DModels-Simplif-up", model, ".obj")
+    elif ds == "meshmamba":
+        candidate = _casefold_find(dataset_root / "MeshFile" / texture_type, model, ".obj")
+    elif ds == "sal3d":
+        candidate = _casefold_find(dataset_root / "Meshes", model, ".obj")
+    else:
+        raise ValueError(f"Unknown dataset for OBJ auto-resolve: {dataset!r}")
+    if candidate is None:
+        raise FileNotFoundError(
+            f"OBJ not found for model '{model}' (dataset={dataset}, "
+            f"texture_type={texture_type}) under {dataset_root}"
+        )
+    return candidate
+
+
+def auto_resolve_placement_json(
+    dataset: str, texture_type: str, model: str, json_root: Path
+) -> Path:
+    """Construct placement JSON path from json_root using per-dataset conventions."""
+    ds = dataset.lower()
+    if ds == "3dva":
+        path = json_root / "3dva_jsons" / f"3DVA_{model}.json"
+    elif ds == "meshmamba":
+        if texture_type == "non_texture":
+            path = json_root / "mamba_non_jsons" / f"MeshMamba_non_texture_{model}.json"
+        else:
+            path = json_root / "mamba_rgb_jsons" / f"MeshMamba_rgb_texture_{model}.json"
+    elif ds == "sal3d":
+        path = json_root / "sal3d_jsons" / f"SAL3D_{model}.json"
+    else:
+        raise ValueError(f"Unknown dataset for placement JSON auto-resolve: {dataset!r}")
+    if not path.exists():
+        raise FileNotFoundError(f"Placement JSON not found: {path}")
+    return path
 
 
 # ── map loading ───────────────────────────────────────────────────────────────
@@ -172,7 +312,6 @@ def camera_from_placement(
     position = (-R.T @ t)
     up = (R.T @ np.array([0.0, 1.0, 0.0]))
 
-    # focal_point: model is centred at model_static.location ≈ [0,0,0]
     focal_point = np.asarray(placement["model_static"]["location"], dtype=np.float64)
 
     vi = placement["video_info"]
@@ -196,16 +335,22 @@ def compute_rgb_colors(
     """Map saliency values to blended RGB (uint8).
 
     alpha=1.0 → pure heatmap; alpha=0.0 → neutral gray.
+    Constant-value maps normalize to all-zero (cold end of colormap) with a warning.
     Returns (rgb (N,3) uint8, pv_domain) where pv_domain is 'cell' or 'point'.
     """
-    cmap = get_cmap(colormap)
+    cmap = _get_cmap(colormap)
     vmin, vmax = float(values.min()), float(values.max())
     if vmax - vmin < 1e-12:
+        print(
+            f"[WARN] constant saliency map detected (all values ≈ {vmin:.6g}); "
+            "normalizing to zero — heatmap will show cold-end color only.",
+            file=sys.stderr,
+        )
         normalized = np.zeros(len(values))
     else:
         normalized = (values - vmin) / (vmax - vmin)
 
-    rgba = cmap(normalized)          # (N, 4) float [0,1]
+    rgba = cmap(normalized)
     heatmap_rgb = rgba[:, :3]
     gray = np.full_like(heatmap_rgb, 0.5)
     blended = alpha * heatmap_rgb + (1.0 - alpha) * gray
@@ -275,7 +420,6 @@ def render_frames(
     png_paths: list[Path] = []
     n = len(frame_rotations)
     for i, rot_rad in enumerate(frame_rotations):
-        # '+' creates a new array; safe even when apply_frame_rotation returns base_verts
         rotated = apply_frame_rotation(base_verts, rot_rad) + loc
         mesh_poly.points = rotated.astype(np.float32)
         pl.render()
@@ -293,10 +437,11 @@ def render_frames(
 # ── video assembly ────────────────────────────────────────────────────────────
 
 def frames_to_mp4(frames_dir: Path, output_mp4: Path, fps: int) -> None:
-    if shutil.which("ffmpeg") is None:
+    ffmpeg = shutil.which("ffmpeg") or str(Path.home() / ".local/bin/ffmpeg")
+    if not Path(ffmpeg).exists() and not shutil.which("ffmpeg"):
         raise RuntimeError("ffmpeg not found on PATH — cannot assemble video")
     cmd = [
-        "ffmpeg", "-y",
+        ffmpeg, "-y",
         "-framerate", str(fps),
         "-i", str(frames_dir / "frame_%05d.png"),
         "-c:v", "libx264",
@@ -313,30 +458,65 @@ def frames_to_mp4(frames_dir: Path, output_mp4: Path, fps: int) -> None:
 # ── manifest ──────────────────────────────────────────────────────────────────
 
 def write_manifest(path: Path, data: dict) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w") as fh:
         json.dump(data, fh, indent=2)
+
+
+def write_manifest_csv(path: Path, manifest: dict) -> None:
+    """Flatten nested manifest dict to a single CSV row."""
+    flat: dict[str, object] = {}
+    for k, v in manifest.items():
+        if isinstance(v, dict):
+            for kk, vv in v.items():
+                flat[f"{k}.{kk}"] = vv
+        else:
+            flat[k] = v
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with path.open("w", newline="") as fh:
+        writer = csv.DictWriter(fh, fieldnames=list(flat.keys()))
+        writer.writeheader()
+        writer.writerow(flat)
 
 
 # ── CLI ───────────────────────────────────────────────────────────────────────
 
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(
-        description="Render per-frame heatmap-on-mesh video from placement JSON."
+        description="Render per-frame heatmap-on-mesh video from placement JSON (rc3)."
     )
-    ap.add_argument("--dataset", required=True, help="Dataset name (MeshMamba, SAL3D)")
-    ap.add_argument("--track", required=True, help="Track (non_texture, rgb_texture)")
+    ap.add_argument("--dataset", required=True,
+                    choices=["3dva", "meshmamba", "sal3d"],
+                    help="Dataset: 3dva, meshmamba, or sal3d (case-insensitive)")
+    ap.add_argument("--texture-type", default="",
+                    choices=["", "non_texture", "rgb_texture"],
+                    dest="texture_type",
+                    help="Texture track for MeshMamba (non_texture or rgb_texture)")
+    ap.add_argument("--track", default=None,
+                    help="Alias for --texture-type (legacy; overridden by --texture-type)")
     ap.add_argument("--model", required=True, help="Model name")
     ap.add_argument("--map-type", required=True,
                     choices=["screen_space", "cone", "gt"],
                     help="Heatmap source type")
-    ap.add_argument("--map-file", type=Path, required=True,
+    ap.add_argument("--map-path", "--map-file", type=Path, required=True,
+                    dest="map_path",
                     help="Per-face or per-vertex saliency .txt file")
-    ap.add_argument("--mesh", type=Path, required=True,
-                    help="OBJ mesh file")
-    ap.add_argument("--placement-json", type=Path, required=True,
-                    help="Placement JSON for this model")
-    ap.add_argument("--output-dir", type=Path, required=True,
+    ap.add_argument("--mesh", type=Path, default=None,
+                    help="OBJ mesh file (explicit). If omitted, auto-resolved from --dataset-root.")
+    ap.add_argument("--placement-json", type=Path, default=None,
+                    help="Placement JSON (explicit). If omitted, auto-resolved from --json-root.")
+    ap.add_argument("--dataset-root", type=Path, default=None,
+                    help="Dataset root for auto-resolving OBJ path")
+    ap.add_argument("--json-root", type=Path, default=Path("jsons/object_placement"),
+                    help="Root containing {3dva,mamba_non,mamba_rgb,sal3d}_jsons/ dirs "
+                         "(default: jsons/object_placement)")
+    ap.add_argument("--output-dir", "--output-root", type=Path, required=True,
+                    dest="output_dir",
                     help="Output root directory")
+    ap.add_argument("--timing-contract",
+                    choices=["rc3_one_turn", "rc2_cropped"],
+                    default="rc3_one_turn",
+                    help="Timing contract (default: rc3_one_turn = first 450/660 frames from 0)")
     ap.add_argument("--fps", type=int, default=None,
                     help="Output FPS (default: from placement JSON)")
     ap.add_argument("--alpha", type=float, default=1.0,
@@ -344,11 +524,9 @@ def build_parser() -> argparse.ArgumentParser:
     ap.add_argument("--colormap", default="jet",
                     help="Matplotlib colormap (default: jet)")
     ap.add_argument("--max-frames", type=int, default=None,
-                    help="Limit to first N frames of crop window (debug)")
-    ap.add_argument("--width", type=int, default=960,
-                    help="Output width px (default: 960)")
-    ap.add_argument("--height", type=int, default=540,
-                    help="Output height px (default: 540)")
+                    help="Limit to first N frames (use ≤120 for smoke tests)")
+    ap.add_argument("--width", type=int, default=960)
+    ap.add_argument("--height", type=int, default=540)
     ap.add_argument("--gt-column", type=int, default=None,
                     help="Column index in multi-column GT file (SAL3D default: 7)")
     ap.add_argument("--keep-frames", action="store_true",
@@ -363,41 +541,68 @@ def main() -> None:
 
     args = build_parser().parse_args()
 
+    # Resolve texture_type: --texture-type takes precedence over --track
+    texture_type = args.texture_type or (args.track or "")
+
+    # Validate MeshMamba requires texture_type
+    if args.dataset.lower() == "meshmamba" and not texture_type:
+        print("[ERROR] --texture-type is required for dataset=meshmamba", file=sys.stderr)
+        sys.exit(1)
+
+    # Resolve OBJ path
+    if args.mesh is not None:
+        mesh_path = args.mesh
+    elif args.dataset_root is not None:
+        mesh_path = auto_resolve_obj(args.dataset, texture_type, args.model, args.dataset_root)
+    else:
+        print("[ERROR] Provide --mesh or --dataset-root to locate the OBJ file.", file=sys.stderr)
+        sys.exit(1)
+
+    # Resolve placement JSON path
+    if args.placement_json is not None:
+        placement_path = args.placement_json
+    else:
+        placement_path = auto_resolve_placement_json(
+            args.dataset, texture_type, args.model, args.json_root
+        )
+
     for p, name in [
-        (args.map_file, "--map-file"),
-        (args.mesh, "--mesh"),
-        (args.placement_json, "--placement-json"),
+        (args.map_path, "--map-path"),
+        (mesh_path, "--mesh / --dataset-root"),
+        (placement_path, "--placement-json / --json-root"),
     ]:
         if not p.exists():
             print(f"[ERROR] {name} not found: {p}", file=sys.stderr)
             sys.exit(1)
 
-    placement = json.loads(args.placement_json.read_text())
+    placement = json.loads(placement_path.read_text())
     vi = placement["video_info"]
     fps = args.fps or vi["fps"]
     total_frames = vi["total_frames"]
     frames_list = placement["frames"]
 
-    start_idx = round(CROP_START_S * fps)
-    end_idx = total_frames - round(CROP_END_S * fps)
-    if args.max_frames is not None:
-        end_idx = min(end_idx, start_idx + args.max_frames)
+    start_idx, end_idx = resolve_frame_window(
+        args.dataset, fps, total_frames,
+        timing_contract=args.timing_contract,
+        max_frames=args.max_frames,
+    )
     n_frames = end_idx - start_idx
-    if n_frames <= 0:
-        print(f"[ERROR] empty crop window: start={start_idx} end={end_idx}", file=sys.stderr)
-        sys.exit(1)
-    print(f"[INFO] crop [{start_idx}, {end_idx}) = {n_frames} frames @ {fps} fps", flush=True)
+    print(
+        f"[INFO] timing={args.timing_contract}  "
+        f"window=[{start_idx},{end_idx})  n_frames={n_frames}  fps={fps}",
+        flush=True,
+    )
 
     frame_rotations = [frames_list[i]["rotation_z_radians"] for i in range(start_idx, end_idx)]
 
-    print(f"[INFO] loading mesh: {args.mesh}", flush=True)
-    vertices, faces = parse_obj(args.mesh)
+    print(f"[INFO] loading mesh: {mesh_path}", flush=True)
+    vertices, faces = parse_obj(mesh_path)
     n_vertices, n_faces = len(vertices), len(faces)
     print(f"[INFO] mesh: {n_vertices} vertices, {n_faces} faces", flush=True)
 
-    print(f"[INFO] loading map: {args.map_file}", flush=True)
+    print(f"[INFO] loading map: {args.map_path}", flush=True)
     values, map_domain = load_map(
-        args.map_file, n_vertices, n_faces, gt_column=args.gt_column
+        args.map_path, n_vertices, n_faces, gt_column=args.gt_column
     )
     print(f"[INFO] map: {len(values)} elements, domain={map_domain}", flush=True)
 
@@ -410,7 +615,10 @@ def main() -> None:
     pos, fp, up, vfov = camera_params
     print(f"[INFO] camera: pos={pos.tolist()}, focal={fp.tolist()}, vfov={vfov:.2f}°", flush=True)
 
-    out_subdir = args.output_dir / args.dataset / args.track / args.model / args.map_type
+    canonical_ds = _DATASET_CANONICAL.get(args.dataset.lower(), args.dataset)
+    out_subdir = args.output_dir / canonical_ds / texture_type / args.model / args.map_type
+    if not texture_type:
+        out_subdir = args.output_dir / canonical_ds / args.model / args.map_type
     out_subdir.mkdir(parents=True, exist_ok=True)
 
     print(f"[INFO] rendering {n_frames} frames ({args.width}×{args.height}) ...", flush=True)
@@ -422,6 +630,15 @@ def main() -> None:
             tmp_path, args.width, args.height,
             model_location=model_location,
         )
+
+        # Save preview PNGs before temp dir cleanup
+        preview_indices = select_preview_indices(len(png_paths))
+        for idx in preview_indices:
+            src = png_paths[idx]
+            dst = out_subdir / f"preview_frame_{idx:05d}.png"
+            shutil.copy(src, dst)
+        print(f"[INFO] saved {len(preview_indices)} preview PNGs", flush=True)
+
         if args.keep_frames:
             frames_out = out_subdir / "frames"
             frames_out.mkdir(exist_ok=True)
@@ -432,22 +649,22 @@ def main() -> None:
         print(f"[INFO] assembling video: {mp4_path}", flush=True)
         frames_to_mp4(tmp_path, mp4_path, fps)
 
-    manifest_path = out_subdir / "manifest.json"
-    write_manifest(manifest_path, {
-        "dataset":               args.dataset,
-        "track":                 args.track,
-        "model":                 args.model,
-        "map_type":              args.map_type,
-        "map_file":              str(args.map_file.resolve()),
-        "mesh_file":             str(args.mesh.resolve()),
-        "placement_json":        str(args.placement_json.resolve()),
-        "placement_json_timing_used": True,
+    manifest_data = {
+        "dataset":        canonical_ds,
+        "texture_type":   texture_type,
+        "model":          args.model,
+        "map_type":       args.map_type,
+        "map_file":       str(args.map_path.resolve()),
+        "mesh_file":      str(mesh_path.resolve()),
+        "placement_json": str(placement_path.resolve()),
         "timing_contract": {
-            "crop_start_s":  CROP_START_S,
-            "crop_end_s":    CROP_END_S,
-            "fps":           fps,
-            "start_frame_idx": start_idx,
-            "end_frame_idx":   end_idx,
+            "name":              args.timing_contract,
+            "frame_offset":      start_idx,
+            "start_frame_idx":   start_idx,
+            "end_frame_idx":     end_idx,
+            "n_frames":          len(png_paths),
+            "fps":               fps,
+            "dataset_turn_frames": TURN_FRAMES.get(args.dataset.lower()),
         },
         "render": {
             "n_rendered_frames": len(png_paths),
@@ -462,11 +679,19 @@ def main() -> None:
             "n_mesh_faces":      n_faces,
         },
         "output_files": {
-            "video":    "heatmap_video.mp4",
-            "manifest": "manifest.json",
+            "video":    str(mp4_path),
+            "manifest": str(out_subdir / "manifest.json"),
+            "manifest_csv": str(out_subdir / "manifest.csv"),
+            "preview_pngs": [
+                str(out_subdir / f"preview_frame_{i:05d}.png")
+                for i in preview_indices
+            ],
         },
-    })
-    print(f"[INFO] manifest: {manifest_path}", flush=True)
+    }
+
+    write_manifest(out_subdir / "manifest.json", manifest_data)
+    write_manifest_csv(out_subdir / "manifest.csv", manifest_data)
+    print(f"[INFO] manifest: {out_subdir / 'manifest.json'}", flush=True)
     print(f"[DONE] {mp4_path}", flush=True)
 
 
