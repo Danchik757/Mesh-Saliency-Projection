@@ -15,7 +15,6 @@ REPROJECT_SERVER_ROOT="${REPROJECT_SERVER_ROOT:-/mnt/ssd1/29d_kon/acm_2026}"
 REPROJECT_WORKSPACE_NAME="${REPROJECT_WORKSPACE_NAME:-coordinator}"
 REPROJECT_RELEASE_TAG="v2.0-data-rc3"
 TARGET_BRANCH="agent/rc3-release-and-ablation-infra"
-TARGET_HEAD="d96a991"
 
 REPO_ROOT="${REPROJECT_SERVER_ROOT}/agents/${REPROJECT_WORKSPACE_NAME}/Mesh-Saliency-Projection"
 RELEASE_DOWNLOAD_ROOT="${REPROJECT_SERVER_ROOT}/shared_release_data/${REPROJECT_RELEASE_TAG}"
@@ -47,9 +46,10 @@ fi
 
 git merge --ff-only "origin/${TARGET_BRANCH}"
 actual_head=$(git rev-parse --short HEAD)
-[[ "${actual_head}" == "${TARGET_HEAD}" ]] \
-    || fail "HEAD is ${actual_head}, expected ${TARGET_HEAD}"
-ok "HEAD = ${actual_head}"
+origin_head=$(git rev-parse --short "origin/${TARGET_BRANCH}")
+[[ "${actual_head}" == "${origin_head}" ]] \
+    || fail "HEAD (${actual_head}) != origin tip (${origin_head}) — pull failed"
+ok "HEAD = ${actual_head} (at origin tip)"
 
 dirty=$(git status --short | grep -v '^??' || true)
 [[ -z "${dirty}" ]] || fail "working tree is dirty:\n${dirty}"
