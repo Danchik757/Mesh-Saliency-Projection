@@ -35,14 +35,14 @@ SAL3D_MESH_DIR  = SAL3D_PKG_ROOT  / "Meshes"
 PLACEMENT_ROOT = REPO_ROOT / "jsons" / "object_placement"
 
 # ---------------------------------------------------------------------------
-# Server paths (for cone maps — NOT available locally)
+# Cone map paths — local after transfer from rc3_full_metrics batch
+# Server source: 29d_kon@lab.graphicon.ru (MeshMamba_reference_batch_20260601 /
+#   SAL3D_reference_batch_20260601 / baseline_cone / recenter_rotx90p0_...)
 # ---------------------------------------------------------------------------
-SERVER_OUT_ROOT = Path("/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs")
-MM_SERVER_BATCH  = SERVER_OUT_ROOT / "MeshMamba_reference_batch_20260601"
-SAL_SERVER_BATCH = SERVER_OUT_ROOT / "SAL3D_reference_batch_20260601"
+LOCAL_CONE_ROOT  = Path("/mnt/f/ClaudeCode/rc3_cone_maps")
 
-MM_CONE_SUFFIX  = "_cone_vertex_avg_faces.txt"
-SAL_CONE_SUFFIX = "_cone_baseline_vertices.txt"
+MM_CONE_SUFFIX  = "_cone_faces.txt"          # rc3_full_metrics batch naming
+SAL_CONE_SUFFIX = "_cone_vertices.txt"       # rc3_full_metrics batch naming
 
 # ---------------------------------------------------------------------------
 # Benchmark CSV paths
@@ -88,10 +88,8 @@ def resolve_mm_placement(texture_type: str, model: str) -> Path:
     return PLACEMENT_ROOT / sub / f"MeshMamba_{texture_type}_{model}.json"
 
 
-def resolve_mm_cone_server(texture_type: str, model: str) -> Path:
-    return (MM_SERVER_BATCH / texture_type / "baseline_cone" / model
-            / "recenter_rotx90p0_horizontaltovertical_blender_rig"
-            / f"{model}{MM_CONE_SUFFIX}")
+def resolve_mm_cone_local(texture_type: str, model: str) -> Path:
+    return LOCAL_CONE_ROOT / "meshmamba" / texture_type / model / f"{model}{MM_CONE_SUFFIX}"
 
 
 def resolve_sal_gt(model: str) -> Path:
@@ -106,10 +104,8 @@ def resolve_sal_placement(model: str) -> Path:
     return PLACEMENT_ROOT / "sal3d_jsons" / f"Sal3D_{model}.json"
 
 
-def resolve_sal_cone_server(model: str) -> Path:
-    return (SAL_SERVER_BATCH / "baseline_cone" / model
-            / "recenter_rotx90p0_horizontaltovertical_blender_rig"
-            / f"{model}{SAL_CONE_SUFFIX}")
+def resolve_sal_cone_local(model: str) -> Path:
+    return LOCAL_CONE_ROOT / "sal3d" / model / f"{model}{SAL_CONE_SUFFIX}"
 
 
 # ---------------------------------------------------------------------------
@@ -158,18 +154,16 @@ def build_row(track: str, model: str, cc: float, gt_file: str):
         gt_path   = resolve_sal_gt(model)
         mesh_path = resolve_sal_mesh(model)
         json_path = resolve_sal_placement(model)
-        cone_path = resolve_sal_cone_server(model)
+        cone_path = resolve_sal_cone_local(model)
         dataset   = "SAL3D"
         texture   = "—"
     else:
         gt_path   = resolve_mm_gt(track, gt_file)
         mesh_path = resolve_mm_mesh(track, model)
         json_path = resolve_mm_placement(track, model)
-        cone_path = resolve_mm_cone_server(track, model)
+        cone_path = resolve_mm_cone_local(track, model)
         dataset   = "MeshMamba"
         texture   = track
-
-    cone_local = False  # cone maps are server-only
 
     return {
         "dataset": dataset,
@@ -183,7 +177,7 @@ def build_row(track: str, model: str, cc: float, gt_file: str):
         "json_path": json_path,
         "json_ok": json_path.exists(),
         "cone_path": cone_path,
-        "cone_local": cone_local,
+        "cone_ok": cone_path.exists(),
     }
 
 
@@ -193,7 +187,6 @@ def build_row(track: str, model: str, cc: float, gt_file: str):
 
 OK   = "OK   "
 MISS = "MISS "
-SVR  = "SERVER"
 
 def _status(ok: bool) -> str:
     return OK if ok else MISS
@@ -204,67 +197,54 @@ def print_table(rows: list[dict]):
     print(f"{'#':>2}  {'Dataset':12} {'Track':12} {'Model':45} {'CC':6}  GT    Mesh  JSON  Cone")
     print("─" * 110)
     for i, r in enumerate(rows, 1):
-        gt   = _status(r["gt_ok"])
-        mesh = _status(r["mesh_ok"])
-        json_ = _status(r["json_ok"])
-        cone = SVR  # always server
-        print(f"{i:>2}  {r['dataset']:12} {r['texture_type']:12} {r['model']:45} {r['CC']:.4f}  {gt} {mesh} {json_} {cone}")
+        print(f"{i:>2}  {r['dataset']:12} {r['texture_type']:12} {r['model']:45} {r['CC']:.4f}  "
+              f"{_status(r['gt_ok'])} {_status(r['mesh_ok'])} {_status(r['json_ok'])} {_status(r['cone_ok'])}")
 
     n_gt_ok   = sum(r["gt_ok"]   for r in rows)
     n_mesh_ok = sum(r["mesh_ok"] for r in rows)
     n_json_ok = sum(r["json_ok"] for r in rows)
+    n_cone_ok = sum(r["cone_ok"] for r in rows)
     print("─" * 110)
-    print(f"    LOCAL  GT={n_gt_ok}/{len(rows)}  Mesh={n_mesh_ok}/{len(rows)}  JSON={n_json_ok}/{len(rows)}  Cone=0/{len(rows)} (server-only)")
+    print(f"    GT={n_gt_ok}/{len(rows)}  Mesh={n_mesh_ok}/{len(rows)}  "
+          f"JSON={n_json_ok}/{len(rows)}  Cone={n_cone_ok}/{len(rows)}"
+          + ("  ← transfer cone maps before rendering" if n_cone_ok < len(rows) else ""))
 
     print()
-    any_missing = not all(r["gt_ok"] and r["mesh_ok"] and r["json_ok"] for r in rows)
-    if any_missing:
-        print("MISSING LOCAL FILES:")
-        for r in rows:
-            for label, path, ok in [("GT", r["gt_path"], r["gt_ok"]),
-                                     ("Mesh", r["mesh_path"], r["mesh_ok"]),
-                                     ("JSON", r["json_path"], r["json_ok"])]:
-                if not ok:
-                    print(f"  [{label}] {path}")
+    checks = [("GT", "gt_path", "gt_ok"), ("Mesh", "mesh_path", "mesh_ok"),
+              ("JSON", "json_path", "json_ok"), ("Cone", "cone_path", "cone_ok")]
+    missing = [(lbl, r) for lbl, pk, ok in checks for r in rows if not r[ok]]
+    if missing:
+        print("MISSING FILES:")
+        for lbl, pk, ok in checks:
+            for r in rows:
+                if not r[ok]:
+                    print(f"  [{lbl}] {r[pk]}")
     else:
-        print("All local files (GT / Mesh / JSON) present.")
-
-    print()
-    print("CONE MAP PATHS (server — copy to local before rendering):")
-    for r in rows:
-        print(f"  {r['model']:45s}  {r['cone_path']}")
+        print("All files (GT / Mesh / JSON / Cone) present.")
 
 
 def print_render_commands(rows: list[dict], output_dir: str):
     print()
     print("=" * 80)
-    print("RENDER COMMANDS (GT, full-turn, white bg — for local use once cone maps transferred)")
+    print("RENDER COMMANDS (GT + cone, full-turn, white bg)")
     print("=" * 80)
     for r in rows:
         ds = r["dataset"].lower()
-        gt_col = "" if r["dataset"] != "SAL3D" else ""  # MM GT is single-col
         tt = f' --texture-type {r["texture_type"]}' if r["dataset"] == "MeshMamba" else ""
-        pnote = "rc3_full_metrics" if ds == "meshmamba" else "rc3_full_metrics_sal3d"
         print(f"\n# {r['dataset']} {r['texture_type']} {r['model']}  (CC={r['CC']:.4f})")
         print(f"python video_creation/heatmap_on_mesh_video/render_heatmap_video.py \\")
         print(f"  --dataset {ds}{tt} --model {r['model']} \\")
-        print(f"  --map-type gt \\")
-        print(f"  --map-path {r['gt_path']} \\")
-        print(f"  --mesh {r['mesh_path']} \\")
-        print(f"  --placement {r['json_path']} \\")
-        print(f"  --output-dir {output_dir} \\")
-        print(f"  --background-color white --full-turn \\")
+        print(f"  --map-type gt --map-path {r['gt_path']} \\")
+        print(f"  --mesh {r['mesh_path']} --placement {r['json_path']} \\")
+        print(f"  --output-dir {output_dir} --background-color white --full-turn \\")
         print(f"  --map-provenance-note rc3_vis_gt")
         print()
         print(f"python video_creation/heatmap_on_mesh_video/render_heatmap_video.py \\")
         print(f"  --dataset {ds}{tt} --model {r['model']} \\")
-        print(f"  --map-type cone \\")
-        print(f"  --map-path {r['cone_path']} \\")
-        print(f"  --mesh {r['mesh_path']} \\")
-        print(f"  --placement {r['json_path']} \\")
-        print(f"  --output-dir {output_dir} \\")
-        print(f"  --background-color white --full-turn \\")
-        print(f"  --map-provenance-note rc3_full_metrics")
+        print(f"  --map-type cone --map-path {r['cone_path']} \\")
+        print(f"  --mesh {r['mesh_path']} --placement {r['json_path']} \\")
+        print(f"  --output-dir {output_dir} --background-color white --full-turn \\")
+        print(f"  --map-provenance-note rc3_full_metrics_20260611_004003")
 
 
 # ---------------------------------------------------------------------------
@@ -295,16 +275,16 @@ def main():
 
     print(f"\nDRY-RUN: top-{args.n_mm_nt}/{args.n_mm_rgb}/{args.n_sal} "
           f"(MM-NT / MM-RGB / SAL3D) by cone CC — {len(rows)} models total")
-    print(f"NO RENDERING. Cone maps: server-only (not available locally).")
+    print("NO RENDERING.")
 
     print_table(rows)
 
     if args.show_commands:
         print_render_commands(rows, args.output_dir)
 
-    # exit non-zero if any local file is missing (for scripted checks)
-    all_local_ok = all(r["gt_ok"] and r["mesh_ok"] and r["json_ok"] for r in rows)
-    sys.exit(0 if all_local_ok else 1)
+    # exit non-zero if any required file is missing
+    all_ok = all(r["gt_ok"] and r["mesh_ok"] and r["json_ok"] and r["cone_ok"] for r in rows)
+    sys.exit(0 if all_ok else 1)
 
 
 if __name__ == "__main__":

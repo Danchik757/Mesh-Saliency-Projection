@@ -671,3 +671,67 @@ python3 video_creation/heatmap_on_mesh_video/render_heatmap_video.py \
 ### Constraints
 
 No full batch, no server jobs, no prediction maps (still blocked on rc3_full_metrics).
+
+---
+
+## Phase 5 — RC3 cone map transfer + GT/cone full-turn batch (2026-06-11)
+
+**Branch:** `agent/windows-video-overlays-rc3`
+**HEAD:** `44d180a` (pre-phase) → new commit this phase
+**Pushed:** yes (end of phase)
+
+### Cone map transfer and smoke (3 models)
+
+Received `rc3_cone_maps_for_windows_20260611_184126.zip` (4.4 MB) with 21 cone map files from `rc3_full_metrics_20260611_004003`. Unpacked and copied to `/mnt/f/ClaudeCode/rc3_cone_maps/`.
+
+Cone map naming confirmed:
+- MeshMamba: `{model}_cone_faces.txt` (for models in new batch) or `{model}_cone_vertex_avg_faces.txt` (earlier batch files)
+- SAL3D: `{model}_cone_baseline_vertices.txt` (smoke pack) / `{model}_cone_vertices.txt` (20-model pack)
+
+3 renderer smoke renders (cone only, full-turn, white bg, GPU):
+
+| Model | Dataset/Track | Frames | Time | s/f |
+|---|---|---|---|---|
+| Kangaroo_v1_L3 | MeshMamba rgb_texture | 450 | 24.3s | 0.054 |
+| Statue_v1_L2_David | MeshMamba non_texture | 450 | 21.1s | 0.047 |
+| torso | SAL3D | 660 | 30.4s | 0.046 |
+
+All 3: `used_cpu_fallback=False`, `camera.source=placement_json`, `map_provenance_note` set.
+Output: `C:\Users\Danya\Downloads\heatmap_3d_cone_smoke_3models\`
+
+### 40-video GT+cone batch (20 models)
+
+Received `rc3_cone_maps_20_more_windows_20260611_190822.zip` (4.1 MB). Merged into `/mnt/f/ClaudeCode/rc3_cone_maps/`.
+
+Dry-run: 20/20 models — GT=OK, Mesh=OK, JSON=OK, Cone=OK before rendering.
+
+Ran `render_batch_gt_cone.py` (now tracked in repo). SAL3D path fix applied: renderer omits track subdir for SAL3D (`SAL3D/{model}/{map_type}/` not `SAL3D/sal3d/{model}/{map_type}/`).
+
+| Stat | Value |
+|---|---|
+| Renders completed | 40/40 (20 GT + 20 cone) |
+| Failed | 0 |
+| Total wall time | ~25 min |
+| Avg sec/frame | 0.052 s/f |
+| GPU | RTX 2060, used_cpu_fallback=False on all 40 |
+
+Output: `C:\Users\Danya\Downloads\heatmap_3d_top20_more\`
+Layout: `{Dataset}/{track}/{model}/{model}_{gt|cone}_fullturn.mp4` + `{gt|cone}_manifest.json` + `preview_{gt|cone}_*.png`
+
+Files: 40 MP4 · 40 JSON · 200 PNG previews.
+
+**Models rendered:**
+- MM non_texture (7): Watermelon_V1_L3, barbiegirl_V1_L3, Soda_Can_v3_L3, Apple_Red_v1_L3, Pear_L3, egypt_sphinx_V2_L3, Peach_L3
+- MM rgb_texture (7): Watermelon_V1_L3, Military_Action_Figure_SG_v2_L3, Apple_Red_v1_L3, Jukebox_bubbler_style_V2_L1, Cat_v1_L3, BastetCat_v2_L2, Blackberry_v02_L3
+- SAL3D (6): james, vase, MaxPlanck, cow, gorilla, igea
+
+### New files committed this phase
+
+| File | Purpose |
+|---|---|
+| `video_creation/heatmap_on_mesh_video/render_batch_gt_cone.py` | Batch runner (GT + cone, flattened output, SAL3D path fix) |
+| `video_creation/heatmap_on_mesh_video/dry_run_top20_by_cc.py` | Updated: local cone paths, `_cone_faces.txt` naming, `cone_ok` in table |
+
+### Constraints
+
+No full batch beyond what is listed above. No server jobs. Previous 3 smoke outputs in `heatmap_3d_cone_smoke_3models\` untouched.
