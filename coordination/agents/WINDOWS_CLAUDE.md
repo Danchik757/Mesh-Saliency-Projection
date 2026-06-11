@@ -735,3 +735,51 @@ Files: 40 MP4 · 40 JSON · 200 PNG previews.
 ### Constraints
 
 No full batch beyond what is listed above. No server jobs. Previous 3 smoke outputs in `heatmap_3d_cone_smoke_3models\` untouched.
+
+---
+
+## Phase 6 — Six-view renderer diagnostic and GT alias fix
+
+**Task**: Diagnose pixelation artifacts in MeshMamba GT renders, fix missing Jukebox GT, add p99 display mode.
+
+### Findings
+
+**5-model stats table** (all MeshMamba, n_faces=32868, domain=face, single-column CSV no header):
+
+| Model | Track | n_verts | n_faces | GT len | min | max | p95 | p99 | mean |
+|---|---|---|---|---|---|---|---|---|---|
+| Marco_Polo_Sheep_v1_L3 | non_texture | 16436 | 32868 | 32868 | 0.0 | 1.0 | 0.7058 | 0.8573 | 0.2615 |
+| Statue_v1_L2_David | non_texture | 16428 | 32868 | 32868 | 0.0 | 1.0 | 0.7053 | 0.8702 | 0.1891 |
+| Jukebox_bubbler_style_V2_L1 | rgb_texture | 16550 | 32868 | 32868 | 0.0 | 1.0 | 0.4087 | 0.7502 | 0.1090 |
+| Kangaroo_v1_L3 | rgb_texture | 16440 | 32868 | 32868 | 0.0 | 1.0 | 0.8184 | 0.9321 | 0.1895 |
+| Watermelon_V1_L3 | non_texture | 16436 | 32868 | 32868 | 0.0 | 1.0 | 0.9843 | 0.9926 | 0.1301 |
+
+**Diagnosis:**
+
+1. **GT "pixelation" (Marco_Polo left, Statue back)**: NOT a rendering or CSV reading bug. MeshMamba GT CSVs are already pre-normalised [0,1], single-column, no header, n_lines == n_faces → domain=face. The "noisy/patchy" appearance is the intrinsic property of per-face raw fixation aggregation — adjacent faces can have very different values (high spatial frequency). Screen_space and cone are smooth Gaussians; GT is not. This is a data property.
+
+2. **Jukebox GT absent (root cause)**: `_find_file_casefold(gt_dir, model, ".csv")` searched for `Jukebox_bubbler_style_V2_L1.csv` but the actual GT file is `Jukebox_bubbler_style_V2_Textured.csv`. Stem mismatch (`_L1` vs `_Textured`). **Fixed** via `--gt-lookup-csv` + `gt_lookup` parameter in `resolve_map_paths`.
+
+3. **Jukebox screen_space no red zone**: Global minmax normalization — the maximum-saliency face is on a surface only visible at certain rotation angles (mid-turn), not from any canonical six-view direction. Visible front faces top out at ~0.65–0.70 of global max → yellow in jet. **Fix**: `--display-percentile 99` clips above-p99 outliers so visible faces use the full colormap range.
+
+### Changes
+
+| File | Change |
+|---|---|
+| `visualization/heatmap_six_view/render_six_view_heatmaps.py` | Add `--gt-lookup-csv` + `gt_lookup` to resolve MeshMamba GT aliases; add `--display-percentile` + `display_percentile` to `load_and_prepare_map` for p99 display clipping |
+| `test/test_six_view_heatmaps.py` | Add `test_meshmamba_gt_alias_lookup`, `test_display_percentile_clips_outlier`, `test_display_percentile_100_equals_minmax` (38/38 pass) |
+
+**Local debug renders** (GPU, PyVista 0.48.4):
+- Marco_Polo GT minmax + p99: `/tmp/diag_renders/`
+- Statue GT + cone minmax + p99: `/tmp/diag_renders/`
+- Jukebox GT (alias fixed) + cone minmax + p99: `/tmp/diag_renders/`
+- Comparison collages: `/tmp/diag_collages/`
+
+Jukebox GT front now shows clear red hotspot in jukebox display panel area (confirmed alias fix works).
+
+### Usage
+
+Pass `--gt-lookup-csv results/benchmark_runs/meshmamba/2026-06-02_meshmamba_reference/meshmamba_reference_long.csv`
+to resolve all MeshMamba GT aliases from the long benchmark CSV.
+
+Use `--display-percentile 99` when screen_space maps appear washed-out (max not visible from canonical views).

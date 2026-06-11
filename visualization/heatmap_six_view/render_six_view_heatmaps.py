@@ -160,13 +160,19 @@ def load_and_prepare_map(
     n_verts: int,
     n_faces: int,
     faces: np.ndarray,
+    display_percentile: float = 100.0,
 ) -> tuple[np.ndarray, float, float, str, int, bool, str | None]:
-    """Load a saliency map file; detect domain; convert to face; normalise [0,1].
+    """Load a saliency map, detect domain, convert to face, normalise to [0,1].
+
+    Args:
+        display_percentile: percentile used as the normalization ceiling (100 =
+            true min-max; 99 clips the top 1% so hidden-face outliers do not
+            suppress visible colours). Values above the ceiling are clamped to 1.
 
     Returns:
-        values01        — per-face float32 normalised to [0, 1]
-        input_min       — raw min before normalisation
-        input_max       — raw max before normalisation
+        values01        — per-face float32 array normalised to [0, 1]
+        input_min       — raw minimum before normalisation
+        input_max       — raw maximum before normalisation (true max, not clipped)
         domain          — "face" or "vertex"
         n_map_elements  — raw length of the loaded vector
         constant_map    — True when all values are identical
@@ -191,8 +197,14 @@ def load_and_prepare_map(
     input_min = float(np.min(face_vals))
     input_max = float(np.max(face_vals))
 
-    if input_max > input_min:
-        values01 = (face_vals - input_min) / (input_max - input_min)
+    pct = min(float(display_percentile), 100.0)
+    clip_max = float(np.percentile(face_vals, pct)) if pct < 100.0 else input_max
+    # Fall back to true max if the percentile range is degenerate
+    if clip_max <= input_min:
+        clip_max = input_max
+
+    if clip_max > input_min:
+        values01 = np.clip((face_vals - input_min) / (clip_max - input_min), 0.0, 1.0)
         constant_map = False
         warning: str | None = None
     else:
@@ -266,6 +278,7 @@ def resolve_map_paths(
     fixed_gt_dir: Path | None,
     combined_gt_dir: Path | None,
     map_types: list[str],
+    gt_lookup: "dict[tuple[str, str], str] | None" = None,
 ) -> dict[str, Path | None]:
     """Return {map_type: Path | None} for the requested map types."""
     paths: dict[str, Path | None] = {}
@@ -301,7 +314,12 @@ def resolve_map_paths(
             paths["cone"] = p if p.exists() else None
         if "gt" in map_types:
             gt_dir = dataset_root / "SaliencyMap" / tt
-            paths["gt"] = _find_file_casefold(gt_dir, model, ".csv")
+            gt_filename = gt_lookup.get((tt, model)) if gt_lookup else None
+            if gt_filename:
+                p = gt_dir / gt_filename
+                paths["gt"] = p if p.exists() else None
+            else:
+                paths["gt"] = _find_file_casefold(gt_dir, model, ".csv")
 
     elif dataset == "3dva":
         if "screen_space" in map_types:
@@ -623,6 +641,8 @@ def process_model(
     colormap: str,
     commit_hash: str,
     hostname: str,
+    display_percentile: float = 100.0,
+    gt_lookup: "dict[tuple[str, str], str] | None" = None,
 ) -> list[dict]:
     """Process one model across all requested map types.
 
@@ -652,7 +672,7 @@ def process_model(
 
     map_paths = resolve_map_paths(
         dataset, metrics_root, dataset_root, model, texture_type,
-        fixed_gt_dir, combined_gt_dir, map_types,
+        fixed_gt_dir, combined_gt_dir, map_types, gt_lookup=gt_lookup,
     )
 
     views_dict = VIEWS_6_Z_UP if dataset in DATASETS_Z_UP else VIEWS_6
@@ -685,7 +705,10 @@ def process_model(
 
         try:
             vals01, vmin, vmax, domain, n_map_elements, constant_map, warning = \
-                load_and_prepare_map(map_path, n_verts, n_faces, faces)
+                load_and_prepare_map(
+                map_path, n_verts, n_faces, faces,
+                display_percentile=display_percentile,
+            )
         except Exception as exc:
             rows.append({**base_row, "status": "error", "error_message": str(exc)})
             continue
@@ -724,7 +747,10 @@ def process_model(
             "n_mesh_faces":          n_faces,
             "input_min":             vmin,
             "input_max":             vmax,
-            "display_normalization": "minmax_per_map",
+            "display_normalization": (
+                "minmax_per_map" if display_percentile == 100.0
+                else f"percentile_{int(display_percentile)}_display"
+            ),
             "colormap":              colormap,
             "constant_map":          constant_map,
             "constant_map_warning":  warning,
@@ -865,8 +891,20 @@ def parse_args(argv=None):
                     help="Limit number of models (for preview)")
     ap.add_argument("--map-types", nargs="+",
                     default=["screen_space", "cone", "gt"],
-                    choices=VALID_MAP_TYPES)
-    ap.add_argument("--colormap", default="jet")
+                    choices=VALID_MAP_TYPES,
+                    help="Map types to render (default: screen_space cone gt)")
+    ap.add_argument("--colormap", default="jet",
+                    help="Matplotlib colormap (default: jet)")
+    ap.add_argument("--display-percentile", type=float, default=100.0,
+                    help="Percentile ceiling for display normalization. "
+                         "100=true minmax (default); 99=clip top 1%% so outlier faces "
+                         "do not suppress visible colours.")
+    ap.add_argument("--gt-lookup-csv", type=Path, default=None,
+                    help="MeshMamba only: long benchmark CSV with columns "
+                         "texture_type, model, gt_file, method, status. "
+                         "Used to resolve model→GT filename aliases "
+                         "(e.g. Jukebox_bubbler_style_V2_L1 → "
+                         "Jukebox_bubbler_style_V2_Textured.csv).")
     return ap.parse_args(argv)
 
 
@@ -910,13 +948,30 @@ def main(argv=None):
         print("[WARN] No models to process.", file=sys.stderr)
         return
 
+    # Load gt_lookup from long benchmark CSV (MeshMamba alias resolution)
+    gt_lookup: dict[tuple[str, str], str] | None = None
+    if (args.gt_lookup_csv is not None
+            and args.gt_lookup_csv.exists()
+            and args.dataset == "meshmamba"):
+        import csv as _csv
+        gt_lookup = {}
+        with open(args.gt_lookup_csv) as _fh:
+            for _row in _csv.DictReader(_fh):
+                if _row.get("method") == "cone" and _row.get("status") == "ok":
+                    gt_lookup[(_row["texture_type"], _row["model"])] = _row["gt_file"]
+        print(f"[INFO] gt_lookup loaded: {len(gt_lookup)} entries from {args.gt_lookup_csv.name}",
+              flush=True)
+
     commit_hash = _git_commit_hash()
     hostname    = socket.gethostname()
     map_types   = list(args.map_types)
 
+    disp_pct = args.display_percentile
+    disp_label = "minmax" if disp_pct == 100.0 else f"p{int(disp_pct)}"
     print(
         f"[INFO] dataset={args.dataset}  texture={args.texture_type or '-'}  "
-        f"models={len(models)}  map_types={map_types}  colormap={args.colormap}",
+        f"models={len(models)}  map_types={map_types}  colormap={args.colormap}  "
+        f"display={disp_label}",
         flush=True,
     )
     print(f"[INFO] output_root: {args.output_root}", flush=True)
@@ -940,6 +995,8 @@ def main(argv=None):
             colormap=args.colormap,
             commit_hash=commit_hash,
             hostname=hostname,
+            display_percentile=disp_pct,
+            gt_lookup=gt_lookup,
         )
         for row in rows:
             entry = row.pop("_manifest_entry", None)

@@ -213,6 +213,37 @@ class TestLoadAndPrepareMap:
         )
         assert vals01.dtype == np.float32
 
+    def test_display_percentile_clips_outlier(self, tmp_path):
+        """display_percentile<100 clips above-ceiling values to 1; input_max is true max."""
+        n_f = 10
+        # 9 values in [0,1], one outlier at 100
+        vals = np.array([0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 100.0])
+        p = tmp_path / "map.txt"
+        _write_float_file(p, vals)
+        faces = np.zeros((n_f, 3), dtype=np.int32)
+        vals01, vmin, vmax, _, _, _ = load_and_prepare_map(
+            p, n_verts=15, n_faces=n_f, faces=faces, display_percentile=90.0
+        )
+        # true max still returned
+        assert vmax == pytest.approx(100.0)
+        # outlier face is clamped to 1.0
+        assert float(vals01[-1]) == pytest.approx(1.0)
+        # a mid-range face is strictly < 1.0
+        assert float(vals01[4]) < 1.0
+
+    def test_display_percentile_100_equals_minmax(self, tmp_path):
+        """display_percentile=100 (default) preserves original minmax behaviour."""
+        n_f = 5
+        vals = np.array([0.0, 0.25, 0.5, 0.75, 1.0])
+        p = tmp_path / "map.txt"
+        _write_float_file(p, vals)
+        faces = np.zeros((n_f, 3), dtype=np.int32)
+        vals01, _, _, _, _, _ = load_and_prepare_map(
+            p, n_verts=10, n_faces=n_f, faces=faces, display_percentile=100.0
+        )
+        assert float(vals01.max()) == pytest.approx(1.0)
+        assert float(vals01.min()) == pytest.approx(0.0)
+
 
 # ---------------------------------------------------------------------------
 # _find_file_casefold
@@ -466,6 +497,31 @@ class TestResolveMapPaths:
                                   None, None, None, ["gt"])
         assert paths["gt"] is None
 
+    def test_meshmamba_gt_alias_lookup(self, tmp_path):
+        """gt_lookup resolves alias mismatches like Jukebox_L1 → Textured.csv."""
+        model = "Jukebox_bubbler_style_V2_L1"
+        actual_csv = "Jukebox_bubbler_style_V2_Textured.csv"
+        tt = "rgb_texture"
+        dataset_root = tmp_path / "ds"
+        gt_dir = dataset_root / "SaliencyMap" / tt
+        gt_dir.mkdir(parents=True)
+        (gt_dir / actual_csv).touch()
+
+        metrics_root = tmp_path / "mr"
+        # Without lookup: casefold search finds nothing (stem mismatch)
+        paths_no_lookup = resolve_map_paths(
+            "meshmamba", metrics_root, dataset_root, model, tt, None, None, ["gt"]
+        )
+        assert paths_no_lookup["gt"] is None
+
+        # With lookup: resolves to actual file
+        lookup = {(tt, model): actual_csv}
+        paths_with_lookup = resolve_map_paths(
+            "meshmamba", metrics_root, dataset_root, model, tt, None, None, ["gt"],
+            gt_lookup=lookup,
+        )
+        assert paths_with_lookup["gt"] is not None
+        assert paths_with_lookup["gt"].name == actual_csv
 
 # ---------------------------------------------------------------------------
 # write_manifest / write_summary_csv
