@@ -1,0 +1,136 @@
+{
+  "dataset": "sal3d",
+  "selection_method": "stratified_quintile_5x5",
+  "source_metrics": "rc3_full_metrics_20260611_004003",
+  "metric_used": "screen_space_CC",
+  "filter": "fixed_gt_file populated",
+  "total_pool": 54,
+  "n_selected": 25,
+  "models": [
+    {
+      "model": "alien2",
+      "cc_screen_space": -0.185948,
+      "quintile": 1
+    },
+    {
+      "model": "michael8",
+      "cc_screen_space": 0.095138,
+      "quintile": 1
+    },
+    {
+      "model": "cart",
+      "cc_screen_space": 0.132821,
+      "quintile": 1
+    },
+    {
+      "model": "meca",
+      "cc_screen_space": 0.191168,
+      "quintile": 1
+    },
+    {
+      "model": "ringdragon",
+      "cc_screen_space": 0.208013,
+      "quintile": 1
+    },
+    {
+      "model": "A380",
+      "cc_screen_space": 0.21528,
+      "quintile": 2
+    },
+    {
+      "model": "dog",
+      "cc_screen_space": 0.219947,
+      "quintile": 2
+    },
+    {
+      "model": "chair",
+      "cc_screen_space": 0.254607,
+      "quintile": 2
+    },
+    {
+      "model": "fandisk",
+      "cc_screen_space": 0.293269,
+      "quintile": 2
+    },
+    {
+      "model": "michael3",
+      "cc_screen_space": 0.31151,
+      "quintile": 2
+    },
+    {
+      "model": "dragon",
+      "cc_screen_space": 0.31566,
+      "quintile": 3
+    },
+    {
+      "model": "flowerpot",
+      "cc_screen_space": 0.345624,
+      "quintile": 3
+    },
+    {
+      "model": "watchtower",
+      "cc_screen_space": 0.371143,
+      "quintile": 3
+    },
+    {
+      "model": "turbine",
+      "cc_screen_space": 0.391998,
+      "quintile": 3
+    },
+    {
+      "model": "building",
+      "cc_screen_space": 0.408945,
+      "quintile": 3
+    },
+    {
+      "model": "wolf",
+      "cc_screen_space": 0.419903,
+      "quintile": 4
+    },
+    {
+      "model": "victoria",
+      "cc_screen_space": 0.471928,
+      "quintile": 4
+    },
+    {
+      "model": "dinosaur",
+      "cc_screen_space": 0.48235,
+      "quintile": 4
+    },
+    {
+      "model": "chicken",
+      "cc_screen_space": 0.546024,
+      "quintile": 4
+    },
+    {
+      "model": "camel",
+      "cc_screen_space": 0.577984,
+      "quintile": 4
+    },
+    {
+      "model": "gorilla",
+      "cc_screen_space": 0.591296,
+      "quintile": 5
+    },
+    {
+      "model": "bunny",
+      "cc_screen_space": 0.631264,
+      "quintile": 5
+    },
+    {
+      "model": "igea",
+      "cc_screen_space": 0.67759,
+      "quintile": 5
+    },
+    {
+      "model": "MaxPlanck",
+      "cc_screen_space": 0.702695,
+      "quintile": 5
+    },
+    {
+      "model": "james",
+      "cc_screen_space": 0.777653,
+      "quintile": 5
+    }
+  ]
+}

@@ -1,0 +1,138 @@
+{
+  "dataset": "3dva",
+  "selection_method": "stratified_quintile_5x5",
+  "source_metrics": "rc3_full_metrics_20260611_004003",
+  "metric_used": "screen_space_CC",
+  "exclusions": [
+    "jessi (missing_report)"
+  ],
+  "total_pool": 31,
+  "n_selected": 25,
+  "models": [
+    {
+      "model": "prot",
+      "cc_screen_space": -0.010008,
+      "quintile": 1
+    },
+    {
+      "model": "carter",
+      "cc_screen_space": 0.078643,
+      "quintile": 1
+    },
+    {
+      "model": "rockerArm",
+      "cc_screen_space": 0.089702,
+      "quintile": 1
+    },
+    {
+      "model": "car-vasa",
+      "cc_screen_space": 0.166803,
+      "quintile": 1
+    },
+    {
+      "model": "casting",
+      "cc_screen_space": 0.180595,
+      "quintile": 1
+    },
+    {
+      "model": "turbine",
+      "cc_screen_space": 0.311628,
+      "quintile": 2
+    },
+    {
+      "model": "A380",
+      "cc_screen_space": 0.35862,
+      "quintile": 2
+    },
+    {
+      "model": "horse-110k",
+      "cc_screen_space": 0.370559,
+      "quintile": 2
+    },
+    {
+      "model": "cow",
+      "cc_screen_space": 0.413419,
+      "quintile": 2
+    },
+    {
+      "model": "flowerpot",
+      "cc_screen_space": 0.415029,
+      "quintile": 2
+    },
+    {
+      "model": "blade-200k",
+      "cc_screen_space": 0.440731,
+      "quintile": 3
+    },
+    {
+      "model": "bunny",
+      "cc_screen_space": 0.456567,
+      "quintile": 3
+    },
+    {
+      "model": "Harley",
+      "cc_screen_space": 0.461841,
+      "quintile": 3
+    },
+    {
+      "model": "michael8",
+      "cc_screen_space": 0.499318,
+      "quintile": 3
+    },
+    {
+      "model": "fandisk",
+      "cc_screen_space": 0.549945,
+      "quintile": 3
+    },
+    {
+      "model": "vase-15k",
+      "cc_screen_space": 0.60683,
+      "quintile": 4
+    },
+    {
+      "model": "gorgoile",
+      "cc_screen_space": 0.608646,
+      "quintile": 4
+    },
+    {
+      "model": "octopus",
+      "cc_screen_space": 0.610916,
+      "quintile": 4
+    },
+    {
+      "model": "dragon",
+      "cc_screen_space": 0.628636,
+      "quintile": 4
+    },
+    {
+      "model": "bimba",
+      "cc_screen_space": 0.650617,
+      "quintile": 4
+    },
+    {
+      "model": "michael3",
+      "cc_screen_space": 0.674716,
+      "quintile": 5
+    },
+    {
+      "model": "james",
+      "cc_screen_space": 0.679656,
+      "quintile": 5
+    },
+    {
+      "model": "camel",
+      "cc_screen_space": 0.682465,
+      "quintile": 5
+    },
+    {
+      "model": "hand-35K",
+      "cc_screen_space": 0.708883,
+      "quintile": 5
+    },
+    {
+      "model": "torso",
+      "cc_screen_space": 0.716947,
+      "quintile": 5
+    }
+  ]
+}

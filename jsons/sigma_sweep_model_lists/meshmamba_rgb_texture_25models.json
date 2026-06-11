@@ -1,0 +1,135 @@
+{
+  "dataset": "meshmamba_rgb_texture",
+  "selection_method": "stratified_quintile_5x5",
+  "source_metrics": "rc3_full_metrics_20260611_004003",
+  "metric_used": "screen_space_CC",
+  "total_pool": 105,
+  "n_selected": 25,
+  "models": [
+    {
+      "model": "Chips_v1_L3",
+      "cc_screen_space": -0.496134,
+      "quintile": 1
+    },
+    {
+      "model": "MushroomShitake_L3",
+      "cc_screen_space": -0.119987,
+      "quintile": 1
+    },
+    {
+      "model": "Marco_Polo_Sheep_v1_L3",
+      "cc_screen_space": -0.098125,
+      "quintile": 1
+    },
+    {
+      "model": "Bird_Toucan_V3_L2",
+      "cc_screen_space": -0.076927,
+      "quintile": 1
+    },
+    {
+      "model": "SeaHorse_v2_L3",
+      "cc_screen_space": -0.046147,
+      "quintile": 1
+    },
+    {
+      "model": "Handheld_Game_unit_v1_L3",
+      "cc_screen_space": -0.035419,
+      "quintile": 2
+    },
+    {
+      "model": "UFO_v1_L2",
+      "cc_screen_space": -0.025115,
+      "quintile": 2
+    },
+    {
+      "model": "Plate",
+      "cc_screen_space": -4e-06,
+      "quintile": 2
+    },
+    {
+      "model": "Jambu_Fruit_Dove_v1_L3",
+      "cc_screen_space": 0.036564,
+      "quintile": 2
+    },
+    {
+      "model": "Spark_Plug_v1_L3",
+      "cc_screen_space": 0.048505,
+      "quintile": 2
+    },
+    {
+      "model": "SLR_Camera_V1_L3",
+      "cc_screen_space": 0.064191,
+      "quintile": 3
+    },
+    {
+      "model": "statue_Terracotta_v2_l1",
+      "cc_screen_space": 0.079628,
+      "quintile": 3
+    },
+    {
+      "model": "Pirate_Shipmate_Old_v1_L1",
+      "cc_screen_space": 0.103456,
+      "quintile": 3
+    },
+    {
+      "model": "robot_v1_L3",
+      "cc_screen_space": 0.131738,
+      "quintile": 3
+    },
+    {
+      "model": "Rubber_Duck_v1_L3",
+      "cc_screen_space": 0.156595,
+      "quintile": 3
+    },
+    {
+      "model": "Statue_v1_L2_David",
+      "cc_screen_space": 0.169654,
+      "quintile": 4
+    },
+    {
+      "model": "Penguin_V2_L3",
+      "cc_screen_space": 0.208579,
+      "quintile": 4
+    },
+    {
+      "model": "Beauceron_v1_L3",
+      "cc_screen_space": 0.243788,
+      "quintile": 4
+    },
+    {
+      "model": "Sitting_inside_an_egg_v1_L1",
+      "cc_screen_space": 0.281974,
+      "quintile": 4
+    },
+    {
+      "model": "SittingBaby_v1_L1",
+      "cc_screen_space": 0.309857,
+      "quintile": 4
+    },
+    {
+      "model": "Christmas_Bear",
+      "cc_screen_space": 0.326671,
+      "quintile": 5
+    },
+    {
+      "model": "Aquarium_Skull_v1_L1",
+      "cc_screen_space": 0.375355,
+      "quintile": 5
+    },
+    {
+      "model": "Statue_v1_L3_eagle",
+      "cc_screen_space": 0.430211,
+      "quintile": 5
+    },
+    {
+      "model": "Domestic_cat_V2_L3",
+      "cc_screen_space": 0.534812,
+      "quintile": 5
+    },
+    {
+      "model": "Watermelon_V1_L3",
+      "cc_screen_space": 0.657676,
+      "quintile": 5
+    }
+  ]
+}

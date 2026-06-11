@@ -1,0 +1,135 @@
+{
+  "dataset": "meshmamba_non_texture",
+  "selection_method": "stratified_quintile_5x5",
+  "source_metrics": "rc3_full_metrics_20260611_004003",
+  "metric_used": "screen_space_CC",
+  "total_pool": 105,
+  "n_selected": 25,
+  "models": [
+    {
+      "model": "Chips_v1_L3",
+      "cc_screen_space": -0.377724,
+      "quintile": 1
+    },
+    {
+      "model": "White-TailedDeer_V1_L2",
+      "cc_screen_space": -0.181303,
+      "quintile": 1
+    },
+    {
+      "model": "Bird_Toucan_V3_L2",
+      "cc_screen_space": -0.145737,
+      "quintile": 1
+    },
+    {
+      "model": "Plate",
+      "cc_screen_space": -0.096838,
+      "quintile": 1
+    },
+    {
+      "model": "UFO_v1_L2",
+      "cc_screen_space": -0.056061,
+      "quintile": 1
+    },
+    {
+      "model": "Camel_toy_v03_L3",
+      "cc_screen_space": -0.035504,
+      "quintile": 2
+    },
+    {
+      "model": "Chinese_coin",
+      "cc_screen_space": -0.013861,
+      "quintile": 2
+    },
+    {
+      "model": "Aquarium_Deep_Sea_Diver_v1_L1",
+      "cc_screen_space": 0.004798,
+      "quintile": 2
+    },
+    {
+      "model": "Bird_v1_L3",
+      "cc_screen_space": 0.044122,
+      "quintile": 2
+    },
+    {
+      "model": "Hover_Truck_v1_L2",
+      "cc_screen_space": 0.067585,
+      "quintile": 2
+    },
+    {
+      "model": "Diavolo_Mask_v1_L3",
+      "cc_screen_space": 0.068669,
+      "quintile": 3
+    },
+    {
+      "model": "Boombox_v2_L3",
+      "cc_screen_space": 0.100697,
+      "quintile": 3
+    },
+    {
+      "model": "BellPepper_v1_L3",
+      "cc_screen_space": 0.142752,
+      "quintile": 3
+    },
+    {
+      "model": "dolphin_v1_L3",
+      "cc_screen_space": 0.157494,
+      "quintile": 3
+    },
+    {
+      "model": "Wicker_Basket_v1_L3",
+      "cc_screen_space": 0.182621,
+      "quintile": 3
+    },
+    {
+      "model": "Domestic_cat_V2_L3",
+      "cc_screen_space": 0.185265,
+      "quintile": 4
+    },
+    {
+      "model": "Laser_Pistol_v2_L3",
+      "cc_screen_space": 0.208465,
+      "quintile": 4
+    },
+    {
+      "model": "Statue_v1_L3_eagle",
+      "cc_screen_space": 0.271423,
+      "quintile": 4
+    },
+    {
+      "model": "BastetCat_v2_L2",
+      "cc_screen_space": 0.284107,
+      "quintile": 4
+    },
+    {
+      "model": "Pierrot_Mask_v1_L3",
+      "cc_screen_space": 0.318419,
+      "quintile": 4
+    },
+    {
+      "model": "King_Cake_v2_L2",
+      "cc_screen_space": 0.319879,
+      "quintile": 5
+    },
+    {
+      "model": "stuffed_animal_v1_L2",
+      "cc_screen_space": 0.362499,
+      "quintile": 5
+    },
+    {
+      "model": "Sheep_doll_v1_L3",
+      "cc_screen_space": 0.410977,
+      "quintile": 5
+    },
+    {
+      "model": "Apple_Red_v1_L3",
+      "cc_screen_space": 0.475772,
+      "quintile": 5
+    },
+    {
+      "model": "Watermelon_V1_L3",
+      "cc_screen_space": 0.779479,
+      "quintile": 5
+    }
+  ]
+}
