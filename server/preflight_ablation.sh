@@ -15,7 +15,7 @@ REPROJECT_SERVER_ROOT="${REPROJECT_SERVER_ROOT:-/mnt/ssd1/29d_kon/acm_2026}"
 REPROJECT_WORKSPACE_NAME="${REPROJECT_WORKSPACE_NAME:-coordinator}"
 REPROJECT_RELEASE_TAG="v2.0-data-rc3"
 TARGET_BRANCH="agent/rc3-release-and-ablation-infra"
-TARGET_HEAD="47ee596"
+TARGET_HEAD="b7b32a4"
 
 REPO_ROOT="${REPROJECT_SERVER_ROOT}/agents/${REPROJECT_WORKSPACE_NAME}/Mesh-Saliency-Projection"
 RELEASE_DOWNLOAD_ROOT="${REPROJECT_SERVER_ROOT}/shared_release_data/${REPROJECT_RELEASE_TAG}"
@@ -119,15 +119,14 @@ SAL3D_FIXED_GT_DIR="${RELEASE_DATA_ROOT}/sal3d_fixed_face_gt"
 [[ -d "${SAL3D_FIXED_GT_DIR}" ]] || fail "sal3d_fixed_face_gt not found: ${SAL3D_FIXED_GT_DIR}"
 ok "sal3d_fixed_face_gt present"
 
-# ── 8. dry-run shard (3 jobs only) ────────────────────────────────────────
+# ── 8. dry-run shard (sigma sweep, 2 jobs only) ───────────────────────────
 
-echo "[preflight] dry-run smoke check (3 jobs) ..."
-"${REPROJECT_PYTHON}" test/launch/run_ablation_window_delay.py \
+echo "[preflight] dry-run smoke check (sigma sweep, 2 jobs) ..."
+"${REPROJECT_PYTHON}" test/launch/run_sigma_sweep_rc3.py \
     --dry-run \
     --datasets 3dva --models A380 \
     --methods screen_space \
-    --window-modes cut_tail cut_head center \
-    --delays 0.0 \
+    --ss-multipliers 1.00 1.15 \
     --workers 1 \
     --batch-output-dir "/tmp/preflight_smoke_$$" 2>&1 | grep -E "jobs:|done:"
 ok "dry-run smoke OK"
