@@ -603,3 +603,26 @@ python3 video_creation/heatmap_on_mesh_video/render_heatmap_video.py \
   --output-dir /tmp/heatmap_3d_smoke \
   --max-frames 120
 ```
+
+---
+
+## GT-only 3D Heatmap Smoke — 2026-06-11
+
+**Branch:** `agent/windows-video-overlays-rc3`  
+**Approval scope:** GT-only smoke, max_frames=120, no full batch.
+
+**GPU preflight:** RTX 2060 D3D12 bridge, `used_cpu_fallback=false`, pyvista 0.48.4 / VTK 9.6.2.
+
+**Bug fixed in smoke:** `auto_resolve_placement_json` for SAL3D was constructing `SAL3D_` prefix but files use `Sal3D_`. Fixed and committed (`97313ae`).
+
+### Results — all 4 runs clean
+
+| Dataset | Track | Model | map_domain | n_map_elements | n_mesh_faces | input_min | input_max | frames | mp4 size |
+|---|---|---|---|---|---|---|---|---|---|
+| MeshMamba | non_texture | Starfruit_L3 | face | 32868 | 32868 | 0.0 | 1.0 | 120 | 0.1 MB |
+| MeshMamba | non_texture | Watermelon_V1_L3 | face | 32868 | 32868 | 0.0 | 1.0 | 120 | 0.1 MB |
+| MeshMamba | rgb_texture | Watermelon_V1_L3 | face | 32868 | 32868 | 0.0 | 1.0 | 120 | 0.1 MB |
+| SAL3D | — | alien2 (fixed-face GT) | face | 26418 | 26418 | 0.0 | 1.0 | 120 | 0.2 MB |
+
+**Output root:** `/tmp/heatmap_3d_smoke_rc3/`  
+**Note:** GT maps are MeshMamba per-face CSV and SAL3D fixed-face GT — correct for renderer technical smoke. Prediction smoke (screen_space/cone) blocked pending rc3_full_metrics outputs.
