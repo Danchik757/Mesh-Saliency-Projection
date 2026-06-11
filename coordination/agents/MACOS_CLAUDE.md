@@ -1583,3 +1583,51 @@ Frame offsets confirmed correct: cut_head=60 (=510-450), center=30 (=(510-450)//
 - Two legacy evaluators (`eval_3dva_screen_space.py`, `eval_3dva_raycast_cone.py`)
   not updated — they lack timing contract support and are not used by the ablation
   runner; frame_offset is irrelevant for `cropped_reset` mode.
+
+---
+
+### 2026-06-11 — preflight + server launch scripts (session 3)
+
+#### Preflight results (local, HEAD 47ee596)
+
+Branch `agent/rc3-release-and-ablation-infra` pushed to origin.
+
+```
+pytest -q:       374 passed, 0 failed, 0 errors
+compileall:      clean (all modules)
+dry-run (full):  12558 total, ok=12558, skipped=0, failed=0
+```
+
+Shard distribution (MD5 mod 3):
+
+| Shard | Server  | Workers | Jobs  |
+|-------|---------|---------|-------|
+| 0     | vg-iai  | 32      | 4098  |
+| 1     | vg-gml01| 40      | 4252  |
+| 2     | vg-gml02| 40      | 4208  |
+| —     | total   | —       | 12558 |
+
+Window modes each: 4186 jobs (evenly distributed).
+
+#### Server scripts created
+
+| File | Purpose |
+|------|---------|
+| `server/rc3_ablation_env.sh` | Shared env: release paths, fixation root, dataset roots, parallelism |
+| `server/preflight_ablation.sh` | Per-server preflight: git checkout, pytest, compileall, SHA256SUMS, fixation count, dry-run smoke |
+| `server/launch_shard0_vg_iai.sh` | vg-iai shard 0/3 workers=32 tmux rc3_ablation_shard0 nice=0 |
+| `server/launch_shard1_vg_gml01.sh` | vg-gml01 shard 1/3 workers=40 tmux rc3_ablation_shard1 nice=0 |
+| `server/launch_shard2_vg_gml02.sh` | vg-gml02 shard 2/3 workers=40 tmux rc3_ablation_shard2 nice=0 |
+
+All scripts: `set -euo pipefail`, require `RUN_ID` env var (no default), refuse to start if tmux session exists,
+log to `${BATCH_OUTPUT_DIR}/runner.log`.  Priority: `nice -n 0` (not nice=18).
+
+fixation_data_tag: `processed_fixations_offset0_full_cleaned`
+timing_contract: `one_turn_from_start`
+
+#### Pending (requires reviewer/controller authorisation)
+
+1. Operators: `git pull` + `preflight_ablation.sh` on each server.
+2. Controller sets `RUN_ID=rc3_window_delay_ablation_YYYYMMDD_HHMMSS` (same on all three servers).
+3. Reviewer/controller says "start" → operators run `launch_shard{0,1,2}_*.sh` on each server.
+4. Monitor `runner.log` per shard; collect outputs from `${BATCH_OUTPUT_DIR}`.
