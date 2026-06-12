@@ -90,3 +90,23 @@ def test_select_report_prefers_report_json(tmp_path):
     chosen = _m._select_report(task)
     assert chosen is not None
     assert chosen.name == "A380_report.json"
+
+
+def test_provenance_missing_participant_input_is_mismatch():
+    # Entirely missing participant_input must be a provenance mismatch.
+    assert _m._provenance_mismatches({}) == ["participant_input missing or not an object"]
+    # Present-but-incomplete also flagged (missing required fields).
+    partial = {"participant_input": {"timing_contract": _m.TIMING_CONTRACT}}
+    problems = _m._provenance_mismatches(partial)
+    assert any("missing frame_offset" in p for p in problems)
+    assert any("missing fixation_data_tag" in p for p in problems)
+
+
+def test_release_tag_is_env_driven(monkeypatch):
+    import importlib
+    monkeypatch.setenv("REPROJECT_RELEASE_TAG", "v2.0-data-rc4")
+    spec = importlib.util.spec_from_file_location("rfm_rc4", _PATH)
+    rc4 = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(rc4)
+    assert rc4.RELEASE_TAG == "v2.0-data-rc4"
+    assert "v2.0-data-rc4" in rc4._job_key("sal3d", "cone", "A380")

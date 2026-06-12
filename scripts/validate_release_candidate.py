@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Validate release candidate manifest, checksums, CRCs, and data-type separation.
+"""Validate a schema-v2 release candidate: manifest, checksums, CRCs, archive
+roots, GT/mesh pairing, and data-type separation.
 
-Targets v2.0-data-rc3 (schema_version=2).  RC3-ONLY validator.
+Targets the offset0 / one_turn_from_start contract (schema_version=2), i.e.
+v2.0-data-rc3, v2.0-data-rc4 and later.  Schema-v1 / offset_2000 / cropped_reset
+releases are rejected.
 
-Required manifest fields (rc3):
+Required manifest fields:
   schema_version                                    == 2
   timing_contract.name                              == "one_turn_from_start"
   timing_contract.delay_seconds_default             == 0.0
@@ -11,17 +14,17 @@ Required manifest fields (rc3):
   timing_contract.crop_end_seconds                  == 0.0
   participant_data_contract.processed_json_archive  == participant_fixations_offset0_full_cleaned.zip
   participant_data_contract.automatic_fallback_allowed == False
+  based_on                                          must NOT mention offset_2000 / cropped-reset
 
-RC1/RC2 INCOMPATIBILITY: this script will explicitly fail when run against rc1 or rc2
-release directories.  Typical rc1/rc2 failure messages:
+RC1/RC2 INCOMPATIBILITY: this script fails on schema-v1 / rc1 / rc2 directories:
   - "schema_version must be 2, got 1" (rc1)
   - "timing_contract.name must be 'one_turn_from_start'"
   - "participant_data_contract.processed_json_archive must be 'participant_fixations_offset0_full_cleaned.zip'"
-Use git history to recover the pre-rc3 version if rc1/rc2 validation is needed.
+Use git history to recover a pre-schema-v2 validator if rc1/rc2 validation is needed.
 
-Fixation archive frame counts (verified at validation time):
-  510 frames: 3DVA and MeshMamba models
-  720 frames: SAL3D models
+Fixation archive frame counts (exact, keyed on dataset prefix):
+  510 frames: 3DVA_ and MeshMamba_ models
+  720 frames: SAL3D_ models
    41 frames: 3DVA_jessi (known blocker, excluded in manifest known_blockers)
 """
 
@@ -59,6 +62,15 @@ EXPECTED_ARCHIVE_ROOTS = {
     "participant_fixations_offset0_full_cleaned.zip": "participant_fixations_offset0_full_cleaned/",
     "object_placement_json_canonical.zip": "object_placement_json_canonical/",
     "3dva_objs_corrected.zip": "datasets/3DVA/3DModels-Simplif-up/",
+    "3dva_gt.zip": "datasets/3DVA/",
+    "3dva_combined_gt.zip": "datasets/3DVA/CombinedGT/",
+    "meshmamba_non_texture_objs.zip": "datasets/MeshMamba/MeshFile/non_texture/",
+    "meshmamba_rgb_texture_objs.zip": "datasets/MeshMamba/MeshFile/rgb_texture/",
+    "meshmamba_saliency_gt.zip": "datasets/MeshMamba/SaliencyMap/",
+    "sal3d_meshes.zip": "datasets/SAL3D/Meshes/",
+    "sal3d_gaze_gt.zip": "datasets/SAL3D/Gaze/",
+    "sal3d_fixed_face_gt.zip": "datasets/SAL3D_fixed/sal3d_benchmark_pkg/",
+    "sal3d_smooth_gaze.zip": "datasets/SAL3D/Smooth_Gaze/",
 }
 REQUIRED_ARCHIVES = {
     "participant_gaze_csv_original.zip",
@@ -173,6 +185,15 @@ def _fixed_face_models(members: set[str]) -> set[str]:
     return out
 
 
+def _fixed_face_gt_models(members: set[str]) -> set[str]:
+    out = set()
+    for m in members:
+        base = m.rsplit("/", 1)[-1]
+        if base.endswith("_faces.txt"):
+            out.add(base[: -len("_faces.txt")])
+    return out
+
+
 def _check_sal3d_inventories(root: Path, archives: dict, errors: list[str]) -> None:
     """Cross-check SAL3D Smooth Gaze and fixed-face GT inventories."""
     smooth_models: set[str] = set()
@@ -201,6 +222,14 @@ def _check_sal3d_inventories(root: Path, archives: dict, errors: list[str]) -> N
                     f"fixed-face GT inventory: {len(fixed_models)} models, "
                     f"expected {EXPECTED_FIXED_FACE_MODELS}"
                 )
+            # GT/mesh filename pairing: every Meshes/<m>.obj needs <m>_faces.txt.
+            gt_models = _fixed_face_gt_models(members)
+            obj_without_gt = sorted(fixed_models - gt_models)
+            gt_without_obj = sorted(gt_models - fixed_models)
+            if obj_without_gt:
+                errors.append(f"fixed-face meshes without per-face GT: {obj_without_gt[:5]}")
+            if gt_without_obj:
+                errors.append(f"fixed-face per-face GT without mesh: {gt_without_obj[:5]}")
 
     if smooth_models and fixed_models:
         fixed_only = fixed_models - smooth_models

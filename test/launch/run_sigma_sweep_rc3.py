@@ -160,7 +160,9 @@ ALL_METHODS  = ["screen_space", "cone"]
 TIMING_CONTRACT   = "one_turn_from_start"
 DELAY_SECONDS     = 0.0
 FRAME_OFFSET      = 0
-RELEASE_TAG       = "v2.0-data-rc3"
+# Environment-driven so an rc4 (or later) sweep records the right provenance
+# without editing this file; defaults to rc3 for backward compatibility.
+RELEASE_TAG       = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc3")
 FIXATION_DATA_TAG = "processed_fixations_offset0_full_cleaned"
 
 # ── model list ────────────────────────────────────────────────────────────────
@@ -281,7 +283,8 @@ def load_completed_keys(jsonl_path: Path) -> set[str]:
                 continue
             try:
                 row = json.loads(line)
-                if row.get("status") == "ok":
+                # Dry-run rows are placeholders, never real completions.
+                if row.get("status") == "ok" and row.get("error_type", "") != "dry_run":
                     keys.add(row["job_key"])
             except (json.JSONDecodeError, KeyError):
                 pass
@@ -318,6 +321,8 @@ def build_command(job: SigmaSweepJob, args: argparse.Namespace) -> list[str]:
     )
     if fixation_root:
         cmd += ["--fixation-root", str(fixation_root)]
+    # Canonical, single-sourced provenance tag (matches the full-run launcher).
+    cmd += ["--fixation-data-tag", FIXATION_DATA_TAG]
 
     if job.dataset == "3dva":
         _env_flags(cmd, {
@@ -403,6 +408,42 @@ def extract_metrics(report: dict, dataset: str, method: str) -> "dict[str, Any] 
 
 # ── job execution ─────────────────────────────────────────────────────────────
 
+def _select_report(task_out: Path) -> "Path | None":
+    """Deterministically choose the evaluator report (prefer ``*_report.json``)."""
+    sidecars = {"provenance.json", "metrics_rows.json"}
+    candidates = [p for p in sorted(task_out.rglob("*.json")) if p.name not in sidecars]
+    if not candidates:
+        return None
+    preferred = [p for p in candidates if p.name.endswith("_report.json")]
+    return preferred[0] if preferred else candidates[0]
+
+
+def _provenance_mismatches(report: dict) -> list[str]:
+    """Required participant_input fields must be present and match the sweep contract."""
+    prov = report.get("participant_input")
+    if not isinstance(prov, dict):
+        return ["participant_input missing or not an object"]
+    out: list[str] = []
+    for field in ("timing_contract", "frame_offset", "fixation_data_tag",
+                  "delay_frames", "fps"):
+        if prov.get(field) in (None, ""):
+            out.append(f"missing {field}")
+    tc = prov.get("timing_contract")
+    if tc not in (None, "") and tc != TIMING_CONTRACT:
+        out.append(f"timing_contract={tc!r}!={TIMING_CONTRACT!r}")
+    fo = prov.get("frame_offset")
+    if fo not in (None, ""):
+        try:
+            if int(fo) != FRAME_OFFSET:
+                out.append(f"frame_offset={fo!r}!={FRAME_OFFSET}")
+        except (TypeError, ValueError):
+            out.append(f"frame_offset={fo!r} not an int")
+    tag = prov.get("fixation_data_tag")
+    if tag not in (None, "") and tag != FIXATION_DATA_TAG:
+        out.append(f"fixation_data_tag={tag!r}!={FIXATION_DATA_TAG!r}")
+    return out
+
+
 def execute_job(job: SigmaSweepJob, args: argparse.Namespace) -> dict[str, Any]:
     row: dict[str, Any] = {
         "job_key":            job.key,
@@ -458,18 +499,23 @@ def execute_job(job: SigmaSweepJob, args: argparse.Namespace) -> dict[str, Any]:
                    error_message=str(exc))
         return row
 
-    report_files = sorted(task_out.rglob("*.json"))
-    if not report_files:
+    report_path = _select_report(task_out)
+    if report_path is None:
         row.update(status="failed", error_type="missing_report")
         return row
 
-    report_path = report_files[0]
     row["report_path"] = str(report_path)
     try:
         report = json.loads(report_path.read_text())
     except Exception as exc:
         row.update(status="failed", error_type="report_parse_error",
                    error_message=str(exc))
+        return row
+
+    prov_problems = _provenance_mismatches(report)
+    if prov_problems:
+        row.update(status="failed", error_type="provenance_mismatch",
+                   error_message="; ".join(prov_problems))
         return row
 
     metrics = extract_metrics(report, job.dataset, job.method)

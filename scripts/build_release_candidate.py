@@ -36,11 +36,27 @@ SCHEMA_VERSION = 2
 DEFAULT_TAG = "v2.0-data-rc4"
 
 FIXATION_ARCHIVE = "participant_fixations_offset0_full_cleaned.zip"
-FIXATION_ROOT = "participant_fixations_offset0_full_cleaned"
+FIXATION_ROOT = "participant_fixations_offset0_full_cleaned"  # archive root inside the zip
+# Canonical TRACKED source directory under participant_data/ (note: the source dir
+# name differs from the archive root name).
+FIXATION_SOURCE_DIRNAME = "processed_fixations_offset0_full_cleaned"
 FIXATION_DATA_TAG = "processed_fixations_offset0_full_cleaned"
 FIXATION_FORMAT = "one_turn_from_start_offset_0"
 
 EXPECTED_FIXATION_COUNT = 298
+
+# Inputs tracked in the repo vs supplied externally (large GAZE_DATA assets).
+TRACKED_INPUTS = (
+    "participant_data/collected_gaze_csv_by_model/",
+    f"participant_data/{FIXATION_SOURCE_DIRNAME}/",
+    "jsons/object_placement/",
+)
+EXTERNAL_INPUTS = (
+    "3DVA / MeshMamba / SAL3D meshes + GT (GAZE_DATA/datasets/...)",
+    "SAL3D fixed per-face GT package (sal3d_benchmark_pkg)",
+    "SAL3D Smooth_Gaze neighbour archive",
+    "source videos (optional, --include-videos)",
+)
 
 
 def parse_args() -> argparse.Namespace:
@@ -55,8 +71,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--fixation-source", type=Path, default=None,
         help=("Directory holding the 298 offset0 fixation JSONs "
-              "(<model>/fixations.json). Defaults to "
-              "<repo>/participant_data/participant_fixations_offset0_full_cleaned."),
+              "(<model>/fixations.json). Defaults to the tracked source "
+              f"<repo>/participant_data/{FIXATION_SOURCE_DIRNAME}."),
     )
     parser.add_argument("--data-3dva-root", type=Path,
                         default=saliency_root / "GAZE_DATA/datasets/3DVA")
@@ -162,7 +178,7 @@ def build_specs(args: argparse.Namespace) -> list[tuple[str, list[tuple[Path, st
     fixation_source = (
         args.fixation_source
         if args.fixation_source is not None
-        else participant / FIXATION_ROOT
+        else participant / FIXATION_SOURCE_DIRNAME
     )
 
     specs: list[tuple[str, list[tuple[Path, str]]]] = [
@@ -277,6 +293,43 @@ def build_manifest_metadata(tag: str, commit: str,
     }
 
 
+def fixation_source_dir(args: argparse.Namespace) -> Path:
+    if args.fixation_source is not None:
+        return Path(args.fixation_source)
+    return args.repo_root.resolve() / "participant_data" / FIXATION_SOURCE_DIRNAME
+
+
+def count_fixation_jsons(source: Path) -> int:
+    if not source.is_dir():
+        return 0
+    return sum(1 for _ in source.glob("*/fixations.json"))
+
+
+def strict_preflight(args: argparse.Namespace, specs) -> list[str]:
+    """Return a list of preflight problems (empty == ready to build).
+
+    A missing required source or a fixation count != 298 is a hard problem; the
+    caller must treat a non-empty result as a nonzero exit, never build-and-warn.
+    """
+    problems: list[str] = []
+    seen: set[str] = set()
+    for name, trees in specs:
+        for source, _root in trees:
+            key = str(source)
+            if key in seen:
+                continue
+            seen.add(key)
+            if not Path(source).exists():
+                problems.append(f"missing source for {name}: {source}")
+    src = fixation_source_dir(args)
+    n = count_fixation_jsons(src)
+    if n != EXPECTED_FIXATION_COUNT:
+        problems.append(
+            f"fixation source {src} has {n} fixations.json, expected {EXPECTED_FIXATION_COUNT}"
+        )
+    return problems
+
+
 def _print_dry_run(args: argparse.Namespace, specs, manifest: dict) -> None:
     print(f"[dry-run] tag={args.tag}  schema_version={SCHEMA_VERSION}")
     print(f"[dry-run] output-dir={args.output_dir}")
@@ -291,6 +344,12 @@ def _print_dry_run(args: argparse.Namespace, specs, manifest: dict) -> None:
         for source, root in trees:
             exists = "ok" if Path(source).exists() else "MISSING"
             print(f"    {name:42s} <- {source}  [{exists}] -> {root}/")
+    print("[dry-run] tracked inputs:")
+    for t in TRACKED_INPUTS:
+        print(f"    {t}")
+    print("[dry-run] externally-supplied inputs:")
+    for e in EXTERNAL_INPUTS:
+        print(f"    {e}")
     print("[dry-run] manifest metadata:")
     print(json.dumps({k: v for k, v in manifest.items() if k != "archives"},
                      indent=2, sort_keys=True))
@@ -314,9 +373,25 @@ def main() -> int:
         args.tag, commit, include_smooth_gaze=args.include_sal3d_smooth_gaze
     )
 
+    problems = strict_preflight(args, specs)
+
     if args.dry_run:
         _print_dry_run(args, specs, manifest)
+        if problems:
+            print("[preflight] STRICT FAIL — would refuse to build:")
+            for p in problems:
+                print(f"    - {p}")
+            return 3
+        print("[preflight] OK — all sources present and exactly "
+              f"{EXPECTED_FIXATION_COUNT} fixation JSON.")
         return 0
+
+    # Real build: strict preflight gates everything.
+    if problems:
+        print("[preflight] STRICT FAIL — refusing to build:", file=sys.stderr)
+        for p in problems:
+            print(f"    - {p}", file=sys.stderr)
+        return 3
 
     require_clean_tree(repo)
 
@@ -324,11 +399,14 @@ def main() -> int:
         shutil.rmtree(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    # rc4-compatible data-contract validation against the offset0 source.
     contract_report = output_dir / "data_contract_validation.json"
     subprocess.run(
         [
             "python3", str(repo / "scripts" / "validate_data_contract.py"),
             "--repo-root", str(repo),
+            "--processed-root", str(fixation_source_dir(args)),
+            "--timing-contract", "one_turn_from_start",
             "--allow-known-blockers",
             "--output-json", str(contract_report),
         ],
@@ -343,6 +421,16 @@ def main() -> int:
     manifest_path.write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
     checksum_lines = [f"{item['sha256']}  {item['name']}" for item in manifest["archives"]]
     (output_dir / "SHA256SUMS").write_text("\n".join(checksum_lines) + "\n")
+
+    # Validate the freshly-written release; a failure fails the build.
+    print("[validate] running validate_release_candidate.py ...", flush=True)
+    vr = subprocess.run(
+        ["python3", str(repo / "scripts" / "validate_release_candidate.py"), str(output_dir)],
+    )
+    if vr.returncode != 0:
+        raise RuntimeError(
+            f"release validation failed for {output_dir} (exit {vr.returncode})"
+        )
     print(f"[done] {output_dir}")
     return 0
 

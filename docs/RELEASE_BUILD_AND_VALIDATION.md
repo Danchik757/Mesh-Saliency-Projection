@@ -25,15 +25,45 @@ by the current builder; recover it from git history if ever required.
 Default tag `v2.0-data-rc4`. Includes the 298 offset0 fixation JSONs, SAL3D
 repaired per-face GT, and the full SAL3D Smooth Gaze archive.
 
-```bash
-# Review the plan + manifest metadata without touching source data:
-python3 scripts/build_release_candidate.py --dry-run
+### Inputs: tracked vs external
 
-# Real build (clean committed tree required):
+Tracked in the repo (default sources):
+- `participant_data/collected_gaze_csv_by_model/`
+- `participant_data/processed_fixations_offset0_full_cleaned/` — the canonical
+  offset0 fixation source (note: the source directory name differs from the
+  archive root `participant_fixations_offset0_full_cleaned/`).
+- `jsons/object_placement/`
+
+Supplied externally (large `GAZE_DATA` assets, not tracked): 3DVA/MeshMamba/SAL3D
+meshes + GT, the SAL3D fixed per-face GT package (`sal3d_benchmark_pkg`), the
+SAL3D Smooth Gaze archive, and (optionally) source videos.
+
+### Strict preflight
+
+```bash
+# Strict preflight + plan review (no archives written):
+python3 scripts/build_release_candidate.py --dry-run
+```
+
+`--dry-run` runs a **strict preflight**: it exits **nonzero (3)** if any required
+source is missing or the fixation source does not hold **exactly 298**
+`*/fixations.json`. Printing `MISSING` and exiting 0 is not done — a missing
+input always fails. The same preflight gates a real build before anything is
+written.
+
+### Real build
+
+```bash
 python3 scripts/build_release_candidate.py --force \
-    --fixation-source /path/to/participant_fixations_offset0_full_cleaned \
+    --fixation-source /path/to/processed_fixations_offset0_full_cleaned \
     --data-sal3d-fixed-root /path/to/sal3d_benchmark_pkg
 ```
+
+A real build, in order: strict preflight → clean-tree check → rc4-compatible
+`validate_data_contract.py` (offset0 source, `--timing-contract
+one_turn_from_start`) → write archives + manifest + `SHA256SUMS` →
+`validate_release_candidate.py` on the output (a validation failure fails the
+build).
 
 `build_manifest_metadata()` is the single source of the structured manifest
 (schema, `based_on`, timing/participant/sal3d contracts) and is unit-tested. The

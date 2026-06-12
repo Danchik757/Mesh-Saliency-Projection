@@ -60,14 +60,44 @@ def test_manifest_based_on_has_no_legacy_terms():
         assert stale not in based_on
 
 
-def test_builder_dry_run_exits_zero():
+def test_default_fixation_source_is_canonical_tracked_path():
+    # Item 1: the default tracked source is participant_data/processed_fixations_offset0_full_cleaned/
+    class NS:
+        fixation_source = None
+        repo_root = REPO_ROOT
+    src = _builder.fixation_source_dir(NS())
+    assert src == REPO_ROOT / "participant_data" / "processed_fixations_offset0_full_cleaned"
+    assert _builder.FIXATION_SOURCE_DIRNAME == "processed_fixations_offset0_full_cleaned"
+    # archive root name stays distinct
+    assert _builder.FIXATION_ROOT == "participant_fixations_offset0_full_cleaned"
+
+
+def test_builder_dry_run_strict_fail_on_missing_sources():
+    # Strict preflight: missing offset0 source locally → nonzero, not exit 0.
     proc = subprocess.run(
         [sys.executable, str(REPO_ROOT / "scripts" / "build_release_candidate.py"), "--dry-run"],
         capture_output=True, text=True,
     )
-    assert proc.returncode == 0, proc.stderr
-    assert "schema_version=2" in proc.stdout
-    assert "participant_fixations_offset0_full_cleaned.zip" in proc.stdout
+    assert proc.returncode == 3, proc.stdout
+    assert "STRICT FAIL" in proc.stdout
+    assert "schema_version=2" in proc.stdout  # plan still printed
+
+
+def test_strict_preflight_clean_with_synthetic_298(tmp_path):
+    src = tmp_path / "fix"
+    for i in range(298):
+        d = src / f"M{i:03d}"
+        d.mkdir(parents=True)
+        (d / "fixations.json").write_text("[]")
+
+    class NS:
+        fixation_source = src
+        repo_root = REPO_ROOT
+    specs = [("participant_fixations_offset0_full_cleaned.zip", [(src, _builder.FIXATION_ROOT)])]
+    assert _builder.strict_preflight(NS(), specs) == []
+    # 297 → fails the count check
+    next(src.iterdir()).rename(tmp_path / "moved")
+    assert _builder.strict_preflight(NS(), specs)
 
 
 # ── validator: per-prefix frame lengths ─────────────────────────────────────────
@@ -164,3 +194,120 @@ def test_inventory_wrong_count_flagged(tmp_path):
     errors: list[str] = []
     _validator._check_sal3d_inventories(tmp_path, archives, errors)
     assert any("Smooth Gaze inventory" in e for e in errors)
+
+
+def test_fixed_face_gt_mesh_pairing_enforced(tmp_path):
+    # An .obj without its matching _faces.txt must be flagged.
+    common = _common_models()
+    fixed = common + ["MaxPlanck", "dog", "flowerpot", "prot"]
+    path = tmp_path / "sal3d_fixed_face_gt.zip"
+    root = "datasets/SAL3D_fixed/sal3d_benchmark_pkg"
+    with zipfile.ZipFile(path, "w") as z:
+        for mdl in fixed:
+            z.writestr(f"{root}/Meshes/{mdl}.obj", "v 0 0 0\n")
+            if mdl != "dog":  # drop dog's per-face GT → pairing error
+                z.writestr(f"{root}/{mdl}_faces.txt", "0\n")
+    errors: list[str] = []
+    _validator._check_sal3d_inventories(tmp_path, {"sal3d_fixed_face_gt.zip": {}}, errors)
+    assert any("without per-face GT" in e for e in errors)
+
+
+# ── validate_data_contract: one_turn support ────────────────────────────────────
+
+def test_validate_data_contract_one_turn_placement_ok():
+    # Under one_turn_from_start the cropped-window checks are skipped; real
+    # placement JSONs must still validate (no invalid_placement entries).
+    dc = REPO_ROOT / "scripts" / "validate_data_contract.py"
+    proc = subprocess.run(
+        [sys.executable, str(dc), "--timing-contract", "one_turn_from_start",
+         "--allow-known-blockers"],
+        capture_output=True, text=True,
+    )
+    data = json.loads(proc.stdout)
+    assert data["timing_contract"] == "one_turn_from_start"
+    for track, tr in data["tracks"].items():
+        assert tr["invalid_models"]["placement"] == {}, (track, tr["invalid_models"]["placement"])
+
+
+# ── synthetic end-to-end release validation ─────────────────────────────────────
+
+def _zip_tree(path, root, names, content="x\n"):
+    with zipfile.ZipFile(path, "w") as z:
+        for n in names:
+            z.writestr(f"{root}/{n}", content)
+
+
+def _build_synthetic_release(out):
+    import hashlib
+    out.mkdir(parents=True, exist_ok=True)
+    common = [f"model{i:02d}" for i in range(51)]
+
+    # fixation archive: prefix-correct lengths incl jessi=41, total 298
+    fix = out / "participant_fixations_offset0_full_cleaned.zip"
+    froot = "participant_fixations_offset0_full_cleaned"
+    with zipfile.ZipFile(fix, "w") as z:
+        ids = ([f"3DVA_m{i:03d}" for i in range(100)]
+               + [f"MeshMamba_m{i:03d}" for i in range(99)]
+               + [f"SAL3D_m{i:03d}" for i in range(98)]
+               + ["3DVA_jessi"])
+        assert len(ids) == 298
+        for mid in ids:
+            n = 41 if mid == "3DVA_jessi" else (720 if mid.startswith("SAL3D_") else 510)
+            z.writestr(f"{froot}/{mid}/fixations.json", json.dumps([[[0.0, 0.0]]] * n))
+
+    _zip_tree(out / "participant_gaze_csv_original.zip", "participant_gaze_csv_original",
+              [f"m{i:03d}.csv" for i in range(298)])
+    _zip_tree(out / "object_placement_json_canonical.zip", "object_placement_json_canonical",
+              [f"p{i:03d}.json" for i in range(299)])
+    _zip_tree(out / "3dva_objs_corrected.zip", "datasets/3DVA/3DModels-Simplif-up",
+              [f"o{i:02d}.obj" for i in range(32)])
+    _zip_tree(out / "3dva_gt.zip", "datasets/3DVA", ["FixationMaps/a.txt", "CentricityAndVisibilityMaps/b.txt"])
+    _zip_tree(out / "3dva_combined_gt.zip", "datasets/3DVA/CombinedGT", ["a.txt"])
+    _zip_tree(out / "meshmamba_non_texture_objs.zip", "datasets/MeshMamba/MeshFile/non_texture", ["a.obj"])
+    _zip_tree(out / "meshmamba_rgb_texture_objs.zip", "datasets/MeshMamba/MeshFile/rgb_texture", ["a.obj"])
+    _zip_tree(out / "meshmamba_saliency_gt.zip", "datasets/MeshMamba/SaliencyMap", ["a.txt"])
+    _zip_tree(out / "sal3d_meshes.zip", "datasets/SAL3D/Meshes", ["a.obj"])
+    _zip_tree(out / "sal3d_gaze_gt.zip", "datasets/SAL3D/Gaze", ["a.txt"])
+
+    # smooth gaze: 53 = 51 common + AudiRS5 + bimba
+    _make_smooth_zip(out / "sal3d_smooth_gaze.zip", common + ["AudiRS5", "bimba"])
+    # fixed-face: 55 models = 51 common + 4 fixed-only, paired .obj + _faces.txt + 4 metadata = 114
+    fixed = common + ["MaxPlanck", "dog", "flowerpot", "prot"]
+    ffroot = "datasets/SAL3D_fixed/sal3d_benchmark_pkg"
+    with zipfile.ZipFile(out / "sal3d_fixed_face_gt.zip", "w") as z:
+        for mdl in fixed:
+            z.writestr(f"{ffroot}/Meshes/{mdl}.obj", "v 0 0 0\n")
+            z.writestr(f"{ffroot}/{mdl}_faces.txt", "0\n")
+        for meta in ("SHA256SUMS", "sal3d_checksums.md5", "sal3d_manifest.csv", "sal3d_manifest.md"):
+            z.writestr(f"{ffroot}/{meta}", "x\n")
+
+    def _sha(p):
+        h = hashlib.sha256()
+        h.update(p.read_bytes())
+        return h.hexdigest()
+
+    names = [p.name for p in sorted(out.glob("*.zip"))]
+    archives = []
+    for name in names:
+        p = out / name
+        with zipfile.ZipFile(p) as z:
+            fc = len([m for m in z.namelist() if not m.endswith("/")])
+        archives.append({"name": name, "sha256": _sha(p), "file_count": fc})
+
+    manifest = _builder.build_manifest_metadata("v2.0-data-rc4", "synthetic")
+    manifest["archives"] = archives
+    (out / "release_manifest.json").write_text(json.dumps(manifest, indent=2, sort_keys=True) + "\n")
+    (out / "SHA256SUMS").write_text("\n".join(f"{a['sha256']}  {a['name']}" for a in archives) + "\n")
+    (out / "data_contract_validation.json").write_text(json.dumps({"errors": []}) + "\n")
+
+
+def test_synthetic_release_passes_validation(tmp_path):
+    rel = tmp_path / "v2.0-data-rc4"
+    _build_synthetic_release(rel)
+    proc = subprocess.run(
+        [sys.executable, str(REPO_ROOT / "scripts" / "validate_release_candidate.py"), str(rel)],
+        capture_output=True, text=True,
+    )
+    data = json.loads(proc.stdout)
+    assert data["status"] == "ok", data["errors"]
+    assert proc.returncode == 0

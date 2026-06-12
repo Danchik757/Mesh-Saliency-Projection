@@ -84,6 +84,52 @@ def test_failed_rows_ignored_by_guard():
     assert _m.check_merge_compatibility(rows) == []
 
 
+# ── missing-field incompatibilities (reviewer reproduction) ─────────────────────
+
+def test_missing_release_tag_on_ok_row_flagged():
+    second = _ok_row(model="bimba", job_key="k2")
+    del second["release_tag"]
+    problems = _m.check_merge_compatibility([_ok_row(), second])
+    assert any("release_tag" in p for p in problems)
+
+
+def test_missing_required_sigma_flagged():
+    second = _ok_row(model="bimba", job_key="k2")
+    del second["sigma_deg"]                      # cone requires sigma_deg
+    problems = _m.check_merge_compatibility([_ok_row(), second])
+    assert any("sigma_deg for 3dva/cone" in p for p in problems)
+
+
+def test_reviewer_reproduction_missing_release_tag_and_sigma():
+    base = _ok_row(job_key="k1")
+    second = _ok_row(model="bimba", job_key="k2")
+    del second["release_tag"]
+    del second["sigma_deg"]
+    problems = _m.check_merge_compatibility([base, second])
+    # Previously returned []; now both omissions are incompatibilities.
+    assert any("release_tag" in p for p in problems)
+    assert any("sigma_deg" in p for p in problems)
+
+
+def test_missing_fixation_tag_flagged():
+    second = _ok_row(model="bimba", job_key="k2")
+    del second["fixation_data_tag"]
+    assert any("fixation_data_tag" in p for p in _m.check_merge_compatibility([_ok_row(), second]))
+
+
+def test_screen_space_requires_sigma_px_for_3dva():
+    ss = _ok_row(method="screen_space", sigma_deg="", radius_sigma_mult="", sigma_px=34.3)
+    ss2 = _ok_row(model="bimba", job_key="k2", method="screen_space",
+                  sigma_deg="", radius_sigma_mult="")  # missing sigma_px
+    assert any("sigma_px for 3dva/screen_space" in p
+               for p in _m.check_merge_compatibility([ss, ss2]))
+
+
+def test_no_allow_incompatible_flag():
+    import inspect
+    assert "--allow-incompatible" not in inspect.getsource(_m.parse_args)
+
+
 # ── NaN/Inf exclusion in the compact mean ───────────────────────────────────────
 
 def test_compact_mean_excludes_non_finite(tmp_path):
@@ -123,15 +169,11 @@ def test_main_aborts_on_incompatible(tmp_path, monkeypatch):
         _m.main()
 
 
-def test_main_allows_incompatible_with_flag(tmp_path, monkeypatch):
+def test_main_compatible_merges(tmp_path, monkeypatch):
     a = tmp_path / "a.jsonl"
-    b = tmp_path / "b.jsonl"
-    _write_jsonl(a, [_ok_row()])
-    _write_jsonl(b, [_ok_row(model="bimba", job_key="optrun:cfg:3dva:bimba:cone",
-                             release_tag="v2.0-data-rc1")])
+    _write_jsonl(a, [_ok_row(), _ok_row(model="bimba", job_key="optrun:cfg:3dva:bimba:cone")])
     out = tmp_path / "merged"
-    argv = ["merge", "--jsonl-files", str(a), str(b),
-            "--output-dir", str(out), "--allow-incompatible"]
+    argv = ["merge", "--jsonl-files", str(a), "--output-dir", str(out)]
     monkeypatch.setattr(sys, "argv", argv)
     assert _m.main() == 0
     assert (out / "metrics_long.csv").is_file()

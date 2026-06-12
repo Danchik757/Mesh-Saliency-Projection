@@ -1,5 +1,13 @@
 #!/usr/bin/env python3
-"""Validate repository-local placement, original gaze CSV, and processed gaze JSON."""
+"""Validate repository-local placement, original gaze CSV, and processed gaze JSON.
+
+Supports both timing contracts:
+  - cropped_reset        (legacy offset_2000 source; cropped window == one turn)
+  - one_turn_from_start  (rc4 offset0 source; full-length JSON, one turn from frame 0)
+
+Select with --timing-contract (default one_turn_from_start) and point
+--processed-root at the matching processed-fixation source directory.
+"""
 
 from __future__ import annotations
 
@@ -11,6 +19,10 @@ import math
 from collections import Counter
 from pathlib import Path
 from typing import Any
+
+TIMING_CROPPED_RESET = "cropped_reset"
+TIMING_ONE_TURN = "one_turn_from_start"
+_DEFAULT_PROCESSED_DIRNAME = "processed_fixations_offset0_full_cleaned"
 
 
 TRACKS = {
@@ -61,6 +73,16 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[1])
     parser.add_argument("--output-json", type=Path)
     parser.add_argument("--allow-known-blockers", action="store_true")
+    parser.add_argument(
+        "--timing-contract", default=TIMING_ONE_TURN,
+        choices=[TIMING_CROPPED_RESET, TIMING_ONE_TURN],
+        help="Contract to validate (default: one_turn_from_start, the rc4 offset0 contract).",
+    )
+    parser.add_argument(
+        "--processed-root", type=Path, default=None,
+        help=("Processed-fixation source directory. Defaults to "
+              f"<repo>/participant_data/{_DEFAULT_PROCESSED_DIRNAME}."),
+    )
     return parser.parse_args()
 
 
@@ -138,10 +160,22 @@ def inspect_processed(path: Path, expected_frames: int, width: int, height: int)
 def main() -> int:
     args = parse_args()
     repo = args.repo_root.resolve()
+    timing_contract = args.timing_contract
     placement_root = repo / "jsons" / "object_placement"
     csv_root = repo / "participant_data" / "collected_gaze_csv_by_model"
-    processed_root = repo / "participant_data" / "processed_fixations_offset_2000"
-    result: dict[str, Any] = {"repo_root": str(repo), "tracks": {}, "errors": [], "known_blockers": []}
+    processed_root = (
+        args.processed_root.resolve()
+        if args.processed_root is not None
+        else repo / "participant_data" / _DEFAULT_PROCESSED_DIRNAME
+    )
+    result: dict[str, Any] = {
+        "repo_root": str(repo),
+        "timing_contract": timing_contract,
+        "processed_root": str(processed_root),
+        "tracks": {},
+        "errors": [],
+        "known_blockers": [],
+    }
 
     for track, config in TRACKS.items():
         placements: dict[str, Path] = {}
@@ -188,11 +222,6 @@ def main() -> int:
                 total_frames = int(video["total_frames"])
                 rotation_speed = float(meta["animation"]["rotation_speed_deg_per_sec"])
                 full_turn_seconds = abs(360.0 / rotation_speed)
-                crop_start_frames = round(1.8 * fps)
-                crop_end_frames = round(0.2 * fps)
-                end_frame_exclusive = total_frames - crop_end_frames
-                usable_frames = end_frame_exclusive - crop_start_frames
-                usable_seconds = usable_frames / fps
                 if len(frames) != total_frames:
                     raise ValueError(f"placement frames {len(frames)} != total_frames {total_frames}")
                 timestamps = [float(frame["timestamp"]) for frame in frames]
@@ -212,15 +241,36 @@ def main() -> int:
                     raise ValueError(
                         f"observed rotation speed {observed_speed} != declared {rotation_speed}"
                     )
-                full_turn_degrees = abs(rotation_speed) * usable_seconds
-                if not math.isclose(usable_seconds, full_turn_seconds, abs_tol=1.0 / fps + 1e-6):
-                    raise ValueError(
-                        f"cropped duration {usable_seconds} is not one turn {full_turn_seconds}"
-                    )
-                if not math.isclose(full_turn_degrees, 360.0, abs_tol=abs(rotation_speed) / fps + 1e-6):
-                    raise ValueError(f"cropped interval covers {full_turn_degrees} degrees")
+
+                if timing_contract == TIMING_CROPPED_RESET:
+                    crop_start_frames = round(1.8 * fps)
+                    crop_end_frames = round(0.2 * fps)
+                    end_frame_exclusive = total_frames - crop_end_frames
+                    usable_frames = end_frame_exclusive - crop_start_frames
+                    usable_seconds = usable_frames / fps
+                    full_turn_degrees = abs(rotation_speed) * usable_seconds
+                    if not math.isclose(usable_seconds, full_turn_seconds, abs_tol=1.0 / fps + 1e-6):
+                        raise ValueError(
+                            f"cropped duration {usable_seconds} is not one turn {full_turn_seconds}"
+                        )
+                    if not math.isclose(full_turn_degrees, 360.0, abs_tol=abs(rotation_speed) / fps + 1e-6):
+                        raise ValueError(f"cropped interval covers {full_turn_degrees} degrees")
+                else:
+                    # one_turn_from_start: full-length JSON; one turn taken from frame 0.
+                    crop_start_frames = 0
+                    crop_end_frames = 0
+                    turn_frames = round(full_turn_seconds * fps)
+                    if turn_frames > total_frames:
+                        raise ValueError(
+                            f"one turn ({turn_frames} frames) exceeds total_frames {total_frames}"
+                        )
+                    end_frame_exclusive = turn_frames
+                    usable_frames = turn_frames
+                    usable_seconds = turn_frames / fps
+
                 timing_key = json.dumps(
                     {
+                        "timing_contract": timing_contract,
                         "fps": fps,
                         "video_seconds": duration,
                         "total_frames": total_frames,

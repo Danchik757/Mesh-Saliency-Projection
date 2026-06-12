@@ -142,6 +142,89 @@ ALL_DELAYS = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3]
 
 _WINDOW_MODE_EVALUATOR_READY: frozenset[str] = frozenset({"cut_tail", "cut_head", "center"})
 
+# ── timing / provenance contract (one_turn_from_start, offset0) ─────────────────
+TIMING_CONTRACT = "one_turn_from_start"
+FIXATION_DATA_TAG = "processed_fixations_offset0_full_cleaned"
+# Environment-driven release tag so an rc4 ablation records correct provenance.
+RELEASE_TAG = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc3")
+
+
+def _frame_offset_for(dataset: str, window_mode: str) -> int:
+    """Absolute frame offset the evaluator receives for a window mode."""
+    info = _DATASET_FRAMES[dataset]
+    tail = info["total_frames"] - info["turn_frames"]
+    return {"cut_tail": 0, "cut_head": tail, "center": tail // 2}.get(window_mode, 0)
+
+
+# ── canonical nested metric extraction (shared contract with sigma/full runner) ─
+
+def extract_metrics(report: dict, dataset: str, method: str) -> "dict | None":
+    """Descend into the method-keyed metric leaf, trying GT sections in order.
+
+    SAL3D fixed-face GT lives at report["metrics_vs_fixed_face_gt"][method_key];
+    a flat report.get("metrics_vs_fixed_face_gt")["CC"] lookup would miss it.
+    """
+    method_key = "screen_space_gaussian" if method == "screen_space" else "cone_gaussian_on_mesh"
+
+    def _leaf(section, *keys):
+        node = section
+        for k in keys:
+            if not isinstance(node, dict) or k not in node:
+                return None
+            node = node[k]
+        return node if isinstance(node, dict) and "CC" in node else None
+
+    return (
+        _leaf(report.get("metrics_vs_gt"), method_key)
+        or _leaf(report.get("metrics_vs_fixed_face_gt"), method_key)
+        or _leaf(report.get("metrics_vs_gt_covered_only"), method_key)
+        or _leaf(report.get("metrics_vs_gt_combined"), method_key, "metrics_covered_only")
+        or _leaf(report.get("metrics_vs_gt_combined"), method_key, "metrics_full")
+    )
+
+
+def _select_report(task_out: Path) -> "Path | None":
+    sidecars = {"provenance.json", "metrics_rows.json"}
+    candidates = [p for p in sorted(task_out.rglob("*.json")) if p.name not in sidecars]
+    if not candidates:
+        return None
+    preferred = [p for p in candidates if p.name.endswith("_report.json")]
+    return preferred[0] if preferred else candidates[0]
+
+
+def _provenance_mismatches(report: dict, *, frame_offset: int, delay_seconds: float) -> list[str]:
+    """Required participant_input fields must be present and match THIS job's contract."""
+    prov = report.get("participant_input")
+    if not isinstance(prov, dict):
+        return ["participant_input missing or not an object"]
+    out: list[str] = []
+    for field in ("timing_contract", "frame_offset", "fixation_data_tag",
+                  "delay_frames", "fps"):
+        if prov.get(field) in (None, ""):
+            out.append(f"missing {field}")
+    tc = prov.get("timing_contract")
+    if tc not in (None, "") and tc != TIMING_CONTRACT:
+        out.append(f"timing_contract={tc!r}!={TIMING_CONTRACT!r}")
+    fo = prov.get("frame_offset")
+    if fo not in (None, ""):
+        try:
+            if int(fo) != frame_offset:
+                out.append(f"frame_offset={fo!r}!={frame_offset}")
+        except (TypeError, ValueError):
+            out.append(f"frame_offset={fo!r} not an int")
+    tag = prov.get("fixation_data_tag")
+    if tag not in (None, "") and tag != FIXATION_DATA_TAG:
+        out.append(f"fixation_data_tag={tag!r}!={FIXATION_DATA_TAG!r}")
+    df = prov.get("delay_frames")
+    fps = prov.get("fps")
+    if df not in (None, "") and fps not in (None, ""):
+        try:
+            if int(df) != round(delay_seconds * float(fps)):
+                out.append(f"delay_frames={df!r}!={round(delay_seconds * float(fps))}")
+        except (TypeError, ValueError):
+            out.append(f"delay_frames={df!r}/fps={fps!r} not numeric")
+    return out
+
 _SIGMA_DEFAULTS: dict[str, dict[str, dict[str, Any]]] = {
     "screen_space": {
         "3dva":                  {"sigma_px": 49.0},   # 1920x1080, ~1 deg visual angle
@@ -161,12 +244,12 @@ _SIGMA_DEFAULTS: dict[str, dict[str, dict[str, Any]]] = {
 
 CSV_COLUMNS = [
     "job_key",
-    "dataset", "model", "method", "window_mode", "delay_seconds",
+    "dataset", "model", "method", "window_mode", "delay_seconds", "frame_offset",
     "sigma_px", "sigma_screen", "sigma_deg", "radius_sigma_mult",
     "gaze_start_frame", "placement_start_frame", "turn_frames_used", "fps",
     "CC", "SIM", "KLD", "MSE", "AUC_Judd", "NSS",
-    "report_path", "git_commit", "input_type", "timing_contract",
-    "fixation_format", "fixation_data_tag",
+    "report_path", "git_commit", "input_type",
+    "release_tag", "timing_contract", "fixation_format", "fixation_data_tag",
     "status", "error_type", "error_message",
     "stdout_log_path", "elapsed_sec",
 ]
@@ -190,8 +273,15 @@ class AblationJob:
         return "_".join(f"{k}{v}" for k, v in sorted(self.sigma.items()))
 
     @property
+    def frame_offset(self) -> int:
+        return _frame_offset_for(self.dataset, self.window_mode)
+
+    @property
     def key(self) -> str:
+        # Identity embeds the timing/release/fixation contract and frame_offset so a
+        # resume cannot collide jobs run under a different configuration.
         return (
+            f"{RELEASE_TAG}:{TIMING_CONTRACT}:{FIXATION_DATA_TAG}:fo{self.frame_offset}:"
             f"{self.dataset}:{self.model}:{self.method}:"
             f"{self.window_mode}:{self.delay_seconds:.3f}:{self.sigma_string}"
         )
@@ -343,37 +433,44 @@ def build_command(job: AblationJob, args: argparse.Namespace) -> list[str]:
     script = _EVAL[job.dataset][job.method]
     python = os.environ.get("REPROJECT_PYTHON", sys.executable)
     cmd = [python, str(script), "--model", job.model]
-    cmd += ["--timing-contract", "one_turn_from_start", "--delay-seconds", str(job.delay_seconds)]
-    info = _DATASET_FRAMES[job.dataset]
-    tail = info["total_frames"] - info["turn_frames"]
-    _frame_offset = {"cut_tail": 0, "cut_head": tail, "center": tail // 2}[job.window_mode]
-    cmd += ["--frame-offset", str(_frame_offset)]
+    cmd += ["--timing-contract", TIMING_CONTRACT, "--delay-seconds", str(job.delay_seconds)]
+    cmd += ["--frame-offset", str(job.frame_offset)]
 
     fixation_root = getattr(args, "fixation_root", None) or _env_first(
         "FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT"
     )
     if fixation_root:
         cmd += ["--fixation-root", str(fixation_root)]
+    # Canonical, single-sourced provenance tag (matches the full-run launcher).
+    cmd += ["--fixation-data-tag", FIXATION_DATA_TAG]
 
+    # Env → evaluator flags, mirroring run_full_metrics_optimized_sigma.build_command.
+    # The evaluators accept --json-root / --dataset-root / --combined-gt-dir /
+    # --fixed-gt-dir / --smooth-gaze-dir / --sal3d-manifest — NOT --obj-root/--gt-root.
     if job.dataset == "3dva":
         _env_flags(cmd, {
-            "THREE_DVA_JSON_ROOT": "--json-root",
-            "THREE_DVA_OBJ_ROOT": "--obj-root",
-            "THREE_DVA_COMBINED_GT_ROOT": "--combined-gt-dir",
+            "THREE_DVA_JSON_ROOT":       "--json-root",
+            "THREE_DVA_COMBINED_GT_DIR": "--combined-gt-dir",
         })
-    elif job.dataset.startswith("meshmamba"):
-        texture = job.dataset.split("_", 1)[1]
+    elif job.dataset == "meshmamba_non_texture":
         _env_flags(cmd, {
-            "MESHMAMBA_JSON_ROOT": "--json-root",
-            "MESHMAMBA_OBJ_ROOT": "--obj-root",
-            "MESHMAMBA_GT_ROOT": "--gt-root",
+            "MESHMAMBA_JSON_ROOT":        "--json-root",
+            "MESHMAMBA_NON_TEXTURE_ROOT": "--dataset-root",
         })
-        cmd += ["--texture-type", texture]
+        cmd += ["--texture-type", "non_texture"]
+    elif job.dataset == "meshmamba_rgb_texture":
+        _env_flags(cmd, {
+            "MESHMAMBA_RGB_TEXTURE_JSON_ROOT": "--json-root",
+            "MESHMAMBA_RGB_TEXTURE_ROOT":      "--dataset-root",
+        })
+        cmd += ["--texture-type", "rgb_texture"]
     elif job.dataset == "sal3d":
         _env_flags(cmd, {
-            "SAL3D_JSON_ROOT": "--json-root",
-            "SAL3D_DATASET_ROOT": "--dataset-root",
-            "SAL3D_FIXED_GT_DIR": "--fixed-gt-dir",
+            "SAL3D_JSON_ROOT":       "--json-root",
+            "SAL3D_DATASET_ROOT":    "--dataset-root",
+            "SAL3D_FIXED_GT_DIR":    "--fixed-gt-dir",
+            "SAL3D_SMOOTH_GAZE_DIR": "--smooth-gaze-dir",
+            "SAL3D_MANIFEST":        "--sal3d-manifest",
         })
 
     sigma = job.sigma
@@ -423,7 +520,10 @@ def execute_job(job: AblationJob, args: argparse.Namespace) -> dict[str, Any]:
         "dataset": job.dataset, "model": job.model,
         "method": job.method, "window_mode": job.window_mode,
         "delay_seconds": job.delay_seconds,
-        "timing_contract": "one_turn_from_start",
+        "frame_offset": job.frame_offset,
+        "release_tag": RELEASE_TAG,
+        "timing_contract": TIMING_CONTRACT,
+        "fixation_data_tag": FIXATION_DATA_TAG,
     })
     row.update(job.sigma)
     row.update(frame_offsets(job))
@@ -476,13 +576,12 @@ def execute_job(job: AblationJob, args: argparse.Namespace) -> dict[str, Any]:
         row["error_message"] = str(exc)
         return row
 
-    report_files = sorted(task_out.rglob("*.json"))
-    if not report_files:
+    report_path = _select_report(task_out)
+    if report_path is None:
         row["status"] = "failed"
         row["error_type"] = "missing_report"
         return row
 
-    report_path = report_files[0]
     row["report_path"] = str(report_path)
     try:
         report = json.loads(report_path.read_text())
@@ -492,15 +591,21 @@ def execute_job(job: AblationJob, args: argparse.Namespace) -> dict[str, Any]:
         row["error_message"] = str(exc)
         return row
 
-    metrics = (
-        report.get("metrics_vs_gt_covered_only")
-        or report.get("metrics_vs_fixed_face_gt")
-        or report.get("metrics_full")
-        or report.get("metrics")
-        or {}
-    )
+    prov_problems = _provenance_mismatches(
+        report, frame_offset=job.frame_offset, delay_seconds=job.delay_seconds)
+    if prov_problems:
+        row["status"] = "failed"
+        row["error_type"] = "provenance_mismatch"
+        row["error_message"] = "; ".join(prov_problems)
+        return row
+
+    metrics = extract_metrics(report, job.dataset, job.method) or {}
     for metric in ("CC", "SIM", "KLD", "MSE", "AUC_Judd", "NSS"):
         row[metric] = metrics.get(metric, "")
+    if not row["NSS"]:
+        row["NSS"] = metrics.get("NSS_gt_top_10pct_proxy", "")
+    if not row["AUC_Judd"]:
+        row["AUC_Judd"] = metrics.get("AUC_Judd_gt_top_10pct_proxy", "")
 
     prov = report.get("participant_input", {})
     row["input_type"] = prov.get("input_mode", "")

@@ -140,7 +140,9 @@ _SIGMA_SS_SCREEN: dict[str, float] = {
 TIMING_CONTRACT   = "one_turn_from_start"
 DELAY_SECONDS     = 0.0
 FRAME_OFFSET      = 0
-RELEASE_TAG       = "v2.0-data-rc3"
+# Release tag is environment-driven so an rc4 (or later) run records the right
+# provenance without editing this file; defaults to rc3 for backward compatibility.
+RELEASE_TAG       = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc3")
 FIXATION_DATA_TAG = "processed_fixations_offset0_full_cleaned"
 
 # ── model exclusions ──────────────────────────────────────────────────────────
@@ -334,15 +336,30 @@ def _select_report(task_out: Path) -> Path | None:
 
 
 def _provenance_mismatches(report: dict) -> list[str]:
-    """List provenance fields in the report that disagree with the run contract."""
-    prov = report.get("participant_input", {})
+    """List provenance problems: a required participant_input field that is missing
+    is a mismatch, as is any present field that disagrees with the run contract.
+    """
+    prov = report.get("participant_input")
+    if not isinstance(prov, dict):
+        return ["participant_input missing or not an object"]
+
     out: list[str] = []
+    # Required fields must be present.
+    for field in ("timing_contract", "frame_offset", "fixation_data_tag",
+                  "delay_frames", "fps"):
+        if prov.get(field) in (None, ""):
+            out.append(f"missing {field}")
+
     tc = prov.get("timing_contract")
     if tc not in (None, "") and tc != TIMING_CONTRACT:
         out.append(f"timing_contract={tc!r}!={TIMING_CONTRACT!r}")
     fo = prov.get("frame_offset")
-    if fo not in (None, "") and int(fo) != FRAME_OFFSET:
-        out.append(f"frame_offset={fo!r}!={FRAME_OFFSET}")
+    if fo not in (None, ""):
+        try:
+            if int(fo) != FRAME_OFFSET:
+                out.append(f"frame_offset={fo!r}!={FRAME_OFFSET}")
+        except (TypeError, ValueError):
+            out.append(f"frame_offset={fo!r} not an int")
     tag = prov.get("fixation_data_tag")
     if tag not in (None, "") and tag != FIXATION_DATA_TAG:
         out.append(f"fixation_data_tag={tag!r}!={FIXATION_DATA_TAG!r}")
@@ -354,7 +371,7 @@ def _provenance_mismatches(report: dict) -> list[str]:
             if int(df) != expected_df:
                 out.append(f"delay_frames={df!r}!={expected_df}")
         except (TypeError, ValueError):
-            pass
+            out.append(f"delay_frames={df!r}/fps={fps!r} not numeric")
     return out
 
 

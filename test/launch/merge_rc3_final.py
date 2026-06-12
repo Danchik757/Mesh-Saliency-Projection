@@ -6,14 +6,15 @@ into a single deduplicated metrics_long.csv and metrics_compact.csv.
 Safety guarantees
 -----------------
 1. Configuration compatibility (refuses to mix incompatible runs).
-   All ``ok`` rows must agree on the run-wide timing/provenance contract
-   (``release_tag``, ``timing_contract``, ``fixation_data_tag``,
-   ``frame_offset``, ``delay_seconds``).  Within each ``(dataset, method)``
-   group the sigma configuration (``sigma_deg``, ``radius_sigma_mult``,
-   ``sigma_px``, ``sigma_screen``) must also agree.  Any divergence is an
-   error: the merge aborts and prints every incompatibility it found rather
-   than silently averaging across contracts.  ``--allow-incompatible`` downgrades
-   the abort to a warning (use only when you know the inputs are comparable).
+   Every ``ok`` row must *carry* and *agree on* the run-wide timing/provenance
+   contract (``release_tag``, ``timing_contract``, ``fixation_data_tag``,
+   ``frame_offset``, ``delay_seconds``).  A missing field on any ok row is an
+   incompatibility, not a free pass.  Within each ``(dataset, method)`` group the
+   sigma fields required for that method (cone → ``sigma_deg`` +
+   ``radius_sigma_mult``; screen-space → ``sigma_px`` or ``sigma_screen``) must be
+   present and identical.  Any divergence aborts the merge with every
+   incompatibility listed.  There is no override flag: incompatible runs are
+   never merged.
 
 2. NaN / Inf exclusion.  Non-finite metric values (Python ``json`` round-trips
    ``NaN``/``Infinity``) are dropped from every mean instead of poisoning the
@@ -95,6 +96,21 @@ _CONFIG_GLOBAL_FIELDS = [
 # Sigma fields: must agree within each (dataset, method) group.
 _CONFIG_SIGMA_FIELDS = ["sigma_deg", "radius_sigma_mult", "sigma_px", "sigma_screen"]
 
+_MESHMAMBA_DATASETS = {"meshmamba_non_texture", "meshmamba_rgb_texture"}
+
+
+def _required_sigma_fields(dataset: str, method: str) -> list[str]:
+    """Sigma fields that MUST be populated for a given dataset/method.
+
+    cone           → sigma_deg + radius_sigma_mult
+    screen_space   → sigma_screen (MeshMamba, 256px) or sigma_px (3DVA/SAL3D, 1920px)
+    """
+    if method == "cone":
+        return ["sigma_deg", "radius_sigma_mult"]
+    if dataset in _MESHMAMBA_DATASETS:
+        return ["sigma_screen"]
+    return ["sigma_px"]
+
 
 class IncompatibleMergeError(RuntimeError):
     """Raised when ok rows from incompatible runs would be merged together."""
@@ -141,37 +157,50 @@ def load_jsonl(path: Path) -> list[dict]:
 def check_merge_compatibility(rows: list[dict]) -> list[str]:
     """Return a list of human-readable incompatibility messages (empty == compatible).
 
-    Only ``ok`` rows are checked — failed/error rows carry blank config fields.
+    Only ``ok`` rows are checked — failed/error rows legitimately carry blank
+    config fields.  An ok row that is *missing* a required field is itself an
+    incompatibility (it cannot be proven to share the contract).
     """
     ok_rows = [r for r in rows if r.get("status") == "ok"
                and r.get("error_type", "") != "dry_run"]
     problems: list[str] = []
 
-    # Run-wide fields: one value across the whole merge.
-    for field in _CONFIG_GLOBAL_FIELDS:
-        seen: dict[str, list[str]] = defaultdict(list)
-        for r in ok_rows:
-            seen[_norm(r.get(field))].append(r.get("job_key", "?"))
-        present = {k: v for k, v in seen.items() if k != ""}
-        if len(present) > 1:
-            detail = "; ".join(
-                f"{val!r} (e.g. {keys[0]}, n={len(keys)})"
-                for val, keys in sorted(present.items())
+    def _presence_and_conflict(scope_rows: list[dict], field: str, label: str) -> None:
+        present: set[str] = set()
+        missing: list[str] = []
+        for r in scope_rows:
+            v = _norm(r.get(field))
+            if v == "":
+                missing.append(r.get("job_key", "?"))
+            else:
+                present.add(v)
+        if missing:
+            problems.append(
+                f"missing {label} on {len(missing)} ok row(s) (e.g. {missing[0]})"
             )
-            problems.append(f"conflicting {field} across runs: {detail}")
+        if len(present) > 1:
+            problems.append(f"conflicting {label}: {sorted(present)}")
 
-    # Sigma fields: one value per (dataset, method) group.
+    # Run-wide fields: present on every ok row AND one value across the merge.
+    for field in _CONFIG_GLOBAL_FIELDS:
+        _presence_and_conflict(ok_rows, field, field)
+
+    # Sigma fields: required ones must be present + consistent per (dataset, method);
+    # non-required ones must still not conflict if populated.
     groups: dict[tuple, list[dict]] = defaultdict(list)
     for r in ok_rows:
         groups[(r.get("dataset", "?"), r.get("method", "?"))].append(r)
     for (ds, method), grp in sorted(groups.items()):
+        required = _required_sigma_fields(ds, method)
+        for field in required:
+            _presence_and_conflict(grp, field, f"{field} for {ds}/{method}")
         for field in _CONFIG_SIGMA_FIELDS:
+            if field in required:
+                continue
             vals = {_norm(r.get(field)) for r in grp}
             vals.discard("")
             if len(vals) > 1:
-                problems.append(
-                    f"conflicting {field} for {ds}/{method}: {sorted(vals)}"
-                )
+                problems.append(f"conflicting {field} for {ds}/{method}: {sorted(vals)}")
     return problems
 
 
@@ -328,8 +357,6 @@ def parse_args() -> argparse.Namespace:
                    help="One or more metrics_rows.jsonl files to merge (in priority order).")
     p.add_argument("--output-dir", required=True, type=Path,
                    help="Directory to write merged CSVs and summary.")
-    p.add_argument("--allow-incompatible", action="store_true",
-                   help="Downgrade configuration-mismatch errors to warnings (use with care).")
     return p.parse_args()
 
 
@@ -348,14 +375,11 @@ def main() -> int:
         print("[merge] INCOMPATIBLE INPUTS — refusing to mix metric runs:", file=sys.stderr)
         for problem in problems:
             print(f"  - {problem}", file=sys.stderr)
-        if not args.allow_incompatible:
-            raise IncompatibleMergeError(
-                f"{len(problems)} configuration incompatibilit"
-                f"{'y' if len(problems) == 1 else 'ies'} found; "
-                "pass --allow-incompatible only if the inputs are truly comparable."
-            )
-        print("[merge] --allow-incompatible set: continuing despite mismatches.",
-              file=sys.stderr)
+        raise IncompatibleMergeError(
+            f"{len(problems)} configuration incompatibilit"
+            f"{'y' if len(problems) == 1 else 'ies'} found; incompatible runs are "
+            "never merged. Re-run the affected jobs under a single configuration."
+        )
 
     merged = merge_rows(args.jsonl_files)
     print(f"[merge] {len(merged)} unique job_keys after dedup", file=sys.stderr)
