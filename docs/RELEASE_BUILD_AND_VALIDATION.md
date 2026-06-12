@@ -23,7 +23,10 @@ by the current builder; recover it from git history if ever required.
 ## Building (`scripts/build_release_candidate.py`)
 
 Default tag `v2.0-data-rc4`. Includes the 298 offset0 fixation JSONs, SAL3D
-repaired per-face GT, and the full SAL3D Smooth Gaze archive.
+repaired per-face GT, and the full SAL3D Smooth Gaze archive. The full Smooth
+Gaze archive is **mandatory** under schema v2 — the builder always includes it
+(there is no exclusion flag), the manifest always references it, and the
+validator always requires `sal3d_smooth_gaze.zip`.
 
 ### Inputs: tracked vs external
 

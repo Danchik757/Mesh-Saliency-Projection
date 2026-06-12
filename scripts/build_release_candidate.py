@@ -91,12 +91,8 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument("--videos-root", type=Path, default=saliency_root / "videos")
     parser.add_argument("--include-videos", action="store_true")
-    parser.add_argument(
-        "--no-sal3d-smooth-gaze", dest="include_sal3d_smooth_gaze",
-        action="store_false",
-        help="Exclude the full SAL3D Smooth Gaze archive (included by default in rc4).",
-    )
-    parser.set_defaults(include_sal3d_smooth_gaze=True)
+    # The full SAL3D Smooth Gaze archive is a MANDATORY part of the schema-v2
+    # contract; there is intentionally no flag to exclude it.
     parser.add_argument("--dry-run", action="store_true",
                         help="Print the release plan + manifest metadata; build nothing.")
     parser.add_argument("--force", action="store_true")
@@ -222,23 +218,21 @@ def build_specs(args: argparse.Namespace) -> list[tuple[str, list[tuple[Path, st
             "sal3d_fixed_face_gt.zip",
             [(args.data_sal3d_fixed_root, "datasets/SAL3D_fixed/sal3d_benchmark_pkg")],
         ),
+        # Mandatory under schema v2 — always included.
+        ("sal3d_smooth_gaze.zip",
+         [(args.data_sal3d_root / "Smooth_Gaze", "datasets/SAL3D/Smooth_Gaze")]),
     ]
-    if args.include_sal3d_smooth_gaze:
-        specs.append(
-            ("sal3d_smooth_gaze.zip",
-             [(args.data_sal3d_root / "Smooth_Gaze", "datasets/SAL3D/Smooth_Gaze")])
-        )
     if args.include_videos:
         specs.append(("source_videos.zip", [(args.videos_root, "source_videos")]))
     return specs
 
 
-def build_manifest_metadata(tag: str, commit: str,
-                            *, include_smooth_gaze: bool = True) -> dict:
+def build_manifest_metadata(tag: str, commit: str) -> dict:
     """Static manifest metadata for the offset0 / one_turn_from_start release.
 
     Archives are appended by main(); everything else (schema, contracts, based_on)
-    is fixed here so it can be unit-tested without building anything.
+    is fixed here so it can be unit-tested without building anything.  The full
+    SAL3D Smooth Gaze archive is mandatory and always referenced.
     """
     return {
         "schema_version": SCHEMA_VERSION,
@@ -279,7 +273,7 @@ def build_manifest_metadata(tag: str, commit: str,
         "sal3d_contract": {
             "fixed_face_gt_archive": "sal3d_fixed_face_gt.zip",
             "raw_gaze_archive": "sal3d_gaze_gt.zip",
-            "smooth_gaze_archive": "sal3d_smooth_gaze.zip" if include_smooth_gaze else None,
+            "smooth_gaze_archive": "sal3d_smooth_gaze.zip",
             "gt_domain": "face",
             "use_for_metrics": True,
         },
@@ -369,9 +363,7 @@ def main() -> int:
         commit = "unknown"
 
     specs = build_specs(args)
-    manifest = build_manifest_metadata(
-        args.tag, commit, include_smooth_gaze=args.include_sal3d_smooth_gaze
-    )
+    manifest = build_manifest_metadata(args.tag, commit)
 
     problems = strict_preflight(args, specs)
 

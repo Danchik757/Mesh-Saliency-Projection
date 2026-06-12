@@ -75,3 +75,76 @@ def test_provenance_missing_fields_flagged():
     partial = {"participant_input": {"timing_contract": _m.TIMING_CONTRACT}}
     problems = _m._provenance_mismatches(partial)
     assert any("missing frame_offset" in p for p in problems)
+
+
+# ── item 1: config signature in key AND per-task paths ──────────────────────────
+
+class _Args:
+    batch_output_dir = "/tmp/sweep"
+    fixation_root = None
+
+
+def _job():
+    return _m.SigmaSweepJob(dataset="sal3d", model="alien", method="cone",
+                            sigma_deg=1.0, radius_sigma_mult=3.0)
+
+
+def test_key_and_path_change_with_release_tag(monkeypatch):
+    job = _job()
+    k1, p1 = job.key, str(_m._task_output_dir(job, _Args()))
+    monkeypatch.setattr(_m, "RELEASE_TAG", "v2.0-data-rc4")
+    assert job.key != k1
+    assert str(_m._task_output_dir(job, _Args())) != p1
+
+
+def test_key_and_path_change_with_timing_contract(monkeypatch):
+    job = _job()
+    k1, p1 = job.key, str(_m._task_output_dir(job, _Args()))
+    monkeypatch.setattr(_m, "TIMING_CONTRACT", "cropped_reset")
+    assert job.key != k1
+    assert str(_m._task_output_dir(job, _Args())) != p1
+
+
+def test_key_changes_with_fixation_tag_and_delay(monkeypatch):
+    job = _job()
+    k1 = job.key
+    monkeypatch.setattr(_m, "FIXATION_DATA_TAG", "something_else")
+    assert job.key != k1
+    monkeypatch.undo()
+    monkeypatch.setattr(_m, "DELAY_SECONDS", 0.2)
+    assert job.key != k1
+
+
+def test_key_includes_full_contract():
+    k = _job().key
+    for token in (_m.RELEASE_TAG, _m.TIMING_CONTRACT, _m.FIXATION_DATA_TAG, "fo0", "dl0.0"):
+        assert token in k
+
+
+# ── item 2: delay/gaze/placement provenance ─────────────────────────────────────
+
+def test_delay_frames_mismatch_flagged():
+    # Reviewer reproduction: delay_frames=6 while delay_seconds=0.0 (expected 0).
+    prov = {"participant_input": {
+        "timing_contract": "one_turn_from_start", "frame_offset": 0,
+        "fixation_data_tag": _m.FIXATION_DATA_TAG, "fps": 30,
+        "delay_frames": 6, "gaze_start_frame": 0, "placement_start_frame": 0}}
+    assert any("delay_frames=6" in p for p in _m._provenance_mismatches(prov))
+
+
+def test_gaze_and_placement_start_validated():
+    prov = {"participant_input": {
+        "timing_contract": "one_turn_from_start", "frame_offset": 0,
+        "fixation_data_tag": _m.FIXATION_DATA_TAG, "fps": 30,
+        "delay_frames": 0, "gaze_start_frame": 7, "placement_start_frame": 3}}
+    problems = _m._provenance_mismatches(prov)
+    assert any("gaze_start_frame" in p for p in problems)
+    assert any("placement_start_frame" in p for p in problems)
+
+
+def test_correct_sweep_provenance_clean():
+    prov = {"participant_input": {
+        "timing_contract": "one_turn_from_start", "frame_offset": 0,
+        "fixation_data_tag": _m.FIXATION_DATA_TAG, "fps": 30,
+        "delay_frames": 0, "gaze_start_frame": 0, "placement_start_frame": 0}}
+    assert _m._provenance_mismatches(prov) == []

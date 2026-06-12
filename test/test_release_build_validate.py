@@ -60,6 +60,28 @@ def test_manifest_based_on_has_no_legacy_terms():
         assert stale not in based_on
 
 
+def test_smooth_gaze_is_mandatory():
+    # Item 3: no exclusion flag, manifest always references it, specs always build it.
+    import inspect
+    assert "--no-sal3d-smooth-gaze" not in inspect.getsource(_builder.parse_args)
+    assert "include_smooth_gaze" not in inspect.signature(_builder.build_manifest_metadata).parameters
+
+    manifest = _builder.build_manifest_metadata("v2.0-data-rc4", "x")
+    assert manifest["sal3d_contract"]["smooth_gaze_archive"] == "sal3d_smooth_gaze.zip"
+
+    class NS:
+        repo_root = REPO_ROOT
+        fixation_source = None
+        data_3dva_root = REPO_ROOT / "x"
+        data_meshmamba_root = REPO_ROOT / "x"
+        data_sal3d_root = REPO_ROOT / "x"
+        data_sal3d_fixed_root = REPO_ROOT / "x"
+        videos_root = REPO_ROOT / "x"
+        include_videos = False
+    spec_names = [name for name, _ in _builder.build_specs(NS())]
+    assert "sal3d_smooth_gaze.zip" in spec_names
+
+
 def test_default_fixation_source_is_canonical_tracked_path():
     # Item 1: the default tracked source is participant_data/processed_fixations_offset0_full_cleaned/
     class NS:

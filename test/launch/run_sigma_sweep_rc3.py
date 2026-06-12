@@ -165,6 +165,24 @@ FRAME_OFFSET      = 0
 RELEASE_TAG       = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc3")
 FIXATION_DATA_TAG = "processed_fixations_offset0_full_cleaned"
 
+
+def _config_signature() -> str:
+    """Stable string capturing the run-wide timing/release/fixation contract.
+
+    Read from the module globals at call time so a test (or REPROJECT_RELEASE_TAG)
+    that changes the contract changes the signature — and therefore the job key
+    and per-task paths.
+    """
+    return (f"{RELEASE_TAG}|{TIMING_CONTRACT}|{FIXATION_DATA_TAG}"
+            f"|fo{FRAME_OFFSET}|dl{DELAY_SECONDS}")
+
+
+def _config_path_token() -> str:
+    """Filesystem-safe token for the config signature (release tag + short hash)."""
+    digest = hashlib.md5(_config_signature().encode()).hexdigest()[:8]
+    rel = RELEASE_TAG.replace(".", "p").replace("/", "_")
+    return f"{rel}_{digest}"
+
 # ── model list ────────────────────────────────────────────────────────────────
 
 _MODEL_LIST_DIR = REPO_ROOT / "jsons" / "sigma_sweep_model_lists"
@@ -236,7 +254,11 @@ class SigmaSweepJob:
 
     @property
     def key(self) -> str:
-        return f"{self.dataset}:{self.model}:{self.method}:{self.sigma_tag}"
+        # Identity embeds the timing/release/fixation/frame_offset/delay contract so a
+        # resume into a directory built under a different configuration cannot
+        # silently skip jobs that share dataset/model/method/sigma but not contract.
+        return (f"{_config_signature()}:"
+                f"{self.dataset}:{self.model}:{self.method}:{self.sigma_tag}")
 
     def shard(self, num_shards: int) -> int:
         return int(hashlib.md5(self.key.encode()).hexdigest(), 16) % num_shards
@@ -360,12 +382,15 @@ def build_command(job: SigmaSweepJob, args: argparse.Namespace) -> list[str]:
                 "--radius-sigma-mult", str(job.radius_sigma_mult)]
 
     task_out = _task_output_dir(job, args)
-    cmd += ["--output-dir", str(task_out), "--tag", f"sigma1_{job.sigma_tag}"]
+    cmd += ["--output-dir", str(task_out),
+            "--tag", f"sigma1_{_config_path_token()}_{job.sigma_tag}"]
     return cmd
 
 
 def _task_output_dir(job: SigmaSweepJob, args: argparse.Namespace) -> Path:
-    return (Path(args.batch_output_dir) / "per_task"
+    # Config token segregates per-task outputs by contract so a stale report from a
+    # different release/timing/fixation/delay configuration is never selected.
+    return (Path(args.batch_output_dir) / "per_task" / _config_path_token()
             / job.dataset / job.model / f"{job.method}_{job.sigma_tag}")
 
 
@@ -419,13 +444,15 @@ def _select_report(task_out: Path) -> "Path | None":
 
 
 def _provenance_mismatches(report: dict) -> list[str]:
-    """Required participant_input fields must be present and match the sweep contract."""
+    """Required participant_input fields must be present and match the FIXED sweep
+    contract (one_turn_from_start, frame_offset=0, delay_seconds=0).
+    """
     prov = report.get("participant_input")
     if not isinstance(prov, dict):
         return ["participant_input missing or not an object"]
     out: list[str] = []
     for field in ("timing_contract", "frame_offset", "fixation_data_tag",
-                  "delay_frames", "fps"):
+                  "delay_frames", "fps", "gaze_start_frame", "placement_start_frame"):
         if prov.get(field) in (None, ""):
             out.append(f"missing {field}")
     tc = prov.get("timing_contract")
@@ -441,6 +468,38 @@ def _provenance_mismatches(report: dict) -> list[str]:
     tag = prov.get("fixation_data_tag")
     if tag not in (None, "") and tag != FIXATION_DATA_TAG:
         out.append(f"fixation_data_tag={tag!r}!={FIXATION_DATA_TAG!r}")
+
+    fps = prov.get("fps")
+    expected_delay_frames = None
+    if fps not in (None, ""):
+        try:
+            expected_delay_frames = round(DELAY_SECONDS * float(fps))
+        except (TypeError, ValueError):
+            out.append(f"fps={fps!r} not numeric")
+    if expected_delay_frames is not None:
+        df = prov.get("delay_frames")
+        if df not in (None, ""):
+            try:
+                if int(df) != expected_delay_frames:
+                    out.append(f"delay_frames={df!r}!={expected_delay_frames}")
+            except (TypeError, ValueError):
+                out.append(f"delay_frames={df!r} not an int")
+        expected_gaze_start = FRAME_OFFSET + max(0, expected_delay_frames)
+        expected_placement_start = FRAME_OFFSET + max(0, -expected_delay_frames)
+        gsf = prov.get("gaze_start_frame")
+        if gsf not in (None, ""):
+            try:
+                if int(gsf) != expected_gaze_start:
+                    out.append(f"gaze_start_frame={gsf!r}!={expected_gaze_start}")
+            except (TypeError, ValueError):
+                out.append(f"gaze_start_frame={gsf!r} not an int")
+        psf = prov.get("placement_start_frame")
+        if psf not in (None, ""):
+            try:
+                if int(psf) != expected_placement_start:
+                    out.append(f"placement_start_frame={psf!r}!={expected_placement_start}")
+            except (TypeError, ValueError):
+                out.append(f"placement_start_frame={psf!r} not an int")
     return out
 
 

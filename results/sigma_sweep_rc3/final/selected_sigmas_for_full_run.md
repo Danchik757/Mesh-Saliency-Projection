@@ -1,8 +1,8 @@
 # Selected Sigmas for RC3 Full Metric Run (Optimized)
 
-Generated from: rc3 sigma sweep stage-1 (`rc3_sigma_sweep_20260611_stage1_fix3`)  
-Source JSONL: `merged_all_shards/sigma_sweep_rows.jsonl` (1395 ok rows, 5 failures)  
-Selection date: 2026-06-11  
+Generated from: rc3 sigma sweep stage-1 (`rc3_sigma_sweep_20260611_stage1_fix3`)
+Source JSONL: `merged_all_shards/sigma_sweep_rows.jsonl` (1395 ok rows, 5 failures)
+Selection date: 2026-06-11
 Selection metric: mean CC on 25-model sweep subset per dataset/method
 
 ---
@@ -27,7 +27,7 @@ Selection metric: mean CC on 25-model sweep subset per dataset/method
 ## Selection Rationale
 
 ### 3DVA / cone  σ_deg=2.0
-Sweep shows monotonically increasing CC across all 7 sigma values (0.5→2.0°). Best at σ=2.0 (CC=0.4247).  
+Sweep shows monotonically increasing CC across all 7 sigma values (0.5→2.0°). Best at σ=2.0 (CC=0.4247).
 **Boundary risk**: curve has not saturated. Recommend stage-2 sweep with σ=[2.0, 2.5, 3.0, 3.5]°.
 
 ### 3DVA / screen_space  σ_mult=0.70 (σ_px=34.3)
@@ -46,7 +46,7 @@ Note: the pre-sweep expectation was 0.50 based on a hypothesis that smaller sigm
 Interior peak. CC at σ=0.8 (0.3105) exceeds both σ=0.65 (0.3057) and σ=1.0 (0.3077). No boundary risk.
 
 ### MeshMamba non_texture / screen_space  σ_mult=0.50 (σ_screen=0.025)
-Sweep shows monotonically decreasing CC as σ increases. Best at the lowest tested multiplier (0.50).  
+Sweep shows monotonically decreasing CC as σ increases. Best at the lowest tested multiplier (0.50).
 **Boundary risk**: curve has not saturated. Recommend stage-2 sweep with σ_mult=[0.20, 0.30, 0.40, 0.50].
 
 ### MeshMamba rgb_texture / cone  σ_deg=1.0
@@ -56,15 +56,15 @@ Interior peak. CC at σ=1.0 (0.2493) > σ=0.8 (0.2449) and σ=1.25 (0.2484). Non
 Same pattern as non_texture. Boundary risk applies.
 
 ### SAL3D / cone  σ_deg=2.0
-Key finding: cart/cone timeouts at σ=0.5, 0.8, 1.0, 1.25, 1.6 (5 failures). At σ=2.0 cart completes.  
-On the 24-model common set (excluding cart): σ=1.6 CC = σ=2.0 CC = 0.5414 (tie to 4 decimal places).  
+Key finding: cart/cone timeouts at σ=0.5, 0.8, 1.0, 1.25, 1.6 (5 failures). At σ=2.0 cart completes.
+On the 24-model common set (excluding cart): σ=1.6 CC = σ=2.0 CC = 0.5414 (tie to 4 decimal places).
 σ=2.0 preferred because:
 1. Cart completes without timeout (full 25-model coverage).
 2. σ=2.0 gives lower KLD (0.301 vs 0.315 at σ=1.6) and higher SIM (0.702 vs 0.697).
 3. No boundary risk — CC drops at σ=2.5 would be expected; the curve shows a clear plateau.
 
 ### SAL3D / screen_space  σ_mult=1.50 (σ_px=39.45)
-Monotonically increasing CC across the full range.  
+Monotonically increasing CC across the full range.
 **Boundary risk**: curve has not saturated. Recommend stage-2 sweep with σ_mult=[1.50, 1.75, 2.00, 2.50].
 
 ---
