@@ -43,7 +43,14 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-from utils.participant_loader import GazeBatch, load_processed_track, load_csv_compat_track  # noqa: E402
+from utils.participant_loader import (  # noqa: E402
+    GazeBatch,
+    TIMING_CONTRACT_CROPPED_RESET,
+    TIMING_CONTRACT_ONE_TURN,
+    guard_report_compatible,
+    load_csv_compat_track,
+    load_processed_track,
+)
 from utils.sal3d_fixed_gt import load_fixed_face_gt  # noqa: E402
 
 FrameGazeBatch = GazeBatch
@@ -80,13 +87,55 @@ def parse_args() -> argparse.Namespace:
             ) if k in os.environ),
             None,
         ),
-        help="Root of processed_fixations_offset_2000/. Required unless --csv-compat is set.",
+        help="Root of the processed fixation JSON tree (offset0 full cleaned for rc3+). Required unless --csv-compat is set.",
     )
     parser.add_argument(
         "--csv-compat",
         action="store_true",
         default=False,
         help="Use legacy CSV input (requires --csv-root). Reports will show input_mode=csv_compat.",
+    )
+    parser.add_argument(
+        "--timing-contract",
+        default=os.environ.get("REPROJECT_TIMING_CONTRACT", TIMING_CONTRACT_CROPPED_RESET),
+        choices=[TIMING_CONTRACT_CROPPED_RESET, TIMING_CONTRACT_ONE_TURN],
+        help=(
+            "Timing contract for participant data. "
+            "'cropped_reset': skip 1.8s/0.2s (default, offset_2000 data). "
+            "'one_turn_from_start': one full rotation from frame 0 (offset_0 data). "
+            "Also read from REPROJECT_TIMING_CONTRACT env var."
+        ),
+    )
+    parser.add_argument(
+        "--delay-seconds",
+        type=float,
+        default=float(os.environ.get("REPROJECT_GAZE_DELAY_SECONDS", "0.0")),
+        help=(
+            "Gaze-to-placement delay in seconds (one_turn_from_start only). "
+            "+0.2 → gaze[6:6+N] paired with placement[0:N]. "
+            "-0.2 → gaze[0:N] paired with placement[6:6+N]. "
+            "Default 0.0. Env: REPROJECT_GAZE_DELAY_SECONDS."
+        ),
+    )
+    parser.add_argument(
+        "--frame-offset",
+        type=int,
+        default=int(os.environ.get("REPROJECT_FRAME_OFFSET", "0")),
+        help=(
+            "Absolute frame offset for window mode (one_turn_from_start only). "
+            "0=cut_tail, tail=cut_head, tail//2=center. "
+            "Env: REPROJECT_FRAME_OFFSET."
+        ),
+    )
+    parser.add_argument(
+        "--fixation-data-tag",
+        default=os.environ.get("REPROJECT_FIXATION_DATA_TAG"),
+        help=(
+            "Label for the fixation dataset version embedded in provenance "
+            "(e.g. 'processed_fixations_offset0_full_cleaned'). "
+            "Falls back to basename of --fixation-root. "
+            "Env: REPROJECT_FIXATION_DATA_TAG."
+        ),
     )
     parser.add_argument(
         "--json-root",
@@ -434,10 +483,15 @@ def _load_gaze_track(args: argparse.Namespace, placement_path: Path):
         )
     if args.fixation_root is None:
         raise SystemExit("--fixation-root is required unless --csv-compat is set")
+    data_tag = getattr(args, "fixation_data_tag", None) or Path(args.fixation_root).name
     return load_processed_track(
         args.fixation_root / canonical_name / "fixations.json",
         placement_path,
         dataset=dataset, model=model, canonical_name=canonical_name,
+        timing_contract=args.timing_contract,
+        delay_seconds=getattr(args, "delay_seconds", 0.0),
+        frame_offset=getattr(args, "frame_offset", 0),
+        fixation_data_tag=data_tag,
     )
 
 
@@ -1004,6 +1058,16 @@ def main() -> None:
         }
 
     report_path = out_dir / f"{args.model}_report.json"
+    guard_report_compatible(
+        report_path,
+        timing_contract=getattr(args, "timing_contract", TIMING_CONTRACT_CROPPED_RESET),
+        fixation_data_tag=track.provenance.get("fixation_data_tag"),
+        delay_frames=track.provenance.get("delay_frames"),
+        turn_frame_count=track.provenance.get("turn_frame_count"),
+        gaze_start_frame=track.provenance.get("gaze_start_frame"),
+        placement_start_frame=track.provenance.get("placement_start_frame"),
+        frame_offset=track.provenance.get("frame_offset", 0),
+    )
     report_path.write_text(json.dumps(report, indent=2), encoding="utf-8")
     print(json.dumps(report, indent=2))
     print(f"\nSaved: {report_path}")

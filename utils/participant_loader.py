@@ -3,15 +3,24 @@ Shared processed-fixation and timing loader for all benchmark evaluators.
 
 Processing flow
 ---------------
-1. Load the canonical placement JSON from jsons/object_placement/.
-2. Derive the one-turn usable window from placement JSON (not hardcoded):
-     crop_start_frames = round(1.8 * fps)
-     crop_end_frames   = round(0.2 * fps)
-     placement_start   = crop_start_frames
-     placement_end_exclusive = total_frames - crop_end_frames
-3. Pair processed_gaze[k] -> placement[placement_start + k].
-4. Validate frame counts, rotation speed, and full-turn coverage before
-   returning data.
+Two timing contracts are supported:
+
+  cropped_reset (legacy, offset_2000 data):
+    1. Skip crop_start_frames = round(1.8 * fps) from the start.
+    2. Skip crop_end_frames   = round(0.2 * fps) from the end.
+    3. Pair processed_gaze[k] -> placement[placement_start + k].
+    4. Validates exact frame count and full-turn coverage.
+
+  one_turn_from_start (new, offset_0 data):
+    1. Compute turn_frames = round(abs(360 / rotation_speed) * fps).
+    2. Apply optional delay: gaze_start = max(0, delay_frames),
+       placement_start = max(0, -delay_frames).
+    3. Pair processed_gaze[gaze_start + k] -> placement[placement_start + k]
+       for k in range(turn_frames).
+    4. Extra frames beyond one turn are truncated from the end (not an error).
+    5. Validates that enough frames exist; does NOT enforce exact file length.
+
+Select the contract via timing_contract= parameter or REPROJECT_TIMING_CONTRACT env var.
 
 Processed fixation JSON format:
     fixations[frame_index][point_index] = [x_px, y_px]
@@ -39,6 +48,10 @@ from typing import Any
 # Approved timing constants (DECISIONS_REQUIRED.md, Decision 3).
 CROP_START_SECONDS: float = 1.8
 CROP_END_SECONDS: float = 0.2
+
+# Timing contract identifiers.
+TIMING_CONTRACT_CROPPED_RESET: str = "cropped_reset"
+TIMING_CONTRACT_ONE_TURN: str = "one_turn_from_start"
 
 # Rotation-speed tolerance: one frame at the declared fps (fractional seconds).
 # The validator uses the same rule from validate_data_contract.py.
@@ -81,6 +94,30 @@ class InvalidFixationError(ParticipantLoaderError):
 
 class TimingValidationError(ParticipantLoaderError):
     """Placement JSON fails timing or full-turn validation."""
+
+
+class ResumeReportUnreadableError(ParticipantLoaderError):
+    """An existing report file is present but cannot be read or parsed.
+
+    Raised so that a corrupt/unreadable report is never silently treated as
+    "compatible" during a resume.  The operator must delete it (to regenerate)
+    or use a different output directory.
+    """
+
+
+class ResumeContractMismatchError(ParticipantLoaderError):
+    """Existing report was produced with a different timing contract or data source."""
+
+    def __init__(self, report_path: Path, field: str, existing: Any, expected: Any) -> None:
+        self.report_path = report_path
+        self.field = field
+        self.existing = existing
+        self.expected = expected
+        super().__init__(
+            f"Resume guard: existing report {report_path} was produced with "
+            f"{field}={existing!r} but the current run expects {expected!r}. "
+            "Delete the report or use a different output directory."
+        )
 
 
 def resolve_processed_fixation_path(fixation_path: Path) -> Path:
@@ -250,6 +287,98 @@ def _derive_timing(placement: dict[str, Any], path: Path) -> dict[str, Any]:
     }
 
 
+def _derive_timing_one_turn(
+    placement: dict[str, Any],
+    path: Path,
+    delay_seconds: float,
+    frame_offset: int = 0,
+) -> dict[str, Any]:
+    """Validate placement JSON and return timing for one_turn_from_start contract.
+
+    Takes exactly one full rotation starting at frame_offset — no crop_start/crop_end.
+    Fixation files longer than one turn are accepted; extra trailing frames
+    are truncated during pairing.  frame_offset shifts both gaze_start and
+    placement_start by the same absolute amount (cut_head / center window modes).
+    """
+    try:
+        vi = placement["video_info"]
+        fps = float(vi["fps"])
+        total_frames = int(vi["total_frames"])
+        duration = float(vi["duration_seconds"])
+        width = int(vi["resolution_width"])
+        height = int(vi["resolution_height"])
+        anim = placement["animation"]
+        rotation_speed = float(anim["rotation_speed_deg_per_sec"])
+        frames = placement["frames"]
+    except (KeyError, TypeError, ValueError) as exc:
+        raise TimingValidationError(f"Malformed placement JSON {path}: {exc}") from exc
+
+    if len(frames) != total_frames:
+        raise TimingValidationError(
+            f"{path}: frames array length {len(frames)} != total_frames {total_frames}"
+        )
+
+    unwrapped = _unwrap_rotation_degrees(frames)
+    if len(unwrapped) >= 2:
+        observed_speed = (unwrapped[-1] - unwrapped[0]) / duration
+        if not math.isclose(
+            observed_speed, rotation_speed,
+            rel_tol=_ROTATION_SPEED_REL_TOL,
+            abs_tol=_ROTATION_SPEED_ABS_TOL,
+        ):
+            raise TimingValidationError(
+                f"{path}: observed rotation speed {observed_speed:.6f} deg/s "
+                f"!= declared {rotation_speed:.6f} deg/s"
+            )
+
+    turn_frames = round(abs(360.0 / rotation_speed) * fps)
+    delay_frames = round(delay_seconds * fps)
+
+    if frame_offset < 0:
+        raise TimingValidationError(
+            f"{path}: frame_offset={frame_offset} is negative. Negative frame offsets "
+            "would index the gaze/placement arrays from the end and silently pair the "
+            "wrong frames; refusing."
+        )
+
+    gaze_start = frame_offset + max(0, delay_frames)
+    placement_start = frame_offset + max(0, -delay_frames)
+    placement_end_exclusive = placement_start + turn_frames
+
+    if gaze_start < 0 or placement_start < 0:
+        raise TimingValidationError(
+            f"{path}: negative window start (gaze_start={gaze_start}, "
+            f"placement_start={placement_start}) from frame_offset={frame_offset}, "
+            f"delay_seconds={delay_seconds:.3f}. Refusing negative indexing."
+        )
+
+    if placement_end_exclusive > total_frames:
+        raise TimingValidationError(
+            f"{path}: with frame_offset={frame_offset}, delay_seconds={delay_seconds:.3f}, "
+            f"placement_end_exclusive={placement_end_exclusive} > total_frames={total_frames}. "
+            "Frame offset + delay magnitude too large for available placement data."
+        )
+
+    return {
+        "fps": fps,
+        "total_frames": total_frames,
+        "duration": duration,
+        "width": width,
+        "height": height,
+        "rotation_speed": rotation_speed,
+        "full_turn_seconds": abs(360.0 / rotation_speed),
+        "turn_frames": turn_frames,
+        "delay_frames": delay_frames,
+        "frame_offset": frame_offset,
+        "gaze_start": gaze_start,
+        "crop_start_frames": 0,
+        "crop_end_frames": 0,
+        "placement_start": placement_start,
+        "placement_end_exclusive": placement_end_exclusive,
+        "usable_count": turn_frames,
+    }
+
+
 def _unwrap_rotation_degrees(frames: list[dict]) -> list[float]:
     values: list[float] = []
     for frame in frames:
@@ -275,8 +404,12 @@ def _build_provenance(
     placement_path: Path,
     timing: dict[str, Any],
     input_mode: str,
+    timing_contract: str = TIMING_CONTRACT_CROPPED_RESET,
+    delay_frames: int = 0,
+    frame_offset: int = 0,
+    fixation_data_tag: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    prov: dict[str, Any] = {
         "input_mode": input_mode,
         "canonical_name": canonical_name,
         "dataset": dataset,
@@ -287,18 +420,41 @@ def _build_provenance(
         "total_frames": timing["total_frames"],
         "video_duration_seconds": timing["duration"],
         "resolution": f"{timing['width']}x{timing['height']}",
-        "fixation_format": "cropped_reset_offset_2000",
-        "fixation_start_index": 0,
-        "crop_start_seconds": CROP_START_SECONDS,
-        "crop_end_seconds": CROP_END_SECONDS,
-        "crop_start_frames": timing["crop_start_frames"],
-        "crop_end_frames": timing["crop_end_frames"],
+        "timing_contract": timing_contract,
+        "gaze_start_frame": timing.get("gaze_start", 0),
         "placement_start_frame": timing["placement_start"],
         "placement_end_frame_exclusive": timing["placement_end_exclusive"],
         "usable_count": timing["usable_count"],
+        "turn_frame_count": timing.get("turn_frames", timing["usable_count"]),
+        "delay_frames": delay_frames,
+        "frame_offset": frame_offset,
         "rotation_speed_deg_per_sec": timing["rotation_speed"],
         "full_turn_seconds": timing["full_turn_seconds"],
     }
+
+    if timing_contract == TIMING_CONTRACT_CROPPED_RESET:
+        prov.update({
+            "fixation_format": "cropped_reset_offset_2000",
+            "fixation_start_index": 0,
+            "crop_start_seconds": CROP_START_SECONDS,
+            "crop_end_seconds": CROP_END_SECONDS,
+            "crop_start_frames": timing["crop_start_frames"],
+            "crop_end_frames": timing["crop_end_frames"],
+        })
+    else:
+        prov.update({
+            "fixation_format": "one_turn_from_start_offset_0",
+            "fixation_start_index": timing.get("gaze_start", 0),
+            "crop_start_seconds": 0.0,
+            "crop_end_seconds": 0.0,
+            "crop_start_frames": 0,
+            "crop_end_frames": 0,
+        })
+
+    if fixation_data_tag is not None:
+        prov["fixation_data_tag"] = fixation_data_tag
+
+    return prov
 
 
 # ── processed JSON loader ─────────────────────────────────────────────────────
@@ -310,6 +466,10 @@ def load_processed_track(
     dataset: str,
     model: str,
     canonical_name: str | None = None,
+    timing_contract: str = TIMING_CONTRACT_CROPPED_RESET,
+    delay_seconds: float = 0.0,
+    frame_offset: int = 0,
+    fixation_data_tag: str | None = None,
 ) -> LoadedTrack:
     """Load a processed fixation JSON and pair with its placement JSON.
 
@@ -326,6 +486,18 @@ def load_processed_track(
     canonical_name:
         Full canonical name, e.g. "3DVA_A380". Derived from dataset+model if
         omitted.
+    timing_contract:
+        "cropped_reset" (default): skip crop_start/crop_end seconds.
+        "one_turn_from_start": take one full rotation from frame 0.
+    delay_seconds:
+        Only used with "one_turn_from_start". Positive = gaze leads placement
+        (gaze_start = round(delay_seconds * fps)). Negative = gaze lags.
+    frame_offset:
+        Only used with "one_turn_from_start". Shifts both gaze_start and
+        placement_start by this many frames before applying delay.
+        0 = cut_tail, tail = cut_head, tail//2 = center.
+    fixation_data_tag:
+        Optional label embedded in provenance (e.g. "mesh_json__offset_0").
 
     Raises
     ------
@@ -347,7 +519,11 @@ def load_processed_track(
         raise MissingFixationError(canonical_name, fixation_path)
 
     placement = _load_placement(placement_path)
-    timing = _derive_timing(placement, placement_path)
+
+    if timing_contract == TIMING_CONTRACT_ONE_TURN:
+        timing = _derive_timing_one_turn(placement, placement_path, delay_seconds, frame_offset)
+    else:
+        timing = _derive_timing(placement, placement_path)
 
     # Load and validate fixation JSON.
     try:
@@ -358,20 +534,35 @@ def load_processed_track(
     if not isinstance(raw, list):
         raise InvalidFixationError(canonical_name, "top level must be a list of frames")
 
-    total_frames = timing["total_frames"]
-    usable_count_expected = timing["usable_count"]
     if len(raw) == 0:
         raise InvalidFixationError(
             canonical_name,
             "fixation file is empty (0 frames); participant excluded from benchmark",
         )
-    if len(raw) != usable_count_expected:
-        raise InvalidFixationError(
-            canonical_name,
-            f"cropped fixation frames {len(raw)} != expected {usable_count_expected} "
-            f"(total_frames={total_frames}, "
-            f"crop_start={timing['crop_start_frames']}, crop_end={timing['crop_end_frames']})",
-        )
+
+    total_frames = timing["total_frames"]
+
+    if timing_contract == TIMING_CONTRACT_ONE_TURN:
+        gaze_start = timing["gaze_start"]
+        turn_frames = timing["turn_frames"]
+        required_gaze_frames = gaze_start + turn_frames
+        if len(raw) < required_gaze_frames:
+            raise InvalidFixationError(
+                canonical_name,
+                f"fixation frames {len(raw)} < required {required_gaze_frames} "
+                f"(turn_frames={turn_frames}, gaze_start={gaze_start}, "
+                f"delay_frames={timing['delay_frames']}, frame_offset={frame_offset})",
+            )
+    else:
+        gaze_start = 0
+        usable_count_expected = timing["usable_count"]
+        if len(raw) != usable_count_expected:
+            raise InvalidFixationError(
+                canonical_name,
+                f"cropped fixation frames {len(raw)} != expected {usable_count_expected} "
+                f"(total_frames={total_frames}, "
+                f"crop_start={timing['crop_start_frames']}, crop_end={timing['crop_end_frames']})",
+            )
 
     width = timing["width"]
     height = timing["height"]
@@ -379,10 +570,10 @@ def load_processed_track(
     placement_end_exclusive = timing["placement_end_exclusive"]
     usable_count = timing["usable_count"]
 
-    # Build gaze_batches: only the usable window.
+    # Build gaze_batches.
     gaze_batches: dict[int, GazeBatch] = {}
     for k in range(usable_count):
-        gaze_idx = k                           # index into fixations.json
+        gaze_idx = gaze_start + k              # index into fixations.json
         frame_idx = placement_start + k        # absolute placement frame index
 
         frame_points = raw[gaze_idx]
@@ -428,6 +619,10 @@ def load_processed_track(
         placement_path=placement_path,
         timing=timing,
         input_mode="processed_json",
+        timing_contract=timing_contract,
+        delay_frames=timing.get("delay_frames", 0),
+        frame_offset=timing.get("frame_offset", 0),
+        fixation_data_tag=fixation_data_tag,
     )
 
     return LoadedTrack(
@@ -451,6 +646,73 @@ def load_processed_track(
         input_mode="processed_json",
         provenance=provenance,
     )
+
+
+# ── resume guard ─────────────────────────────────────────────────────────────
+
+def guard_report_compatible(
+    report_path: Path,
+    *,
+    timing_contract: str,
+    fixation_data_tag: str | None = None,
+    delay_frames: int | None = None,
+    turn_frame_count: int | None = None,
+    gaze_start_frame: int | None = None,
+    placement_start_frame: int | None = None,
+    frame_offset: int | None = None,
+) -> None:
+    """Raise ResumeContractMismatchError if an existing report has incompatible provenance.
+
+    Call before writing a new report.  No-op when the report does not exist or
+    cannot be read.  Prevents silently reusing an old cropped_reset report as
+    if it were produced under the one_turn_from_start contract (and vice-versa),
+    or with a different delay, frame_offset, or dataset tag.
+
+    Checked fields: timing_contract, fixation_data_tag, delay_frames,
+    turn_frame_count, gaze_start_frame, placement_start_frame, frame_offset.
+
+    For one_turn_from_start: if the expected value is provided and the existing
+    report is missing that field, it is treated as a mismatch.
+    For cropped_reset: only raises when the field exists in the report and differs.
+    """
+    if not report_path.is_file():
+        return
+    try:
+        report = json.loads(report_path.read_text(encoding="utf-8"))
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        raise ResumeReportUnreadableError(
+            f"Resume guard: existing report {report_path} is present but could not be "
+            f"read/parsed ({type(exc).__name__}: {exc}). Refusing to silently treat it as "
+            "compatible. Delete the report to regenerate, or use a different output directory."
+        ) from exc
+
+    if not isinstance(report, dict):
+        raise ResumeReportUnreadableError(
+            f"Resume guard: existing report {report_path} is not a JSON object "
+            f"(got {type(report).__name__}). Delete it or use a different output directory."
+        )
+
+    prov = report.get("participant_input", {})
+    strict = (timing_contract == TIMING_CONTRACT_ONE_TURN)
+
+    def _check(field: str, expected: Any) -> None:
+        if expected is None:
+            return
+        existing = prov.get(field)
+        if strict:
+            if existing != expected:
+                raise ResumeContractMismatchError(report_path, field, existing, expected)
+        else:
+            if existing is not None and existing != expected:
+                raise ResumeContractMismatchError(report_path, field, existing, expected)
+
+    _check("timing_contract", timing_contract)
+    _check("fixation_data_tag", fixation_data_tag)
+    _check("delay_frames", delay_frames)
+    _check("turn_frame_count", turn_frame_count)
+    _check("gaze_start_frame", gaze_start_frame)
+    _check("placement_start_frame", placement_start_frame)
+    _check("frame_offset", frame_offset)
 
 
 # ── old-CSV compatibility loader ──────────────────────────────────────────────

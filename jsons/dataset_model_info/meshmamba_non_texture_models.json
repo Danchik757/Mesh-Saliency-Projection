@@ -22,8 +22,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Apple_Red_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Apple_Red_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Apple_Red_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Apple_Red_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -134,8 +134,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Aquarium_Deep_Sea_Diver_v1_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Aquarium_Deep_Sea_Diver_v1_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Aquarium_Deep_Sea_Diver_v1_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Aquarium_Deep_Sea_Diver_v1_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -246,8 +246,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Aquarium_Skull_v1_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Aquarium_Skull_v1_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Aquarium_Skull_v1_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Aquarium_Skull_v1_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -358,8 +358,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_ball_car_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_ball_car_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_ball_car_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_ball_car_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -470,8 +470,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_barbiegirl_V1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_barbiegirl_V1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_barbiegirl_V1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_barbiegirl_V1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -582,8 +582,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_BastetCat_v2_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_BastetCat_v2_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_BastetCat_v2_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_BastetCat_v2_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -694,8 +694,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Beauceron_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Beauceron_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Beauceron_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Beauceron_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -806,8 +806,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_BellPepper_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_BellPepper_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_BellPepper_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_BellPepper_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -918,8 +918,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Bird_Toucan_V3_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Bird_Toucan_V3_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Bird_Toucan_V3_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Bird_Toucan_V3_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1030,8 +1030,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Bird_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Bird_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Bird_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Bird_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1142,8 +1142,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Blackberry_v02_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Blackberry_v02_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Blackberry_v02_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Blackberry_v02_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1254,8 +1254,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Boombox_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Boombox_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Boombox_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Boombox_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1366,8 +1366,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Camel_toy_v03_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Camel_toy_v03_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Camel_toy_v03_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Camel_toy_v03_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1478,8 +1478,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Cardigan_Welsh_Corgi_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Cardigan_Welsh_Corgi_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Cardigan_Welsh_Corgi_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Cardigan_Welsh_Corgi_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1590,8 +1590,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Cat_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Cat_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Cat_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Cat_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1702,8 +1702,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_cathedral_wood_radio_v2_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_cathedral_wood_radio_v2_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_cathedral_wood_radio_v2_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_cathedral_wood_radio_v2_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1814,8 +1814,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Charging_Bull_Statue_of_Wall_Street_v1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Charging_Bull_Statue_of_Wall_Street_v1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Charging_Bull_Statue_of_Wall_Street_v1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Charging_Bull_Statue_of_Wall_Street_v1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -1926,8 +1926,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Chinese_coin/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Chinese_coin/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Chinese_coin/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Chinese_coin/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2038,8 +2038,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Chips_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Chips_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Chips_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Chips_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2150,8 +2150,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Christmas_Bear/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Christmas_Bear/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Christmas_Bear/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Christmas_Bear/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2262,8 +2262,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_CrawlingBaby_v1_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_CrawlingBaby_v1_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_CrawlingBaby_v1_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_CrawlingBaby_v1_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2374,8 +2374,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Deathstroke-obj/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Deathstroke-obj/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Deathstroke-obj/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Deathstroke-obj/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2486,8 +2486,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Diavolo_Mask_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Diavolo_Mask_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Diavolo_Mask_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Diavolo_Mask_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2598,8 +2598,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_doll_v3_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_doll_v3_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_doll_v3_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_doll_v3_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2710,8 +2710,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_dolphin_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_dolphin_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_dolphin_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_dolphin_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2822,8 +2822,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Domestic_cat_V2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Domestic_cat_V2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Domestic_cat_V2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Domestic_cat_V2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -2934,8 +2934,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Eagle_wood_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Eagle_wood_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Eagle_wood_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Eagle_wood_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3046,8 +3046,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_egypt_sphinx_V2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_egypt_sphinx_V2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_egypt_sphinx_V2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_egypt_sphinx_V2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3158,8 +3158,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Elephant_v01_l3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Elephant_v01_l3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Elephant_v01_l3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Elephant_v01_l3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3270,8 +3270,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Fighter_Jet_SG_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Fighter_Jet_SG_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Fighter_Jet_SG_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Fighter_Jet_SG_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3382,8 +3382,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Flying_saucer_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Flying_saucer_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Flying_saucer_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Flying_saucer_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3494,8 +3494,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_football_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_football_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_football_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_football_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3606,8 +3606,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Frog_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Frog_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Frog_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Frog_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3718,8 +3718,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Gold_Doubloon_v1_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Gold_Doubloon_v1_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Gold_Doubloon_v1_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Gold_Doubloon_v1_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3830,8 +3830,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_GrayAlien_v01_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_GrayAlien_v01_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_GrayAlien_v01_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_GrayAlien_v01_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -3942,8 +3942,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Great_Dane_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Great_Dane_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Great_Dane_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Great_Dane_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4054,8 +4054,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Gun_Powder_Keg_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Gun_Powder_Keg_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Gun_Powder_Keg_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Gun_Powder_Keg_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4166,8 +4166,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Handheld_Game_unit_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Handheld_Game_unit_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Handheld_Game_unit_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Handheld_Game_unit_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4278,8 +4278,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Holsteind_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Holsteind_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Holsteind_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Holsteind_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4390,8 +4390,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Horse_v01_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Horse_v01_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Horse_v01_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Horse_v01_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4502,8 +4502,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Hover_Truck_v1_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Hover_Truck_v1_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Hover_Truck_v1_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Hover_Truck_v1_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4614,8 +4614,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Ice_Cream_V1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Ice_Cream_V1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Ice_Cream_V1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Ice_Cream_V1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4726,8 +4726,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Ichthyosaurus_V1_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Ichthyosaurus_V1_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Ichthyosaurus_V1_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Ichthyosaurus_V1_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4838,8 +4838,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Impact_Driver_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Impact_Driver_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Impact_Driver_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Impact_Driver_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -4950,8 +4950,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Jambu_Fruit_Dove_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Jambu_Fruit_Dove_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Jambu_Fruit_Dove_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Jambu_Fruit_Dove_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5062,8 +5062,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Jukebox_bubbler_style_V2_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Jukebox_bubbler_style_V2_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Jukebox_bubbler_style_V2_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Jukebox_bubbler_style_V2_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5174,8 +5174,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Kangaroo_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Kangaroo_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Kangaroo_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Kangaroo_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5286,8 +5286,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_King_Cake_v2_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_King_Cake_v2_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_King_Cake_v2_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_King_Cake_v2_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5398,8 +5398,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Lamb_v1_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Lamb_v1_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Lamb_v1_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Lamb_v1_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5510,8 +5510,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Laser_Pistol_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Laser_Pistol_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Laser_Pistol_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Laser_Pistol_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5622,8 +5622,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Mango_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Mango_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Mango_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Mango_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5734,8 +5734,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_MansWorkCasual_v02_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_MansWorkCasual_v02_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_MansWorkCasual_v02_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_MansWorkCasual_v02_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5846,8 +5846,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Marco_Polo_Sheep_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Marco_Polo_Sheep_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Marco_Polo_Sheep_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Marco_Polo_Sheep_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -5958,8 +5958,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Military_Action_Figure_SG_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Military_Action_Figure_SG_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Military_Action_Figure_SG_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Military_Action_Figure_SG_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6070,8 +6070,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Moai_v3_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Moai_v3_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Moai_v3_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Moai_v3_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6182,8 +6182,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_modern_tabletop_radio_v1_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_modern_tabletop_radio_v1_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_modern_tabletop_radio_v1_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_modern_tabletop_radio_v1_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6294,8 +6294,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Mushroom_v2_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Mushroom_v2_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Mushroom_v2_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Mushroom_v2_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6406,8 +6406,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_MushroomShitake_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_MushroomShitake_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_MushroomShitake_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_MushroomShitake_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6518,8 +6518,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_NYC_Fire_Hydrant_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_NYC_Fire_Hydrant_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_NYC_Fire_Hydrant_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_NYC_Fire_Hydrant_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6630,8 +6630,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Peach_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Peach_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Peach_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Peach_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6742,8 +6742,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Peanut_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Peanut_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Peanut_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Peanut_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6854,8 +6854,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Pear_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Pear_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Pear_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Pear_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -6966,8 +6966,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Penguin_V2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Penguin_V2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Penguin_V2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Penguin_V2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7078,8 +7078,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Pierrot_Mask_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Pierrot_Mask_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Pierrot_Mask_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Pierrot_Mask_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7190,8 +7190,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Pirate_Shipmate_Old_v1_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Pirate_Shipmate_Old_v1_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Pirate_Shipmate_Old_v1_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Pirate_Shipmate_Old_v1_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7302,8 +7302,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Plate/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Plate/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Plate/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Plate/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7414,8 +7414,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_PoloTeamShirt_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_PoloTeamShirt_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_PoloTeamShirt_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_PoloTeamShirt_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7526,8 +7526,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Possum_wooden_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Possum_wooden_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Possum_wooden_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Possum_wooden_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7638,8 +7638,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Raptor_Claw_Fossil_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Raptor_Claw_Fossil_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Raptor_Claw_Fossil_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Raptor_Claw_Fossil_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7750,8 +7750,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Rhinoceros_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Rhinoceros_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Rhinoceros_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Rhinoceros_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7862,8 +7862,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_robot_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_robot_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_robot_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_robot_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -7974,8 +7974,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Rocket_Ship_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Rocket_Ship_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Rocket_Ship_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Rocket_Ship_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8086,8 +8086,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Rubber_Duck_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Rubber_Duck_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Rubber_Duck_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Rubber_Duck_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8198,8 +8198,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Seagull_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Seagull_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Seagull_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Seagull_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8310,8 +8310,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_SeaHorse_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_SeaHorse_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_SeaHorse_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_SeaHorse_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8422,8 +8422,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Seal_wooden_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Seal_wooden_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Seal_wooden_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Seal_wooden_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8534,8 +8534,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Sheep_doll_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Sheep_doll_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Sheep_doll_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Sheep_doll_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8646,8 +8646,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Sitting_inside_an_egg_v1_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Sitting_inside_an_egg_v1_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Sitting_inside_an_egg_v1_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Sitting_inside_an_egg_v1_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8758,8 +8758,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_SittingBaby_v1_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_SittingBaby_v1_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_SittingBaby_v1_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_SittingBaby_v1_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8870,8 +8870,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_SLR_Camera_V1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_SLR_Camera_V1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_SLR_Camera_V1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_SLR_Camera_V1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -8982,8 +8982,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Soda_Can_v3_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Soda_Can_v3_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Soda_Can_v3_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Soda_Can_v3_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9094,8 +9094,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Spark_Plug_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Spark_Plug_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Spark_Plug_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Spark_Plug_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9206,8 +9206,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Spinning_Top_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Spinning_Top_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Spinning_Top_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Spinning_Top_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9318,8 +9318,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Squirrel_wooden_v2_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Squirrel_wooden_v2_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Squirrel_wooden_v2_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Squirrel_wooden_v2_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9430,8 +9430,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_StandingBaby_v2_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_StandingBaby_v2_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_StandingBaby_v2_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_StandingBaby_v2_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9542,8 +9542,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Starfruit_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Starfruit_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Starfruit_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Starfruit_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9654,8 +9654,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_statue_Terracotta_squat_v2_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_statue_Terracotta_squat_v2_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_statue_Terracotta_squat_v2_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_statue_Terracotta_squat_v2_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9766,8 +9766,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_statue_Terracotta_v2_l1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_statue_Terracotta_v2_l1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_statue_Terracotta_v2_l1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_statue_Terracotta_v2_l1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9878,8 +9878,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Statue_v1_L2_David/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Statue_v1_L2_David/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Statue_v1_L2_David/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Statue_v1_L2_David/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -9990,8 +9990,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Statue_v1_L2_Venus/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Statue_v1_L2_Venus/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Statue_v1_L2_Venus/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Statue_v1_L2_Venus/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10102,8 +10102,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Statue_v1_L3_eagle/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Statue_v1_L3_eagle/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Statue_v1_L3_eagle/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Statue_v1_L3_eagle/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10214,8 +10214,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Statue_willendorf_V1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Statue_willendorf_V1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Statue_willendorf_V1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Statue_willendorf_V1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10326,8 +10326,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Stone_Chess_Bishop_Side_A_v2_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Stone_Chess_Bishop_Side_A_v2_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Stone_Chess_Bishop_Side_A_v2_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Stone_Chess_Bishop_Side_A_v2_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10438,8 +10438,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Stone_Chess_Knight_Side_A_v2_L1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Stone_Chess_Knight_Side_A_v2_L1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Stone_Chess_Knight_Side_A_v2_L1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Stone_Chess_Knight_Side_A_v2_L1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10550,8 +10550,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_stuffed_animal_v1_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_stuffed_animal_v1_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_stuffed_animal_v1_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_stuffed_animal_v1_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10662,8 +10662,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_TomatoBeefSteak_V1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_TomatoBeefSteak_V1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_TomatoBeefSteak_V1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_TomatoBeefSteak_V1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10774,8 +10774,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Tricorn_Hat_v1_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Tricorn_Hat_v1_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Tricorn_Hat_v1_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Tricorn_Hat_v1_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10886,8 +10886,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_UFO_v1_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_UFO_v1_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_UFO_v1_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_UFO_v1_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -10998,8 +10998,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Volto_Mask_v1_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Volto_Mask_v1_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Volto_Mask_v1_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Volto_Mask_v1_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -11110,8 +11110,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_watch_digital_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_watch_digital_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_watch_digital_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_watch_digital_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -11222,8 +11222,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Watermelon_V1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Watermelon_V1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Watermelon_V1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Watermelon_V1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -11334,8 +11334,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Whale_v4_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Whale_v4_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Whale_v4_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Whale_v4_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -11446,8 +11446,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_White-TailedDeer_V1_L2/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_White-TailedDeer_V1_L2/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_White-TailedDeer_V1_L2/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_White-TailedDeer_V1_L2/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -11558,8 +11558,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_Wicker_Basket_v1_L3/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_Wicker_Basket_v1_L3/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_Wicker_Basket_v1_L3/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_Wicker_Basket_v1_L3/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },
@@ -11670,8 +11670,8 @@
         "default_format": "processed_fixations_json",
         "automatic_fallback_allowed": false,
         "processed_fixations_json": {
-          "repository_staging_path": "participant_data/processed_fixations_offset_2000/MeshMamba_non_texture_WWII_Plane-Germany_Focke-Wulf_Fw_190_v1/fixations.json",
-          "release_path": "participant_fixations_processed_offset_2000/MeshMamba_non_texture_WWII_Plane-Germany_Focke-Wulf_Fw_190_v1/fixations.json",
+          "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/MeshMamba_non_texture_WWII_Plane-Germany_Focke-Wulf_Fw_190_v1/fixations.json",
+          "release_path": "participant_fixations_offset0_full_cleaned/MeshMamba_non_texture_WWII_Plane-Germany_Focke-Wulf_Fw_190_v1/fixations.json",
           "timing": "implicit_frame_index",
           "participant_ids_available": false
         },

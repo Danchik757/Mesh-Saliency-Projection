@@ -33,11 +33,15 @@ if str(REPO_ROOT) not in sys.path:
 from utils.participant_loader import (
     CROP_END_SECONDS,
     CROP_START_SECONDS,
+    TIMING_CONTRACT_CROPPED_RESET,
+    TIMING_CONTRACT_ONE_TURN,
     GazeBatch,
     InvalidFixationError,
     LoadedTrack,
     MissingFixationError,
+    ResumeContractMismatchError,
     TimingValidationError,
+    guard_report_compatible,
     load_csv_compat_track,
     load_processed_track,
     resolve_processed_fixation_path,
@@ -576,3 +580,587 @@ def test_frame_pairing_index_math():
         track.placement_start <= f < track.placement_end_exclusive
         for f in track.gaze_batches
     )
+
+
+# ── one_turn_from_start contract ──────────────────────────────────────────────
+
+def test_one_turn_17s_basic():
+    """17s dataset: 510-frame input → turn=450, gaze_start=0, placement_start=0."""
+    fps, duration = 30, 17
+    total = fps * duration   # 510
+    turn_frames = 450        # round(360/24 * 30)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "3DVA_TestModel.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration,
+                                              rotation_speed_deg_per_sec=24.0))
+        # Full-length file — extra frames after turn_frames must be accepted.
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="TestModel",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+        )
+
+    assert track.placement_start == 0
+    assert track.usable_count == turn_frames
+    assert track.placement_end_exclusive == turn_frames
+    assert track.crop_start_frames == 0
+    assert track.crop_end_frames == 0
+    assert len(track.gaze_batches) == turn_frames
+    assert min(track.gaze_batches) == 0
+    assert max(track.gaze_batches) == turn_frames - 1
+
+
+def test_one_turn_sal3d_basic():
+    """SAL3D: 720-frame input → turn=660, gaze_start=0, placement_start=0."""
+    fps, duration = 30, 24
+    total = fps * duration   # 720
+    rotation_speed = 360.0 / 22.0
+    turn_frames = round(360.0 / rotation_speed * fps)   # 660
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "Sal3D_horse.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration,
+                                              rotation_speed_deg_per_sec=rotation_speed))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="SAL3D", model="horse",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+        )
+
+    assert track.usable_count == turn_frames
+    assert track.placement_start == 0
+    assert track.placement_end_exclusive == turn_frames
+
+
+def test_one_turn_delay_positive():
+    """delay=+0.2s → gaze_start=6, placement_start=0."""
+    fps, duration = 30, 17
+    total = fps * duration   # 510
+    delay_s = 0.2
+    delay_frames = round(delay_s * fps)   # 6
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=delay_s,
+        )
+
+    assert track.provenance["gaze_start_frame"] == delay_frames
+    assert track.provenance["placement_start_frame"] == 0
+    assert track.placement_start == 0
+    assert track.provenance["delay_frames"] == delay_frames
+    assert track.usable_count == 450
+    # Keys must start at 0 (placement_start)
+    assert min(track.gaze_batches) == 0
+
+
+def test_one_turn_delay_negative():
+    """delay=-0.2s → gaze_start=0, placement_start=6."""
+    fps, duration = 30, 17
+    total = fps * duration
+    delay_s = -0.2
+    delay_frames = round(delay_s * fps)   # -6
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=delay_s,
+        )
+
+    assert track.provenance["gaze_start_frame"] == 0
+    assert track.provenance["placement_start_frame"] == abs(delay_frames)
+    assert track.placement_start == abs(delay_frames)
+    assert track.provenance["delay_frames"] == delay_frames
+    # Keys must start at placement_start=6
+    assert min(track.gaze_batches) == abs(delay_frames)
+
+
+def test_one_turn_jessi_invalid():
+    """jessi: 41 frames << turn_frames=450 → InvalidFixationError."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "3DVA_jessi.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(41))
+
+        with pytest.raises(InvalidFixationError) as exc_info:
+            load_processed_track(
+                fj, pj, dataset="3DVA", model="jessi",
+                canonical_name="3DVA_jessi",
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+            )
+
+    msg = str(exc_info.value)
+    assert "41" in msg
+    assert "450" in msg
+
+
+def test_one_turn_provenance_fields():
+    """one_turn_from_start provenance includes all required new fields."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            fixation_data_tag="mesh_json__offset_0",
+        )
+
+    prov = track.provenance
+    assert prov["timing_contract"] == TIMING_CONTRACT_ONE_TURN
+    assert prov["gaze_start_frame"] == 0
+    assert prov["placement_start_frame"] == 0
+    assert prov["turn_frame_count"] == 450
+    assert prov["delay_frames"] == 0
+    assert prov["fixation_data_tag"] == "mesh_json__offset_0"
+    assert prov["fixation_format"] == "one_turn_from_start_offset_0"
+    assert prov["crop_start_seconds"] == 0.0
+    assert prov["crop_end_seconds"] == 0.0
+    # Standard fields still present
+    required = [
+        "input_mode", "canonical_name", "dataset", "model",
+        "fixation_source", "placement_source",
+        "fps", "total_frames", "video_duration_seconds", "resolution",
+        "rotation_speed_deg_per_sec", "full_turn_seconds",
+        "placement_start_frame", "placement_end_frame_exclusive", "usable_count",
+    ]
+    for key in required:
+        assert key in prov, f"Missing provenance key: {key}"
+
+
+def test_guard_report_compatible_mismatch():
+    """guard_report_compatible raises when existing report has different timing_contract."""
+    fps, duration = 30, 17
+    timing = _expected_timing(fps, duration)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(timing["usable_count"]))
+
+        # Produce a cropped_reset report
+        track = load_processed_track(fj, pj, dataset="3DVA", model="test")
+        report_path = tmp / "test_report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Guard must pass for same contract
+        guard_report_compatible(report_path, timing_contract=TIMING_CONTRACT_CROPPED_RESET)
+
+        # Guard must raise for different contract
+        with pytest.raises(ResumeContractMismatchError) as exc_info:
+            guard_report_compatible(report_path, timing_contract=TIMING_CONTRACT_ONE_TURN)
+
+    assert "timing_contract" in str(exc_info.value)
+    assert TIMING_CONTRACT_CROPPED_RESET in str(exc_info.value)
+
+
+def test_guard_report_compatible_no_report():
+    """guard_report_compatible is a no-op when the report does not exist."""
+    with tempfile.TemporaryDirectory() as tmp:
+        missing = Path(tmp) / "nonexistent.json"
+        guard_report_compatible(missing, timing_contract=TIMING_CONTRACT_ONE_TURN)
+
+
+def test_guard_report_tag_mismatch():
+    """guard_report_compatible raises when fixation_data_tag differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            fixation_data_tag="mesh_json__offset_0",
+        )
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Same tag → no error
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            fixation_data_tag="mesh_json__offset_0",
+        )
+
+        # Different tag → error
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                fixation_data_tag="mesh_json__offset_2000",
+            )
+
+
+def test_guard_delay_mismatch():
+    """guard_report_compatible raises when delay_frames differs for one_turn_from_start."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        # Produce a one_turn report with delay_seconds=0.0 (delay_frames=0)
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+        )
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Same delay → no error
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_frames=0,
+        )
+
+        # Different delay_frames → error
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                delay_frames=6,
+            )
+
+
+def test_guard_missing_fixation_data_tag():
+    """guard_report_compatible raises when report lacks fixation_data_tag but caller provides one."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        # Produce a report WITHOUT fixation_data_tag
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            fixation_data_tag=None,
+        )
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Caller passes a tag → existing report is missing it → mismatch for one_turn
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                fixation_data_tag="processed_fixations_offset0_full_cleaned",
+            )
+
+
+def test_guard_turn_frame_count_mismatch():
+    """guard_report_compatible raises when turn_frame_count differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+        )
+        real_turn_count = track.provenance["turn_frame_count"]
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Same value → no error
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            turn_frame_count=real_turn_count,
+        )
+        # Different value → error
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                turn_frame_count=real_turn_count + 1,
+            )
+
+
+def test_guard_gaze_start_frame_mismatch():
+    """guard_report_compatible raises when gaze_start_frame differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        # delay=0 → gaze_start_frame=0
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+        )
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            gaze_start_frame=0,
+        )
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                gaze_start_frame=6,
+            )
+
+
+def test_guard_placement_start_frame_mismatch():
+    """guard_report_compatible raises when placement_start_frame differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json())
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        # delay=0 → placement_start_frame=0
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+        )
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            placement_start_frame=0,
+        )
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                placement_start_frame=6,
+            )
+
+
+# ── frame_offset tests ────────────────────────────────────────────────────────
+
+def test_frame_offset_cut_tail_default():
+    """frame_offset=0 (default) is identical to standard cut_tail: gaze[0:450]→placement[0:450]."""
+    fps, duration = 30, 17
+    total = fps * duration  # 510
+    turn_frames = 450
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+            frame_offset=0,
+        )
+
+    assert track.placement_start == 0
+    assert track.placement_end_exclusive == turn_frames
+    assert track.usable_count == turn_frames
+    assert min(track.gaze_batches) == 0
+    assert max(track.gaze_batches) == turn_frames - 1
+    assert track.provenance["frame_offset"] == 0
+    assert track.provenance["gaze_start_frame"] == 0
+    assert track.provenance["placement_start_frame"] == 0
+
+
+def test_frame_offset_cut_head_17s():
+    """frame_offset=60 (cut_head), delay=0, 17s: gaze[60:510]→placement[60:510]."""
+    fps, duration = 30, 17
+    total = fps * duration   # 510
+    turn_frames = 450
+    tail = total - turn_frames  # 60
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+            frame_offset=tail,
+        )
+
+    assert track.placement_start == tail
+    assert track.placement_end_exclusive == tail + turn_frames  # 510
+    assert track.usable_count == turn_frames
+    assert min(track.gaze_batches) == tail
+    assert max(track.gaze_batches) == tail + turn_frames - 1
+    assert track.provenance["frame_offset"] == tail
+    assert track.provenance["gaze_start_frame"] == tail
+    assert track.provenance["placement_start_frame"] == tail
+
+
+def test_frame_offset_center_17s():
+    """frame_offset=30 (center), delay=0, 17s: gaze[30:480]→placement[30:480]."""
+    fps, duration = 30, 17
+    total = fps * duration   # 510
+    turn_frames = 450
+    center_offset = (total - turn_frames) // 2  # 30
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+            frame_offset=center_offset,
+        )
+
+    assert track.placement_start == center_offset
+    assert track.placement_end_exclusive == center_offset + turn_frames  # 480
+    assert track.usable_count == turn_frames
+    assert min(track.gaze_batches) == center_offset
+    assert max(track.gaze_batches) == center_offset + turn_frames - 1
+    assert track.provenance["frame_offset"] == center_offset
+
+
+def test_frame_offset_cut_head_with_positive_delay_fails():
+    """cut_head + delay=+0.2s: gaze_start=66, 66+450=516 > 510 → InvalidFixationError."""
+    fps, duration = 30, 17
+    total = fps * duration   # 510
+    turn_frames = 450
+    tail = total - turn_frames  # 60
+    delay_s = 0.2             # d=6, gaze_start=66, 66+450=516>510
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(total))
+
+        with pytest.raises(InvalidFixationError) as exc_info:
+            load_processed_track(
+                fj, pj, dataset="3DVA", model="test",
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                delay_seconds=delay_s,
+                frame_offset=tail,
+            )
+
+    msg = str(exc_info.value)
+    assert "516" in msg or "66" in msg
+
+
+def test_frame_offset_in_provenance_and_guard():
+    """frame_offset is stored in provenance; guard raises when it differs."""
+    fps, duration = 30, 17
+
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        pj = tmp / "placement.json"
+        fj = tmp / "fixations.json"
+        _write_json(pj, _make_placement_json(fps=fps, duration_seconds=duration))
+        _write_json(fj, _make_processed_fixations(fps * duration))
+
+        track = load_processed_track(
+            fj, pj, dataset="3DVA", model="test",
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            delay_seconds=0.0,
+            frame_offset=30,
+        )
+        assert track.provenance["frame_offset"] == 30
+
+        report_path = tmp / "report.json"
+        report_path.write_text(
+            json.dumps({"participant_input": track.provenance}), encoding="utf-8"
+        )
+
+        # Same offset → no error
+        guard_report_compatible(
+            report_path,
+            timing_contract=TIMING_CONTRACT_ONE_TURN,
+            frame_offset=30,
+        )
+
+        # Different offset → error
+        with pytest.raises(ResumeContractMismatchError):
+            guard_report_compatible(
+                report_path,
+                timing_contract=TIMING_CONTRACT_ONE_TURN,
+                frame_offset=0,
+            )

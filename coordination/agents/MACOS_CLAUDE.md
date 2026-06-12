@@ -1285,3 +1285,514 @@ physical move.
 ---
 
 *Reviewed at `d61be84` on 2026-06-10. No code was modified.*
+
+---
+
+## Work Log — RC3 Release Tooling and Ablation Infrastructure
+
+**Branch:** `agent/rc3-release-and-ablation-infra`
+**Base:** `aa0fec9` (`origin/agent/offset0-one-turn-contract`)
+**Date:** 2026-06-11
+
+### Context
+
+Windows rc3 validation (branch `agent/windows-rc3-validation`, commit `e96268e`)
+confirmed the rc3 release is valid. The macOS worker's responsibility is to update
+tooling, metadata, and prepare the ablation runner. This log records all changes made.
+
+### Input facts from Windows rc3 validation report
+
+- `schema_version`: 2
+- `timing_contract.name`: `one_turn_from_start`
+- `timing_contract.delay_seconds_default`: 0.0
+- `timing_contract.crop_start_seconds`: 0.0
+- `timing_contract.crop_end_seconds`: 0.0
+- Fixation archive: `participant_fixations_offset0_full_cleaned.zip` (298 files)
+- Frame distribution: 510-frame files = 241 (3DVA + MeshMamba), 720-frame files = 56 (SAL3D), 41-frame = 1 (`3DVA_jessi`)
+- Old `participant_fixations_processed_offset_2000.zip` is NOT present in rc3
+- New in rc3 vs rc2: `sal3d_fixed_face_gt.zip` (114 files), `sal3d_smooth_gaze.zip`, `source_videos.zip`
+- `data_contract_validation.json`: status=ok, errors=[]
+
+### Files changed
+
+**`scripts/validate_release_candidate.py`** — updated for rc3 (v2.0-data-rc3):
+- `REQUIRED_ARCHIVES`: replaced `participant_fixations_processed_offset_2000.zip` with
+  `participant_fixations_offset0_full_cleaned.zip`; added `sal3d_fixed_face_gt.zip`.
+- `EXPECTED_ARCHIVE_COUNTS`/`EXPECTED_ARCHIVE_ROOTS`: updated for new archive name.
+- Added `schema_version == 2` check.
+- Replaced old 1.8s/0.2s timing crop checks with:
+  - `timing_contract.name == "one_turn_from_start"`
+  - `timing_contract.delay_seconds_default == 0.0`
+  - `timing_contract.crop_start_seconds == 0.0`
+  - `timing_contract.crop_end_seconds == 0.0`
+- Added `participant_data_contract.processed_json_archive` key check.
+- Added `_check_fixation_frame_counts()`: reads every `fixations.json` from the zip,
+  verifies lengths in `{510, 720, 41}`, confirms `3DVA_jessi/fixations.json` == 41 frames.
+- Removed old `derive_full_turn_from_placement_json` check (rc2-only field).
+
+**`jsons/dataset_model_info/all_datasets_summary.json`** — updated to rc3:
+- `repository_staging_roots.processed_fixations_json`:
+  `participant_data/processed_fixations_offset_2000` →
+  `participant_data/processed_fixations_offset0_full_cleaned`
+- `release_roots.processed_fixations_json`:
+  `participant_fixations_processed_offset_2000` → `participant_fixations_offset0_full_cleaned`
+- Added `legacy_release_roots_rc2.processed_fixations_json`:
+  `participant_fixations_processed_offset_2000` (for reference)
+- `timing_contract`: updated from rc2 format to rc3:
+  - `name`: `one_turn_from_start`
+  - `delay_seconds_default`: 0.0
+  - `crop_start_seconds`/`crop_end_seconds`: 0.0 each
+  - `pairing`: descriptive string added
+
+**`jsons/dataset_model_info/{3dva,sal3d,meshmamba_non_texture,meshmamba_rgb_texture}_models.json`**
+— sed bulk replacements:
+- `participant_data/processed_fixations_offset_2000/` →
+  `participant_data/processed_fixations_offset0_full_cleaned/` (all `repository_staging_path`)
+- `participant_fixations_processed_offset_2000/` →
+  `participant_fixations_offset0_full_cleaned/` (all `release_path`)
+- 64 replacements in `3dva_models.json`, 114 in `sal3d_models.json`,
+  210 each in the two MeshMamba files.
+- All JSON files validated with `python3 -c "import json; json.load(open(...))"`.
+
+**`server/sync_release_rc3.sh`** (new):
+- Downloads `v2.0-data-rc3` assets using `gh release download` if `gh` is available and auth is active.
+- Falls back to `curl` with direct GitHub release URLs if `gh` is absent or not authenticated.
+- Verifies `SHA256SUMS` using `sha256sum` (Linux) or `shasum -a 256` (macOS).
+- Extracts each archive with `unzip` to `shared_release_data/v2.0-data-rc3/extracted/`.
+- Uses `.extracted_<name>` marker files to skip already-extracted archives.
+- No sudo required. Configurable via `REPO`, `TAG`, `EXTRACT_DIR` env vars.
+- CLI: `--extract-dir`, `--repo`, `--tag`.
+
+**`server/install_gh_user_local.sh`** (new):
+- Installs `gh` CLI to `~/.local/bin` (or `--install-dir` override) without sudo.
+- Fetches latest version from GitHub API unless `--version` is pinned.
+- Detects OS (linux/macOS) and arch (amd64/arm64) automatically.
+- Verifies `gh --version` after install; prints PATH reminder if needed.
+- Do NOT run without reviewer/controller authorization.
+
+**`test/launch/run_ablation_window_delay.py`** (new):
+- Ablation runner for window/delay sweep across all datasets and both methods.
+- Three window modes defined with precise pairing semantics:
+  - `cut_tail` (evaluator-ready): `gaze[max(0,d):N+max(0,d)] -> placement[max(0,-d):N+max(0,-d)]`
+  - `cut_head` (requires `--window-mode` evaluator support): last N frames, jointly shifted
+  - `center` (requires `--window-mode` evaluator support): center N frames
+- Delay grid: -0.3, -0.2, -0.1, 0.0, +0.1, +0.2, +0.3 seconds.
+  - `delay=+0.2` at 30 fps: `gaze[6:6+N] -> placement[0:N]` (confirmed in module docstring)
+- Output: `ablation_summary.csv` + `ablation_rows.jsonl` per batch output dir.
+- CSV columns: dataset, model, method, window_mode, delay_seconds, sigma_px, sigma_screen,
+  sigma_deg, radius_sigma_mult, CC, SIM, KLD, MSE, AUC_Judd, NSS, report_path, git_commit,
+  input_type, timing_contract, fixation_format, gaze_start_frame, placement_start_frame,
+  turn_frames_used, fps, status, error_type, error_message, stdout_log_path, elapsed_seconds.
+- Args: `--workers`, `--model-list-file`, `--models`, `--shard-index`, `--num-shards`,
+  `--dry-run`, `--window-modes`, `--delays`, `--datasets`, `--methods`, `--timeout-seconds`.
+- Target servers for future runs: `vg-gml01` (shard 0), `vg-gml02` (shard 1).
+- `cut_head`/`center` tasks auto-skip with `status=skipped` until evaluator support is added.
+
+### Test results
+
+```
+python3 -m pytest -q
+369 passed in 3.63s
+
+python3 -m py_compile scripts/validate_release_candidate.py   → OK
+python3 -m py_compile test/launch/run_ablation_window_delay.py → OK
+bash -n server/sync_release_rc3.sh                            → OK
+bash -n server/install_gh_user_local.sh                       → OK
+```
+
+All 5 dataset model info JSON files validated with `json.load()`.
+
+### Known limitations / open questions
+
+1. **`cut_head` and `center` window modes** require `--window-mode` support to be added to
+   all 8 evaluators. The ablation runner already handles the pairing math; evaluator changes
+   are a separate task. Until then, tasks with these modes are recorded as `status=skipped`
+   with the exact pairing documented in `error_message`.
+
+2. **`sal3d_smooth_gaze.zip` and `source_videos.zip`** are not in `REQUIRED_ARCHIVES` because
+   `build_release_candidate.py` adds them only with `--include-*` flags. They are optional
+   for the validator. If a run is known to include them, verify manually or extend the
+   optional-archive list.
+
+3. **`server/` directory**: newly created (was not present on `agent/offset0-one-turn-contract`).
+   Contains only shell scripts. No Python package init needed.
+
+4. **`sync_release_rc3.sh` `gh` auth**: the script checks `gh auth status` before attempting
+   download. On a fresh server without a token, it falls through to `curl` automatically.
+
+### Action items (not yet done, awaiting review)
+
+- Add `--window-mode` parameter to all 8 evaluators (prerequisite for `cut_head`/`center`).
+- Run `./server/sync_release_rc3.sh` on `vg-gml01`/`vg-gml02` after authorization.
+- After authorization: run dry-run on one server, then full ablation with two-shard split.
+
+---
+
+## Work Log — RC3 Review Fixes (ablation runner redesign)
+
+**Branch:** `agent/rc3-release-and-ablation-infra`
+**Commit (prior):** `6bf8275`
+**Date:** 2026-06-11
+
+### Issues addressed from review
+
+1. **schema_version check** — confirmed correct. Actual rc3 manifest has `schema_version: 2`.
+   Validator passes rc3 (`status: ok, 0 errors`). rc2 explicitly fails with 7 errors,
+   rc1 with 9 errors. Not silent — all failures are descriptive.
+
+2. **RC1/RC2 incompatibility documented** — added explicit RC3-ONLY warning to
+   `validate_release_candidate.py` docstring listing all expected failure messages for rc1/rc2.
+
+3. **Ablation runner redesigned** — complete rewrite addressing all review requirements:
+
+   **Global job pool (confirmed existing):**
+   All jobs across all datasets/models/methods share one `ThreadPoolExecutor` with `--workers N`.
+   There are no separate per-dataset queues.
+
+   **Stable-hash sharding:**
+   Old: `i % num_shards` (position-based). New: `int(MD5(job.key).hexdigest, 16) % num_shards`.
+   Both servers enumerate the same sorted job list and deterministically split without coordinator.
+
+   **Job identity key:**
+   `"<dataset>:<model>:<method>:<window_mode>:<delay:.3f>:<sigma_string>"`
+   Fully identifies a job including sigma params. Used for sharding and resume.
+
+   **Resume at job level:**
+   On startup reads all JSONL rows with `status == "ok"` from `ablation_rows.jsonl`.
+   Any job whose key is in the completed set prints `resume-skip` and is excluded from
+   the pending list before the ThreadPoolExecutor starts. No evaluator call made.
+
+   **Thread-safe JSONL:**
+   `_JsonlWriter` class wraps file append in `threading.Lock()`. Appended per-job from
+   any worker thread. No race condition possible.
+
+   **CSV aggregation:**
+   `aggregate_csv()` reads all JSONL rows at end of run and writes sorted
+   `ablation_summary.csv`. Also available via `--aggregate-only` flag.
+
+   **Normalized status labels:**
+   `ok` / `skipped` / `failed` / `runtime_error` — matching specification exactly.
+   - `ok`: evaluator ran, report parsed, metrics extracted
+   - `skipped`: window_mode not implemented (error_type=window_mode_not_implemented)
+     OR job already done from previous run (error_type=already_done via resume)
+   - `failed`: non-zero exit, timeout, missing report, JSON parse error
+   - `runtime_error`: unexpected exception in runner itself
+
+   **Dry-run behavior:**
+   `--dry-run` writes `status=ok, error_type=dry_run` (not a special status) so that
+   a second dry-run triggers resume-skip for completed dry_run jobs.
+   No evaluator is invoked for any mode.
+
+### Review artifacts
+
+```
+Branch: agent/rc3-release-and-ablation-infra
+HEAD:   6bf8275 (pre-fix); final commit follows
+
+pytest -q:  369 passed
+compileall: all scripts/ utils/ test/launch/ server/ OK
+
+Validator:
+  rc3: status=ok, 0 errors (14 archives, all checksums OK, frame counts verified)
+  rc2: status=failed, 7 errors
+  rc1: status=failed, 9 errors
+
+Dry-run ablation (--datasets 3dva --models A380 --delays -0.1 0.0 0.1 --window-modes cut_tail cut_head center):
+  cut_tail  d=-0.1  status=ok      error_type=dry_run
+  cut_tail  d=+0.0  status=ok      error_type=dry_run
+  cut_tail  d=+0.1  status=ok      error_type=dry_run
+  cut_head  d=-0.1  status=skipped error_type=window_mode_not_implemented
+  cut_head  d=+0.0  status=skipped error_type=window_mode_not_implemented
+  cut_head  d=+0.1  status=skipped error_type=window_mode_not_implemented
+  center    d=-0.1  status=skipped error_type=window_mode_not_implemented
+  center    d=+0.0  status=skipped error_type=window_mode_not_implemented
+  center    d=+0.1  status=skipped error_type=window_mode_not_implemented
+
+Second dry-run (same args, same output dir):
+  resume-skip: 3dva/A380/screen_space wm=cut_tail d=-0.1
+  resume-skip: 3dva/A380/screen_space wm=cut_tail d=+0.0
+  resume-skip: 3dva/A380/screen_space wm=cut_tail d=+0.1
+  jobs: 9 total, 3 resume-skipped, 6 to run → all 6 skipped (wm not implemented)
+```
+
+---
+
+### --frame-offset implementation — 2026-06-11
+
+**Branch:** `agent/rc3-release-and-ablation-infra`
+**Commit:** `80d99b7`
+
+#### Task
+
+Implement `--frame-offset INT` to enable cut_head and center window modes as
+real ablations (not skipped stubs).
+
+#### Files changed (9)
+
+**`utils/participant_loader.py`**
+- `_derive_timing_one_turn(... frame_offset=0)`: formula changed to
+  `gaze_start = frame_offset + max(0, d)` and
+  `placement_start = frame_offset + max(0, -d)`;
+  `frame_offset` added to timing dict and included in TimingValidationError message.
+- `_build_provenance(... frame_offset=0)`: `frame_offset` stored in provenance dict.
+- `load_processed_track(... frame_offset=0)`: passes to `_derive_timing_one_turn`
+  and `_build_provenance`; `InvalidFixationError` message includes `frame_offset`.
+- `guard_report_compatible(... frame_offset=None)`: `_check("frame_offset", frame_offset)`
+  added as final check.
+
+**6 evaluators** (`eval_3dva_screen_space_combined`, `eval_meshmamba_screen_space`,
+`eval_sal3d_screen_space`, `eval_3dva_cone_combined`, `eval_meshmamba_cone`,
+`eval_sal3d_cone`):
+- `--frame-offset INT` argparse argument (default 0, env `REPROJECT_FRAME_OFFSET`).
+- `frame_offset=getattr(args, "frame_offset", 0)` passed to `load_processed_track`.
+- `frame_offset=track.provenance.get("frame_offset", 0)` added to
+  `guard_report_compatible` call.
+
+**`test/launch/run_ablation_window_delay.py`**
+- `_WINDOW_MODE_EVALUATOR_READY` expanded to `{"cut_tail", "cut_head", "center"}`.
+- `build_command()`: computes `frame_offset` per window_mode:
+  `cut_tail=0`, `cut_head=tail`, `center=tail//2`; adds `--frame-offset` to cmd.
+- Docstring updated: cut_head/center now marked "evaluator-ready".
+
+**`test/test_participant_loader.py`**
+- 5 new tests: `test_frame_offset_cut_tail_default`, `test_frame_offset_cut_head_17s`,
+  `test_frame_offset_center_17s`, `test_frame_offset_cut_head_with_positive_delay_fails`,
+  `test_frame_offset_in_provenance_and_guard`.
+
+#### Test results
+
+```
+34 passed in 1.33s   (29 original + 5 new)
+compileall: all 9 modified files clean
+```
+
+#### Dry-run verification (3DVA/A380, all 3 window modes × 3 delays × 2 methods = 18 jobs)
+
+```
+cut_tail  --frame-offset 0   (all delays)  status=ok
+cut_head  --frame-offset 60  (all delays)  status=ok
+center    --frame-offset 30  (all delays)  status=ok
+done: ok=18 skipped=0 failed=0
+```
+
+Frame offsets confirmed correct: cut_head=60 (=510-450), center=30 (=(510-450)//2).
+
+#### Pending
+
+- No evaluator calls yet; server run requires separate authorization.
+- Two legacy evaluators (`eval_3dva_screen_space.py`, `eval_3dva_raycast_cone.py`)
+  not updated — they lack timing contract support and are not used by the ablation
+  runner; frame_offset is irrelevant for `cropped_reset` mode.
+
+---
+
+### 2026-06-11 — preflight + server launch scripts (session 3)
+
+#### Preflight results (local, HEAD 47ee596)
+
+Branch `agent/rc3-release-and-ablation-infra` pushed to origin.
+
+```
+pytest -q:       374 passed, 0 failed, 0 errors
+compileall:      clean (all modules)
+dry-run (full):  12558 total, ok=12558, skipped=0, failed=0
+```
+
+Shard distribution (MD5 mod 3):
+
+| Shard | Server  | Workers | Jobs  |
+|-------|---------|---------|-------|
+| 0     | vg-iai  | 32      | 4098  |
+| 1     | vg-gml01| 40      | 4252  |
+| 2     | vg-gml02| 40      | 4208  |
+| —     | total   | —       | 12558 |
+
+Window modes each: 4186 jobs (evenly distributed).
+
+#### Server scripts created
+
+| File | Purpose |
+|------|---------|
+| `server/rc3_ablation_env.sh` | Shared env: release paths, fixation root, dataset roots, parallelism |
+| `server/preflight_ablation.sh` | Per-server preflight: git checkout, pytest, compileall, SHA256SUMS, fixation count, dry-run smoke |
+| `server/launch_shard0_vg_iai.sh` | vg-iai shard 0/3 workers=32 tmux rc3_ablation_shard0 nice=0 |
+| `server/launch_shard1_vg_gml01.sh` | vg-gml01 shard 1/3 workers=40 tmux rc3_ablation_shard1 nice=0 |
+| `server/launch_shard2_vg_gml02.sh` | vg-gml02 shard 2/3 workers=40 tmux rc3_ablation_shard2 nice=0 |
+
+All scripts: `set -euo pipefail`, require `RUN_ID` env var (no default), refuse to start if tmux session exists,
+log to `${BATCH_OUTPUT_DIR}/runner.log`.  Priority: `nice -n 0` (not nice=18).
+
+fixation_data_tag: `processed_fixations_offset0_full_cleaned`
+timing_contract: `one_turn_from_start`
+
+#### Pending (requires reviewer/controller authorisation)
+
+1. Operators: `git pull` + `preflight_ablation.sh` on each server.
+2. Controller sets `RUN_ID=rc3_window_delay_ablation_YYYYMMDD_HHMMSS` (same on all three servers).
+3. Reviewer/controller says "start" → operators run `launch_shard{0,1,2}_*.sh` on each server.
+4. Monitor `runner.log` per shard; collect outputs from `${BATCH_OUTPUT_DIR}`.
+
+---
+
+### 2026-06-11 — sigma sweep rc3 preparation (session 3 continued)
+
+#### Task
+
+Sigma sweep runner for rc3 release: fixed timing, varying Gaussian blur params.
+
+Timing locked: timing_contract=one_turn_from_start, delay=0.0, frame_offset=0,
+window_mode=cut_tail, fixation_data_tag=processed_fixations_offset0_full_cleaned.
+
+#### Model selection
+
+30 models per dataset, stratified into 5 quintile bins (6 per bin) by screen_space CC
+from rc3_full_metrics_20260611_004003. Lists saved to
+`jsons/sigma_sweep_model_lists/{dataset}_30models.json`.
+
+| Dataset | Pool | Selected | Notes |
+|---------|------|----------|-------|
+| 3dva | 31 valid | 30 | `jessi` excluded (missing_report in rc3) |
+| sal3d | 54 valid | 30 | all 54 have fixed_gt_file; 30 stratified |
+| meshmamba_non_texture | 105 valid | 30 | CC range [-0.378, 0.779] |
+| meshmamba_rgb_texture | 105 valid | 30 | CC range [-0.496, 0.658] |
+
+#### Sigma grids
+
+screen_space (`sigma_screen`, fraction of image width):
+  0.010, 0.014, 0.020, 0.025, 0.035, 0.050, 0.065, 0.080, 0.100
+  → 3DVA/SAL3D (1920px): multiply × 1920 → --sigma-px
+  → MeshMamba (256px): pass directly → --sigma-screen
+  0.014 ≈ SAL3D current default (26.3/1920)
+  0.025 ≈ 3DVA current default  (49.0/1920)
+  0.050 = MeshMamba current default
+
+cone (`sigma_deg` × `radius_sigma_mult`):
+  sigma_deg:         0.25, 0.50, 0.75, 1.00, 1.50, 2.00, 3.00  (7 values)
+  radius_sigma_mult: 2.0, 3.0, 4.0  (3 values)
+  Full grid: 7 × 3 = 21 combinations
+
+#### Job counts
+
+Total: 3600 jobs (4 datasets × 30 models = 120; screen_space 9 values + cone 21 combos)
+
+Shard distribution (MD5 mod 3):
+  Shard 0: 1232  Shard 1: 1217  Shard 2: 1151
+
+Method breakdown: screen_space=1080, cone=2520
+Per dataset: 3dva=900, meshmamba_non_texture=900, meshmamba_rgb_texture=900, sal3d=900
+
+dry-run: ok=3600 skipped=0 failed=0
+
+#### Bug noted in run_ablation_window_delay.py
+
+`_env_flags` maps `MESHMAMBA_JSON_ROOT → --json-root` for BOTH non_texture and
+rgb_texture, but rgb JSONs are in `jsons/object_placement/mamba_rgb_jsons/` not
+`mamba_non_jsons/`. Fixed in sigma sweep runner (uses `MESHMAMBA_RGB_TEXTURE_JSON_ROOT`
+for rgb_texture). The ablation runner bug is latent and won't affect dry-runs.
+
+#### New files
+
+- `test/launch/run_sigma_sweep_rc3.py` — sigma sweep runner
+- `jsons/sigma_sweep_model_lists/3dva_30models.json`
+- `jsons/sigma_sweep_model_lists/meshmamba_non_texture_30models.json`
+- `jsons/sigma_sweep_model_lists/meshmamba_rgb_texture_30models.json`
+- `jsons/sigma_sweep_model_lists/sal3d_30models.json`
+
+#### Pending (requires reviewer/controller authorisation)
+
+1. Confirm sigma grid values (current defaults are proposals).
+2. Decide shard assignment to servers (same 3 servers as window/delay ablation?).
+3. Write server env script for sigma sweep (`server/rc3_sigma_env.sh`) — or reuse `rc3_ablation_env.sh` with different BATCH_OUTPUT_DIR.
+4. Run `preflight_ablation.sh` on each server (unchanged, same HEAD 951f224).
+5. Reviewer/controller says "start" → launch.
+
+---
+
+### 2026-06-11 — sigma sweep grid update + launch scripts (session 3 continued)
+
+#### Sigma grid update
+
+User-specified final grids (replacing proposals):
+
+screen_space sigma_screen (12 values):
+  0.006 0.008 0.010 0.014 0.020 0.025 0.035 0.050 0.065 0.080 0.100 0.125
+
+cone sigma_deg (10 values):
+  0.15 0.25 0.35 0.50 0.75 1.00 1.50 2.00 3.00 4.00
+
+cone radius_sigma_mult (3 values):
+  2.0 3.0 4.0  (unchanged)
+
+#### Updated job counts
+
+Total: 5040 jobs (12 sigma_screen × 120 models + 10×3=30 cone combos × 120 models)
+
+Shard distribution (MD5 mod 3):
+  Shard 0 (vg-iai,   32w): 1730 jobs
+  Shard 1 (vg-gml01, 40w): 1680 jobs
+  Shard 2 (vg-gml02, 40w): 1630 jobs
+
+Dry-run: ok=5040 skipped=0 failed=0.
+
+#### Preflight (HEAD 4ec6151)
+
+pytest -q:   374 passed, 0 failed
+compileall:  clean
+
+#### Launch scripts
+
+| File | Server | Shard | Workers | Jobs |
+|------|--------|-------|---------|------|
+| `server/launch_sigma_shard0_vg_iai.sh` | vg-iai | 0/3 | 32 | 1730 |
+| `server/launch_sigma_shard1_vg_gml01.sh` | vg-gml01 | 1/3 | 40 | 1680 |
+| `server/launch_sigma_shard2_vg_gml02.sh` | vg-gml02 | 2/3 | 40 | 1630 |
+
+Output: `${REPROJECT_SERVER_ROOT}/outputs/sigma_sweep/${RUN_ID}/shard_{i}_of_3/`
+JSONL: `sigma_sweep_rows.jsonl`, CSV: `sigma_sweep_summary.csv`
+tmux sessions: rc3_sigma_shard{0,1,2}
+nice=0, sources rc3_ablation_env.sh, overrides BATCH_OUTPUT_DIR
+
+#### Pending (requires reviewer/controller start)
+
+1. Set `RUN_ID=rc3_sigma_sweep_YYYYMMDD_HHMMSS` (same on all servers).
+2. On each server: git pull --ff-only HEAD 872e574, run preflight_ablation.sh.
+3. Reviewer/controller says "start" → operators run launch_sigma_shard*.sh.
+
+---
+
+### [2026-06-11] Stage-1 sigma sweep complete rewrite — commit 872e574
+
+Rewrote `test/launch/run_sigma_sweep_rc3.py` for stage-1 architecture.
+Prior version used a global sigma_screen grid (5040 jobs). New design:
+
+**Stage-1 design:**
+- Dataset-specific `base_sigma × multipliers` for screen_space
+  - base_sigma: 3dva=0.025, sal3d=0.014, meshmamba_non/rgb=0.050
+  - multipliers: 0.50, 0.70, 0.85, 1.00, 1.15, 1.30, 1.50
+  - Pixel conversion: MeshMamba → `--sigma-screen`, 3DVA/SAL3D → `--sigma-px` (×1920)
+- Cone: sigma_deg=[0.50,0.65,0.80,1.00,1.25,1.60,2.00], radius_sigma_mult=3.0 fixed
+- 25 models/dataset (5 quintile bins × 5), stratified by rc3 screen_space CC
+
+**Job counts (verified dry-run):**
+- Total: 1400 (700 screen_space + 700 cone)
+- Shard 0 (vg-iai,  32w): 464
+- Shard 1 (vg-gml01,40w): 461
+- Shard 2 (vg-gml02,40w): 475
+
+**New model list files (committed):**
+- `jsons/sigma_sweep_model_lists/3dva_25models.json`
+- `jsons/sigma_sweep_model_lists/meshmamba_non_texture_25models.json`
+- `jsons/sigma_sweep_model_lists/meshmamba_rgb_texture_25models.json`
+- `jsons/sigma_sweep_model_lists/sal3d_25models.json`
+
+**Live aggregation outputs:**
+- `sigma_sweep_rows.jsonl` (JSONL, appended per job)
+- `sigma_sweep_partial_long.csv` (all completed rows, long format)
+- `sigma_sweep_partial_summary.csv` (mean/std per sigma value per dataset/method)
+- `sigma_sweep_best_so_far.csv` (best sigma per model/method by CC)
+- `plots/` — 6 PNGs: cc/kld/sim vs sigma_screen_space and vs sigma_cone
+
+**Updated launch scripts:** `server/launch_sigma_shard{0,1,2}_*.sh` — updated header
+comments and exact job counts to reflect stage-1.
+
+**Status:** ready for server preflight + reviewer/controller start signal.
