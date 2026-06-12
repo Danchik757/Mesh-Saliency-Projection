@@ -223,7 +223,7 @@ class TestLoadAndPrepareMap:
         p = tmp_path / "map.txt"
         _write_float_file(p, vals)
         faces = np.zeros((n_f, 3), dtype=np.int32)
-        vals01, vmin, vmax, _, _, _ = load_and_prepare_map(
+        vals01, vmin, vmax, _, _, _, _ = load_and_prepare_map(
             p, n_verts=15, n_faces=n_f, faces=faces, display_percentile=90.0
         )
         # true max still returned
@@ -240,7 +240,7 @@ class TestLoadAndPrepareMap:
         p = tmp_path / "map.txt"
         _write_float_file(p, vals)
         faces = np.zeros((n_f, 3), dtype=np.int32)
-        vals01, _, _, _, _, _ = load_and_prepare_map(
+        vals01, _, _, _, _, _, _ = load_and_prepare_map(
             p, n_verts=10, n_faces=n_f, faces=faces, display_percentile=100.0
         )
         assert float(vals01.max()) == pytest.approx(1.0)
