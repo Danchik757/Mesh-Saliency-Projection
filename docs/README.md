@@ -6,6 +6,10 @@ and benchmark runbooks.
 | File | Contents |
 |------|----------|
 | [EVAL_RUNBOOK.md](./EVAL_RUNBOOK.md) | Current commands, flags, and path conventions for running evaluations |
+| [METRIC_RUN_AND_CSV_CONTRACT.md](./METRIC_RUN_AND_CSV_CONTRACT.md) | Authoritative metric-run timing, sigma values, reported metrics, and compact/long CSV schema |
+| [SIGMA_REFERENCE_ALL_METHODS.md](./SIGMA_REFERENCE_ALL_METHODS.md) | Explanation of sigma parameters across screen-space, cone, and experimental methods |
+| [SMOOTH_GAZE_AND_FIXED_FACE_GT.md](./SMOOTH_GAZE_AND_FIXED_FACE_GT.md) | SAL3D Smooth Gaze (2000 neighbours, first 500 used) and fixed-face GT: size, inventory mismatch, reproducibility |
+| [RELEASE_BUILD_AND_VALIDATION.md](./RELEASE_BUILD_AND_VALIDATION.md) | Building and validating an offset0 / schema-v2 data release (rc4+) |
 | [project_structure.md](./project_structure.md) | High-level architecture, module responsibilities, data flow |
 | [3DVA_COMBINED_GT_IMPLEMENTATION.md](./3DVA_COMBINED_GT_IMPLEMENTATION.md) | Combined-GT pipeline for 3DVA and batch-run details |
 | [3DVA_VERIFICATION_METHOD.md](./3DVA_VERIFICATION_METHOD.md) | How 3DVA alignment and GT comparisons were validated |

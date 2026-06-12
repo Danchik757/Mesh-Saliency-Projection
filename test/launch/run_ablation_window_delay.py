@@ -144,10 +144,10 @@ _WINDOW_MODE_EVALUATOR_READY: frozenset[str] = frozenset({"cut_tail", "cut_head"
 
 _SIGMA_DEFAULTS: dict[str, dict[str, dict[str, Any]]] = {
     "screen_space": {
-        "3dva":                  {"sigma_px": 26.3},
+        "3dva":                  {"sigma_px": 49.0},   # 1920x1080, ~1 deg visual angle
         "meshmamba_non_texture": {"sigma_screen": 0.05},
         "meshmamba_rgb_texture": {"sigma_screen": 0.05},
-        "sal3d":                 {"sigma_px": 26.3},
+        "sal3d":                 {"sigma_px": 26.3},   # 1920x1080, 0.5 deg tracker accuracy
     },
     "cone": {
         "3dva":                  {"sigma_deg": 1.0, "radius_sigma_mult": 3.0},
@@ -249,7 +249,8 @@ def load_completed_keys(jsonl_path: Path) -> set[str]:
                 continue
             try:
                 row = json.loads(line)
-                if row.get("status") == "ok":
+                # Dry-run rows are placeholders, never real completions.
+                if row.get("status") == "ok" and row.get("error_type", "") != "dry_run":
                     keys.add(row["job_key"])
             except (json.JSONDecodeError, KeyError):
                 pass
@@ -302,12 +303,46 @@ def frame_offsets(job: AblationJob) -> dict[str, int]:
     return {"gaze_start_frame": -1, "placement_start_frame": -1, "turn_frames_used": N, "fps": fps}
 
 
+def job_feasibility(job: AblationJob) -> tuple[bool, str]:
+    """Return (feasible, reason). A job is infeasible when its window+delay would
+    require frames outside [0, total_frames) for gaze or placement.
+
+    Both gaze[gs:gs+N] and placement[ps:ps+N] must fit inside the available
+    frames; negative starts or end indices past total_frames are rejected
+    *before* the job is launched.
+    """
+    if job.window_mode not in ALL_WINDOW_MODES:
+        return False, f"unknown window_mode={job.window_mode!r}"
+    info = _DATASET_FRAMES[job.dataset]
+    total = info["total_frames"]
+    N = info["turn_frames"]
+    off = frame_offsets(job)
+    gs = off["gaze_start_frame"]
+    ps = off["placement_start_frame"]
+    if gs < 0 or ps < 0:
+        return False, (
+            f"negative window start (gaze_start={gs}, placement_start={ps}) "
+            f"for {job.window_mode} d={job.delay_seconds:+.3f}"
+        )
+    if gs + N > total:
+        return False, (
+            f"gaze window [{gs}:{gs + N}] exceeds total_frames={total} "
+            f"({job.dataset} {job.window_mode} d={job.delay_seconds:+.3f})"
+        )
+    if ps + N > total:
+        return False, (
+            f"placement window [{ps}:{ps + N}] exceeds total_frames={total} "
+            f"({job.dataset} {job.window_mode} d={job.delay_seconds:+.3f})"
+        )
+    return True, ""
+
+
 # ── command building ──────────────────────────────────────────────────────────
 
 def build_command(job: AblationJob, args: argparse.Namespace) -> list[str]:
     script = _EVAL[job.dataset][job.method]
     python = os.environ.get("REPROJECT_PYTHON", sys.executable)
-    cmd = [python, str(script), "--models", job.model]
+    cmd = [python, str(script), "--model", job.model]
     cmd += ["--timing-contract", "one_turn_from_start", "--delay-seconds", str(job.delay_seconds)]
     info = _DATASET_FRAMES[job.dataset]
     tail = info["total_frames"] - info["turn_frames"]
@@ -573,16 +608,39 @@ def main() -> int:
     completed_keys = load_completed_keys(jsonl_path)
     writer = _JsonlWriter(jsonl_path)
 
+    # Reject window/delay combinations that cannot fit in the available frames
+    # BEFORE launching anything.  Infeasible jobs are recorded (status=rejected)
+    # with a reason and never invoke the evaluator.
+    infeasible = 0
     pending: list[AblationJob] = []
     for job in jobs:
+        feasible, reason = job_feasibility(job)
+        if not feasible:
+            infeasible += 1
+            row = {col: "" for col in CSV_COLUMNS}
+            row.update({
+                "job_key": job.key,
+                "dataset": job.dataset, "model": job.model,
+                "method": job.method, "window_mode": job.window_mode,
+                "delay_seconds": job.delay_seconds,
+                "status": "rejected",
+                "error_type": "infeasible_window_delay",
+                "error_message": reason,
+            })
+            row.update(frame_offsets(job))
+            writer.append(row)
+            print(f"[ablation] REJECT (infeasible): {job.dataset}/{job.model}/{job.method} "
+                  f"wm={job.window_mode} d={job.delay_seconds:+.1f} — {reason}", flush=True)
+            continue
         if job.key in completed_keys:
             print(f"[ablation] resume-skip: {job.dataset}/{job.model}/{job.method} wm={job.window_mode} d={job.delay_seconds:+.1f}", flush=True)
         else:
             pending.append(job)
 
     total = len(jobs)
-    skipped_resume = total - len(pending)
-    print(f"[ablation] jobs: {total} total, {skipped_resume} resume-skipped, {len(pending)} to run", flush=True)
+    skipped_resume = total - len(pending) - infeasible
+    print(f"[ablation] jobs: {total} total, {infeasible} rejected-infeasible, "
+          f"{skipped_resume} resume-skipped, {len(pending)} to run", flush=True)
     print(f"[ablation] workers: {args.workers}  shards: {args.num_shards}  shard_index: {args.shard_index}", flush=True)
     print(f"[ablation] output: {batch_dir}", flush=True)
 

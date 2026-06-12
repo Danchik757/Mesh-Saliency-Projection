@@ -102,7 +102,7 @@ def parse_args() -> argparse.Namespace:
             ) if k in os.environ),
             None,
         ),
-        help="Root of processed_fixations_offset_2000/. Required unless --csv-compat is set.",
+        help="Root of the processed fixation JSON tree (offset0 full cleaned for rc3+). Required unless --csv-compat is set.",
     )
     parser.add_argument(
         "--csv-compat",

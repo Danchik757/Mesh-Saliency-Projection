@@ -72,6 +72,7 @@ from __future__ import annotations
 import argparse
 import csv
 import json
+import math
 import os
 import subprocess
 import sys
@@ -255,6 +256,10 @@ def build_command(
     fixation_root = _env("FIXATION_ROOT", "REPROJECT_PROCESSED_FIXATIONS_ROOT")
     if fixation_root:
         cmd += ["--fixation-root", fixation_root]
+    # Canonical, single-sourced provenance tag: the launcher dictates the tag the
+    # evaluator records, instead of letting the evaluator derive it from the
+    # fixation-root basename (which could disagree with what the launcher logs).
+    cmd += ["--fixation-data-tag", FIXATION_DATA_TAG]
 
     if dataset == "3dva":
         _env_flags(cmd, {
@@ -313,6 +318,46 @@ def _task_output_dir(dataset: str, method: str, model: str, batch_dir: Path) -> 
     return batch_dir / "per_task" / dataset / model / method
 
 
+def _select_report(task_out: Path) -> Path | None:
+    """Deterministically choose the evaluator report from a task directory.
+
+    Prefer a ``*_report.json`` (the canonical evaluator output), excluding our own
+    sidecar files.  Fall back to the lexicographically-first remaining ``*.json``.
+    Sorting makes the choice reproducible regardless of filesystem iteration order.
+    """
+    sidecars = {"provenance.json", "metrics_rows.json"}
+    candidates = [p for p in sorted(task_out.rglob("*.json")) if p.name not in sidecars]
+    if not candidates:
+        return None
+    preferred = [p for p in candidates if p.name.endswith("_report.json")]
+    return preferred[0] if preferred else candidates[0]
+
+
+def _provenance_mismatches(report: dict) -> list[str]:
+    """List provenance fields in the report that disagree with the run contract."""
+    prov = report.get("participant_input", {})
+    out: list[str] = []
+    tc = prov.get("timing_contract")
+    if tc not in (None, "") and tc != TIMING_CONTRACT:
+        out.append(f"timing_contract={tc!r}!={TIMING_CONTRACT!r}")
+    fo = prov.get("frame_offset")
+    if fo not in (None, "") and int(fo) != FRAME_OFFSET:
+        out.append(f"frame_offset={fo!r}!={FRAME_OFFSET}")
+    tag = prov.get("fixation_data_tag")
+    if tag not in (None, "") and tag != FIXATION_DATA_TAG:
+        out.append(f"fixation_data_tag={tag!r}!={FIXATION_DATA_TAG!r}")
+    df = prov.get("delay_frames")
+    fps = prov.get("fps")
+    if df not in (None, "") and fps not in (None, ""):
+        try:
+            expected_df = round(DELAY_SECONDS * float(fps))
+            if int(df) != expected_df:
+                out.append(f"delay_frames={df!r}!={expected_df}")
+        except (TypeError, ValueError):
+            pass
+    return out
+
+
 # ── metric extraction ─────────────────────────────────────────────────────────
 
 def extract_metrics(report: dict, dataset: str, method: str) -> dict | None:
@@ -360,15 +405,70 @@ def load_completed_keys(jsonl_path: Path) -> set[str]:
                 continue
             try:
                 row = json.loads(line)
-                if row.get("status") == "ok":
+                # Dry-run rows are placeholders, never real completions.
+                if row.get("status") == "ok" and row.get("error_type", "") != "dry_run":
                     keys.add(row["job_key"])
             except (json.JSONDecodeError, KeyError):
                 pass
     return keys
 
 
+def _load_and_dedup_jsonl(jsonl_path: Path) -> list[dict]:
+    """Load every JSONL row and deduplicate by job_key (ok preferred over failed).
+
+    Used to build the final CSVs so that a resumed run aggregates prior rows with
+    this run's rows instead of emitting only its own partial slice.
+    """
+    if not jsonl_path.is_file():
+        return []
+    best: dict[str, tuple[int, dict]] = {}
+    order: list[str] = []
+    with jsonl_path.open() as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            key = row.get("job_key", "")
+            if not key:
+                continue
+            prio = 0 if (row.get("status") == "ok"
+                         and row.get("error_type", "") != "dry_run") else 1
+            if key not in best:
+                order.append(key)
+                best[key] = (prio, row)
+            elif prio < best[key][0]:
+                best[key] = (prio, row)
+    return [best[k][1] for k in order]
+
+
+def _sigma_signature(dataset: str, method: str) -> str:
+    """Stable string capturing the sigma config for one (dataset, method)."""
+    if method == "cone":
+        return f"cone_sd{_SIGMA_CONE_DEG[dataset]}_r{_SIGMA_RADIUS_MULT}"
+    if dataset in _SIGMA_SS_PX:
+        return f"ss_px{_SIGMA_SS_PX[dataset]}"
+    return f"ss_sc{_SIGMA_SS_SCREEN[dataset]}"
+
+
+def _config_signature(dataset: str, method: str) -> str:
+    """Run-wide timing/release/fixation contract plus this job's sigma config.
+
+    Folded into the resume key so resuming into a directory built under a
+    different timing/fixation/sigma/release configuration cannot silently skip
+    jobs that carry an incompatible (but same dataset/model/method) identity.
+    """
+    return (
+        f"{RELEASE_TAG}|{TIMING_CONTRACT}|{FIXATION_DATA_TAG}"
+        f"|fo{FRAME_OFFSET}|dl{DELAY_SECONDS}|{_sigma_signature(dataset, method)}"
+    )
+
+
 def _job_key(dataset: str, method: str, model: str) -> str:
-    return f"optrun:{dataset}:{model}:{method}"
+    return f"optrun:{_config_signature(dataset, method)}:{dataset}:{model}:{method}"
 
 
 # ── job execution ─────────────────────────────────────────────────────────────
@@ -436,18 +536,25 @@ def execute_job(
                    error_message=str(exc))
         return row
 
-    report_files = sorted(task_out.rglob("*.json"))
-    if not report_files:
+    report_path = _select_report(task_out)
+    if report_path is None:
         row.update(status="failed", error_type="missing_report")
         return row
 
-    report_path = report_files[0]
     row["report_path"] = str(report_path)
     try:
         report = json.loads(report_path.read_text())
     except Exception as exc:
         row.update(status="failed", error_type="report_parse_error",
                    error_message=str(exc))
+        return row
+
+    # Verify the report was produced under this run's timing/provenance contract
+    # before trusting its metrics (guards against a stale report in the task dir).
+    prov_problems = _provenance_mismatches(report)
+    if prov_problems:
+        row.update(status="failed", error_type="provenance_mismatch",
+                   error_message="; ".join(prov_problems))
         return row
 
     metrics = extract_metrics(report, dataset, method)
@@ -533,10 +640,13 @@ _COMPACT_METRICS = [
 
 def write_compact_csv(rows: list[dict], path: Path) -> None:
     def _fv(v: Any) -> float | None:
+        # Drop non-finite values (json round-trips NaN/Infinity) so a single bad
+        # metric cannot poison the mean.
         try:
-            return float(v)
+            f = float(v)
         except (ValueError, TypeError):
             return None
+        return f if math.isfinite(f) else None
 
     from collections import defaultdict
     groups: dict[tuple, list[dict]] = defaultdict(list)
@@ -771,10 +881,15 @@ def main() -> int:
 
     print(f"\n[run] done: ok={ok} failed={failed} resume_skipped={skipped_resume}")
 
+    # Build the final CSVs from the FULL JSONL (resume-skipped rows from prior
+    # runs + this run's rows), deduplicated by job_key, so a resumed run never
+    # overwrites the CSV with only its own partial slice.
+    all_rows = _load_and_dedup_jsonl(jsonl_path)
     long_csv    = batch_dir / "metrics_long.csv"
     compact_csv = batch_dir / "metrics_compact.csv"
-    write_long_csv(rows, long_csv)
-    write_compact_csv(rows, compact_csv)
+    write_long_csv(all_rows, long_csv)
+    write_compact_csv(all_rows, compact_csv)
+    print(f"[run] aggregated {len(all_rows)} rows from {jsonl_path.name}")
     print(f"[run] long_csv:    {long_csv}")
     print(f"[run] compact_csv: {compact_csv}")
 

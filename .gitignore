@@ -10,6 +10,12 @@ results/**/*.mp4
 results/**/*.npy
 results/**/*.log
 
+# Generated per-vertex saliency dumps (large; e.g. *_cone_vertices.txt,
+# *_raycast_vertices.txt, *_screen_space_vertices.txt) and per-task run trees.
+# A single full run produces hundreds of MB of these — keep summaries, not dumps.
+results/**/*_vertices.txt
+results/**/per_task/
+
 # Historical 3DVA outputs from the old-CSV/no-common-crop checkpoint.
 # Preserve locally, but do not present them as current benchmark results.
 results/benchmark_runs/3dva/2026-06-07_*/

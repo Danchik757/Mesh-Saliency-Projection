@@ -96,6 +96,15 @@ class TimingValidationError(ParticipantLoaderError):
     """Placement JSON fails timing or full-turn validation."""
 
 
+class ResumeReportUnreadableError(ParticipantLoaderError):
+    """An existing report file is present but cannot be read or parsed.
+
+    Raised so that a corrupt/unreadable report is never silently treated as
+    "compatible" during a resume.  The operator must delete it (to regenerate)
+    or use a different output directory.
+    """
+
+
 class ResumeContractMismatchError(ParticipantLoaderError):
     """Existing report was produced with a different timing contract or data source."""
 
@@ -325,9 +334,23 @@ def _derive_timing_one_turn(
     turn_frames = round(abs(360.0 / rotation_speed) * fps)
     delay_frames = round(delay_seconds * fps)
 
+    if frame_offset < 0:
+        raise TimingValidationError(
+            f"{path}: frame_offset={frame_offset} is negative. Negative frame offsets "
+            "would index the gaze/placement arrays from the end and silently pair the "
+            "wrong frames; refusing."
+        )
+
     gaze_start = frame_offset + max(0, delay_frames)
     placement_start = frame_offset + max(0, -delay_frames)
     placement_end_exclusive = placement_start + turn_frames
+
+    if gaze_start < 0 or placement_start < 0:
+        raise TimingValidationError(
+            f"{path}: negative window start (gaze_start={gaze_start}, "
+            f"placement_start={placement_start}) from frame_offset={frame_offset}, "
+            f"delay_seconds={delay_seconds:.3f}. Refusing negative indexing."
+        )
 
     if placement_end_exclusive > total_frames:
         raise TimingValidationError(
@@ -656,8 +679,18 @@ def guard_report_compatible(
         return
     try:
         report = json.loads(report_path.read_text(encoding="utf-8"))
-    except (json.JSONDecodeError, OSError):
-        return
+    except (json.JSONDecodeError, OSError, UnicodeDecodeError) as exc:
+        raise ResumeReportUnreadableError(
+            f"Resume guard: existing report {report_path} is present but could not be "
+            f"read/parsed ({type(exc).__name__}: {exc}). Refusing to silently treat it as "
+            "compatible. Delete the report to regenerate, or use a different output directory."
+        ) from exc
+
+    if not isinstance(report, dict):
+        raise ResumeReportUnreadableError(
+            f"Resume guard: existing report {report_path} is not a JSON object "
+            f"(got {type(report).__name__}). Delete it or use a different output directory."
+        )
 
     prov = report.get("participant_input", {})
     strict = (timing_contract == TIMING_CONTRACT_ONE_TURN)
