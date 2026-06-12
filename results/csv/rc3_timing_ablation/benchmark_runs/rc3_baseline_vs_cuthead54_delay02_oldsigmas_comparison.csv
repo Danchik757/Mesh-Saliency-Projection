@@ -1,0 +1,9 @@
+dataset_track,method,baseline_n,baseline_CC,baseline_SIM,baseline_KLD,shifted_n,shifted_CC,shifted_SIM,shifted_KLD,delta_CC,delta_SIM,delta_KLD,screen_space_sigma,cone_sigma,baseline_window,shifted_window
+3dva,cone,31,0.4095,0.6431,0.5603,29,0.4152,0.6419,0.5699,0.0057,-0.0012,0.0096,,sigma_deg=1.0; radius_sigma_mult=3.0,gaze[0:450] -> placement[0:450],gaze[60:510] -> placement[54:504]
+3dva,screen_space,31,0.4559,0.6697,0.9553,29,0.4603,0.6697,0.9310,0.0044,0.0000,-0.0243,sigma_px=49.0,,gaze[0:450] -> placement[0:450],gaze[60:510] -> placement[54:504]
+meshmamba_non_texture,cone,105,0.3038,0.5786,1.0217,105,0.3028,0.5772,1.0132,-0.0010,-0.0014,-0.0085,,sigma_deg=1.0; radius_sigma_mult=3.0,gaze[0:450] -> placement[0:450],gaze[60:510] -> placement[54:504]
+meshmamba_non_texture,screen_space,105,0.1363,0.5807,1.9638,105,0.1386,0.5814,1.9598,0.0023,0.0007,-0.0040,sigma_screen=0.05; effective_sigma_px=12.8,,gaze[0:450] -> placement[0:450],gaze[60:510] -> placement[54:504]
+meshmamba_rgb_texture,cone,105,0.2601,0.5592,1.2088,105,0.2599,0.5584,1.2052,-0.0002,-0.0008,-0.0036,,sigma_deg=1.0; radius_sigma_mult=3.0,gaze[0:450] -> placement[0:450],gaze[60:510] -> placement[54:504]
+meshmamba_rgb_texture,screen_space,105,0.1334,0.5723,1.9453,105,0.1309,0.5717,1.9465,-0.0025,-0.0006,0.0012,sigma_screen=0.05; effective_sigma_px=12.8,,gaze[0:450] -> placement[0:450],gaze[60:510] -> placement[54:504]
+sal3d,cone,54,0.5250,0.6861,0.3497,54,0.5060,0.6799,0.3660,-0.0190,-0.0062,0.0163,,sigma_deg=1.0; radius_sigma_mult=3.0,gaze[0:660] -> placement[0:660],gaze[60:720] -> placement[54:714]
+sal3d,screen_space,54,0.3801,0.6493,0.6689,54,0.3663,0.6440,0.6830,-0.0138,-0.0053,0.0141,sigma_px=26.3,,gaze[0:660] -> placement[0:660],gaze[60:720] -> placement[54:714]

@@ -31,15 +31,18 @@ validator always requires `sal3d_smooth_gaze.zip`.
 ### Inputs: tracked vs external
 
 Tracked in the repo (default sources):
-- `participant_data/collected_gaze_csv_by_model/`
 - `participant_data/processed_fixations_offset0_full_cleaned/` — the canonical
   offset0 fixation source (note: the source directory name differs from the
   archive root `participant_fixations_offset0_full_cleaned/`).
 - `jsons/object_placement/`
 
 Supplied externally (large `GAZE_DATA` assets, not tracked): 3DVA/MeshMamba/SAL3D
-meshes + GT, the SAL3D fixed per-face GT package (`sal3d_benchmark_pkg`), the
-SAL3D Smooth Gaze archive, and (optionally) source videos.
+meshes + GT, original participant CSVs (`GAZE_DATA/csv_for_models/`), the SAL3D
+fixed per-face GT package (`sal3d_benchmark_pkg`), the SAL3D Smooth Gaze archive,
+and (optionally) source videos.
+
+Use `--participant-csv-source` when the external CSV root is not at the default
+`GAZE_DATA/csv_for_models/` location.
 
 ### Strict preflight
 

@@ -1,0 +1,4 @@
+model,failed_methods,reason
+MaxPlanck,cone;screen_space,"GT has 20000 rows, OBJ has 19999 vertices; cannot align GT to mesh"
+meca,cone;screen_space,"GT has 20000 rows, OBJ has 15000 vertices; cannot align GT to mesh"
+sofa,cone;screen_space,"GT has 20000 rows, OBJ has 15162 vertices; cannot align GT to mesh"

@@ -83,6 +83,11 @@ def parse_args() -> argparse.Namespace:
         help=("Processed-fixation source directory. Defaults to "
               f"<repo>/participant_data/{_DEFAULT_PROCESSED_DIRNAME}."),
     )
+    parser.add_argument(
+        "--csv-root", type=Path, default=None,
+        help=("Original per-model participant CSV root. Defaults to "
+              "<repo>/participant_data/collected_gaze_csv_by_model for compatibility."),
+    )
     return parser.parse_args()
 
 
@@ -162,7 +167,11 @@ def main() -> int:
     repo = args.repo_root.resolve()
     timing_contract = args.timing_contract
     placement_root = repo / "jsons" / "object_placement"
-    csv_root = repo / "participant_data" / "collected_gaze_csv_by_model"
+    csv_root = (
+        args.csv_root.resolve()
+        if args.csv_root is not None
+        else repo / "participant_data" / "collected_gaze_csv_by_model"
+    )
     processed_root = (
         args.processed_root.resolve()
         if args.processed_root is not None
@@ -171,6 +180,7 @@ def main() -> int:
     result: dict[str, Any] = {
         "repo_root": str(repo),
         "timing_contract": timing_contract,
+        "csv_root": str(csv_root),
         "processed_root": str(processed_root),
         "tracks": {},
         "errors": [],

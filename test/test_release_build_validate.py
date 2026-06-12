@@ -72,6 +72,7 @@ def test_smooth_gaze_is_mandatory():
     class NS:
         repo_root = REPO_ROOT
         fixation_source = None
+        participant_csv_source = REPO_ROOT / "x"
         data_3dva_root = REPO_ROOT / "x"
         data_meshmamba_root = REPO_ROOT / "x"
         data_sal3d_root = REPO_ROOT / "x"

@@ -1,0 +1,55 @@
+model,method,status,error_type,error_message,stdout_log_path
+MaxPlanck,cone,runtime_error,runtime_error,"Traceback (most recent call last):
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 940, in <module>
+    main()
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 836, in main
+    gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 364, in load_gt_aligned_to_obj
+    raise ValueError(
+ValueError: GT row count (20000) > OBJ vertex count (19999). Cannot align GT to mesh.",/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/SAL3D_reference_batch_20260601/_logs/cone/MaxPlanck.log
+MaxPlanck,screen_space,runtime_error,runtime_error,"Traceback (most recent call last):
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 985, in <module>
+    main()
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 892, in main
+    gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 337, in load_gt_aligned_to_obj
+    raise ValueError(
+ValueError: GT row count (20000) > OBJ vertex count (19999). Cannot align GT to mesh.",/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/SAL3D_reference_batch_20260601/_logs/screen_space/MaxPlanck.log
+meca,cone,runtime_error,runtime_error,"Traceback (most recent call last):
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 940, in <module>
+    main()
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 836, in main
+    gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 364, in load_gt_aligned_to_obj
+    raise ValueError(
+ValueError: GT row count (20000) > OBJ vertex count (15000). Cannot align GT to mesh.",/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/SAL3D_reference_batch_20260601/_logs/cone/meca.log
+meca,screen_space,runtime_error,runtime_error,"Traceback (most recent call last):
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 985, in <module>
+    main()
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 892, in main
+    gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 337, in load_gt_aligned_to_obj
+    raise ValueError(
+ValueError: GT row count (20000) > OBJ vertex count (15000). Cannot align GT to mesh.",/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/SAL3D_reference_batch_20260601/_logs/screen_space/meca.log
+sofa,cone,runtime_error,runtime_error,"Traceback (most recent call last):
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 956, in <module>
+    main()
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 852, in main
+    gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/cone_projection_on_mesh/eval_sal3d_cone.py"", line 364, in load_gt_aligned_to_obj
+    raise ValueError(
+ValueError: GT row count (20000) > OBJ vertex count (15162). Cannot align GT to mesh.",/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/SAL3D_reference_batch_20260601/_logs/cone/sofa.log
+sofa,screen_space,runtime_error,runtime_error,"Traceback (most recent call last):
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 985, in <module>
+    main()
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 892, in main
+    gt, gt_mask, gt_was_smoothed = load_gt_aligned_to_obj(
+                                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/mnt/ssd1/29d_kon/projects/REPROJECTING/Mesh-Saliency-Projection/reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py"", line 337, in load_gt_aligned_to_obj
+    raise ValueError(
+ValueError: GT row count (20000) > OBJ vertex count (15162). Cannot align GT to mesh.",/home/29d_kon@lab.graphicon.ru/ssd1_link/projects/REPROJECTING/outputs/SAL3D_reference_batch_20260601/_logs/screen_space/sofa.log

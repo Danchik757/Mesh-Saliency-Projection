@@ -29,16 +29,16 @@ New work must use the release-candidate scripts.
 ```bash
 python3 scripts/validate_data_contract.py --allow-known-blockers
 python3 scripts/build_release_candidate.py \
-    --include-videos \
-    --include-sal3d-smooth-gaze
-python3 scripts/validate_release_candidate.py release_assets/v2.0-data-rc1
+    --participant-csv-source /path/to/GAZE_DATA/csv_for_models \
+    --include-videos
+python3 scripts/validate_release_candidate.py release_assets/v2.0-data-rc4
 ```
 
 Participant archives are intentionally separate:
 
 ```text
 participant_gaze_csv_original.zip
-participant_fixations_processed_offset_2000.zip
+participant_fixations_offset0_full_cleaned.zip
 ```
 
 There is no automatic fallback between them.

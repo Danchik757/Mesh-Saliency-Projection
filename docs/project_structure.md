@@ -1,21 +1,21 @@
 # Project Structure
 
-## Current folders
+## Stable core
 
 - `metrics/`
 - `reprojection_methods/`
-- `video_creation/`
-- `visualization/`
-- `validation/`
-- `requirements/`
-- `datasets/`
-- `results/`
-- `docs/`
 - `utils/`
+- `test/launch/`
+- `test/kld_parameter_sweep/`
+- `scripts/`
+- `server/`
 - `configs/`
-- `experiments/`
-- `test/`
-- `tests/`
+- `jsons/`
+- `participant_data/`
+- `results/csv/`
+- `docs/`
+- `datasets/`
+- `requirements/`
 
 ## Why this structure
 
@@ -23,18 +23,12 @@
   - one place for trusted metric implementations
 - `reprojection_methods/`
   - method-specific code and documentation
-- `video_creation/`
-  - scripts for figures, videos, and visual comparisons
-- `visualization/`
-  - static heatmap renderers, six-view object saliency views, and qualitative figures
-- `validation/`
-  - current alignment-preview checks used to verify object placement before metric runs
 - `requirements/`
   - task-specific dependency files instead of one oversized environment
 - `datasets/`
   - dataset manifests, adapters, and split definitions
-- `results/`
-  - generated reports and evaluation outputs
+- `results/csv/`
+  - portable, deduplicated result tables and their SHA-256 manifest
 - `docs/`
   - project-level explanations and planning notes
 - `utils/`
@@ -44,23 +38,19 @@
 - `experiments/`
   - one-off or exploratory scripts before they are promoted into stable modules
 - `test/`
-  - active batch launchers, regression tests, and legacy alignment/debug tools
+  - active regression tests and production launchers; auxiliary tests are
+    scheduled to move with their tools
 - `tests/`
   - reserved compatibility test directory; keep it documented so it is not
     accidentally swept into a future visualization/helper submodule
 
-## Good next folders to add later
+## Auxiliary tools during final integration
 
-- `dataset_adapters/`
-  - if multiple datasets need their own loaders and column parsers
-- `notebooks/`
-  - only for exploration, not for core pipeline logic
-- `reports/`
-  - human-readable experiment summaries
-- `assets/`
-  - diagrams, thumbnails, presentation material
-- `benchmarks/`
-  - reproducible benchmark suites for comparing methods
+`validation/`, `visualization/`, `gt_visualizations/`, `video_creation/`,
+`references/render_scripts/`, and their tool-specific tests remain temporarily
+in this repository. They are planned for the public
+`Danchik757/Mesh-Saliency-Tools` submodule at `tools/mesh-saliency-tools`.
+See [CORE_TOOLS_BOUNDARY.md](./CORE_TOOLS_BOUNDARY.md).
 
 ## Recommended rule
 
@@ -74,10 +64,5 @@ Keep stable logic in:
 - `conftest.py`
 - `pytest.ini`
 
-Keep experimental logic in:
-
-- `experiments/`
-- auxiliary visualization/validation folders until they are split into a helper
-  submodule with compatibility wrappers
-
-Promote code from `experiments/` into the stable folders only after the method and metrics are fixed.
+The core metric pipeline must not import or execute the auxiliary submodule.
+Core tests must pass in a clone where the submodule is not initialized.

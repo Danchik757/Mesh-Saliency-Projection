@@ -47,11 +47,11 @@ EXPECTED_FIXATION_COUNT = 298
 
 # Inputs tracked in the repo vs supplied externally (large GAZE_DATA assets).
 TRACKED_INPUTS = (
-    "participant_data/collected_gaze_csv_by_model/",
     f"participant_data/{FIXATION_SOURCE_DIRNAME}/",
     "jsons/object_placement/",
 )
 EXTERNAL_INPUTS = (
+    "original participant CSVs (GAZE_DATA/csv_for_models/)",
     "3DVA / MeshMamba / SAL3D meshes + GT (GAZE_DATA/datasets/...)",
     "SAL3D fixed per-face GT package (sal3d_benchmark_pkg)",
     "SAL3D Smooth_Gaze neighbour archive",
@@ -73,6 +73,11 @@ def parse_args() -> argparse.Namespace:
         help=("Directory holding the 298 offset0 fixation JSONs "
               "(<model>/fixations.json). Defaults to the tracked source "
               f"<repo>/participant_data/{FIXATION_SOURCE_DIRNAME}."),
+    )
+    parser.add_argument(
+        "--participant-csv-source", type=Path,
+        default=saliency_root / "GAZE_DATA/csv_for_models",
+        help="External root containing the 298 original per-model participant CSV files.",
     )
     parser.add_argument("--data-3dva-root", type=Path,
                         default=saliency_root / "GAZE_DATA/datasets/3DVA")
@@ -180,7 +185,7 @@ def build_specs(args: argparse.Namespace) -> list[tuple[str, list[tuple[Path, st
     specs: list[tuple[str, list[tuple[Path, str]]]] = [
         (
             "participant_gaze_csv_original.zip",
-            [(participant / "collected_gaze_csv_by_model", "participant_gaze_csv_original")],
+            [(args.participant_csv_source, "participant_gaze_csv_original")],
         ),
         (
             FIXATION_ARCHIVE,
@@ -397,6 +402,7 @@ def main() -> int:
         [
             "python3", str(repo / "scripts" / "validate_data_contract.py"),
             "--repo-root", str(repo),
+            "--csv-root", str(args.participant_csv_source),
             "--processed-root", str(fixation_source_dir(args)),
             "--timing-contract", "one_turn_from_start",
             "--allow-known-blockers",

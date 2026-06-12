@@ -1,0 +1,7 @@
+# Preserve imported benchmark artifacts byte-for-byte while treating CRLF as a
+# valid line ending during whitespace checks. Code and documentation retain the
+# default strict whitespace rules.
+participant_data/processed_fixations_offset0_full_cleaned/**/fixations.json whitespace=cr-at-eol
+participant_data/processed_fixations_offset0_full_cleaned_manifest.csv whitespace=cr-at-eol
+results/csv/**/*.csv whitespace=cr-at-eol
+results/csv/manifest.csv whitespace=cr-at-eol
