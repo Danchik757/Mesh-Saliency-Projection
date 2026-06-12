@@ -197,19 +197,34 @@ def _casefold_find_nested(directory: Path, stem: str, suffix: str) -> Path | Non
     if not directory.is_dir():
         return None
     stem_norm = stem.lower().replace("_", "").replace("-", "")
-    for d in directory.iterdir():
-        if not d.is_dir() or d.name.lower().replace("_", "").replace("-", "") != stem_norm:
-            continue
-        nested = _casefold_find(d, stem, suffix)
-        if nested is not None:
-            return nested
-        wanted = stem.lower().replace("_", "").replace("-", "")
-        candidates = sorted(d.glob(f"*{suffix}"))
-        for f in candidates:
-            if f.stem.lower().replace("_", "").replace("-", "") == wanted:
-                return f
-        if len(candidates) == 1:
-            return candidates[0]
+    matching_dirs = sorted(
+        [d for d in directory.iterdir()
+         if d.is_dir() and d.name.lower().replace("_", "").replace("-", "") == stem_norm],
+        key=lambda p: p.name,
+    )
+    if len(matching_dirs) > 1:
+        raise ValueError(
+            f"Ambiguous model directories matching '{stem}' in {directory}: "
+            + ", ".join(d.name for d in matching_dirs)
+        )
+    if not matching_dirs:
+        return None
+    model_dir = matching_dirs[0]
+    nested = _casefold_find(model_dir, stem, suffix)
+    if nested is not None:
+        return nested
+    wanted = stem_norm
+    candidates = sorted(model_dir.glob(f"*{suffix}"))
+    norm_matches = [f for f in candidates if f.stem.lower().replace("_", "").replace("-", "") == wanted]
+    if len(norm_matches) == 1:
+        return norm_matches[0]
+    if len(norm_matches) > 1:
+        raise ValueError(
+            f"Ambiguous OBJ files matching '{stem}' in {model_dir}: "
+            + ", ".join(f.name for f in norm_matches)
+        )
+    if len(candidates) == 1:
+        return candidates[0]
     return None
 
 
@@ -559,6 +574,14 @@ except Exception as exc:
 """
 
 
+def _is_wsl() -> bool:
+    """True when running inside WSL (Windows Subsystem for Linux)."""
+    try:
+        return "microsoft" in Path("/proc/version").read_text().lower()
+    except (OSError, IOError):
+        return False
+
+
 def probe_gpu_backend() -> dict:
     """Probe the OpenGL/VTK backend and return a preflight result dict.
 
@@ -594,7 +617,7 @@ def probe_gpu_backend() -> dict:
     # ── 2. Steer Mesa to D3D12 backend (WSL) and build subprocess env ─────────
     # Set in the current process so later pv.Plotter() picks it up; also pass
     # to the probe subprocess so VTK inside it uses the same driver.
-    if gpu_available and "GALLIUM_DRIVER" not in os.environ:
+    if gpu_available and _is_wsl() and "GALLIUM_DRIVER" not in os.environ:
         os.environ["GALLIUM_DRIVER"] = "d3d12"
         os.environ.setdefault("MESA_D3D12_DEFAULT_ADAPTER_NAME", "NVIDIA")
     probe_env = os.environ.copy()
@@ -631,11 +654,14 @@ def probe_gpu_backend() -> dict:
         offscreen_backend = f"error:{exc}"
 
     # ── 4. Classify backend ────────────────────────────────────────────────────
+    probe_succeeded = (offscreen_backend == "vtk_offscreen")
     renderer_lc = opengl_renderer.lower()
     used_cpu_fallback = any(p in renderer_lc for p in _CPU_RENDERER_PATTERNS)
-    if used_cpu_fallback:
+    if not probe_succeeded:
+        pyvista_backend = "unknown"
+    elif used_cpu_fallback:
         pyvista_backend = "cpu_software"
-    elif "d3d12" in renderer_lc or (gpu_available and not used_cpu_fallback):
+    elif "d3d12" in renderer_lc or (gpu_available and opengl_renderer != "unknown"):
         pyvista_backend = "d3d12_gpu"
     else:
         pyvista_backend = "unknown"
@@ -662,6 +688,7 @@ def probe_gpu_backend() -> dict:
         "vtk_version":       vtk_ver,
         "pyvista_backend":   pyvista_backend,
         "offscreen_backend": offscreen_backend,
+        "probe_succeeded":   probe_succeeded,
         "used_cpu_fallback": used_cpu_fallback,
     }
 
@@ -788,7 +815,8 @@ def main() -> None:
             "opengl_renderer": "skipped", "opengl_vendor": "skipped",
             "opengl_version": "skipped", "pyvista_version": "skipped",
             "vtk_version": "skipped", "pyvista_backend": "skipped",
-            "offscreen_backend": "skipped", "used_cpu_fallback": False,
+            "offscreen_backend": "skipped", "probe_succeeded": True,
+            "used_cpu_fallback": False,
         }
     else:
         print("[INFO] running GPU backend preflight ...", flush=True)
@@ -799,6 +827,14 @@ def main() -> None:
             f"cpu_fallback={gpu_info['used_cpu_fallback']}",
             flush=True,
         )
+        if not gpu_info.get("probe_succeeded"):
+            print(
+                f"[ERROR] VTK preflight probe failed ({gpu_info['offscreen_backend']}). "
+                "Cannot confirm a usable render context. "
+                "Pass --skip-gpu-preflight to override (testing only).",
+                file=sys.stderr,
+            )
+            sys.exit(1)
 
     # ── Smoke / batch frame-count guard ───────────────────────────────────────
     # --full-turn implies allow_full_batch; max_frames is set to TURN_FRAMES[dataset]
@@ -860,7 +896,11 @@ def main() -> None:
     if args.mesh is not None:
         mesh_path = args.mesh
     elif args.dataset_root is not None:
-        mesh_path = auto_resolve_obj(args.dataset, texture_type, args.model, args.dataset_root)
+        try:
+            mesh_path = auto_resolve_obj(args.dataset, texture_type, args.model, args.dataset_root)
+        except (FileNotFoundError, ValueError) as exc:
+            print(f"[ERROR] OBJ resolution failed: {exc}", file=sys.stderr)
+            sys.exit(1)
     else:
         print("[ERROR] Provide --mesh or --dataset-root to locate the OBJ file.", file=sys.stderr)
         sys.exit(1)

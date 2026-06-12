@@ -608,7 +608,7 @@ python3 video_creation/heatmap_on_mesh_video/render_heatmap_video.py \
 
 ## GT-only 3D Heatmap Smoke — 2026-06-11
 
-**Branch:** `agent/windows-video-overlays-rc3`  
+**Branch:** `agent/windows-video-overlays-rc3`
 **Approval scope:** GT-only smoke, max_frames=120, no full batch.
 
 **GPU preflight:** RTX 2060 D3D12 bridge, `used_cpu_fallback=false`, pyvista 0.48.4 / VTK 9.6.2.
@@ -624,15 +624,15 @@ python3 video_creation/heatmap_on_mesh_video/render_heatmap_video.py \
 | MeshMamba | rgb_texture | Watermelon_V1_L3 | face | 32868 | 32868 | 0.0 | 1.0 | 120 | 0.1 MB |
 | SAL3D | — | alien2 (fixed-face GT) | face | 26418 | 26418 | 0.0 | 1.0 | 120 | 0.2 MB |
 
-**Output root:** `/tmp/heatmap_3d_smoke_rc3/`  
+**Output root:** `/tmp/heatmap_3d_smoke_rc3/`
 **Note:** GT maps are MeshMamba per-face CSV and SAL3D fixed-face GT — correct for renderer technical smoke. Prediction smoke (screen_space/cone) blocked pending rc3_full_metrics outputs.
 
 ---
 
 ## Task 2 Phase 3 — Visual improvements + white-bg renders (2026-06-11)
 
-**Branch:** `agent/windows-video-overlays-rc3`  
-**HEAD:** `89eb88a`  
+**Branch:** `agent/windows-video-overlays-rc3`
+**HEAD:** `89eb88a`
 **Pushed:** yes
 
 ### New CLI flags in render_heatmap_video.py

@@ -68,8 +68,14 @@ def _pick_mesh_obj(mesh_dir: Path, model: str) -> Path:
         return mesh_dir / f"{model}.obj"
     wanted = model.lower().replace("_", "").replace("-", "")
     matches = [p for p in objs if p.stem.lower().replace("_", "").replace("-", "") == wanted]
-    if matches:
+    if len(matches) == 1:
         return matches[0]
+    if len(matches) > 1:
+        raise ValueError(
+            f"Ambiguous OBJ stems matching '{model}' in {mesh_dir}: "
+            + ", ".join(p.name for p in matches)
+            + ". Rename files or provide --mesh override."
+        )
     if len(objs) == 1:
         return objs[0]
     raise ValueError(
@@ -122,27 +128,31 @@ def flatten(staging_map_dir: Path, model_out: Path, map_type: str, model: str):
         pass
 
 
-def run_render(ds: str, track: str, model: str, map_type: str,
-               map_path: Path, paths: dict, staging: Path, model_out: Path) -> tuple[bool, float, str]:
+def _build_renderer_cmd(ds: str, track: str, model: str, map_type: str,
+                        map_path: Path, paths: dict, staging_model: Path,
+                        map_note: str) -> list[str]:
     ds_flags = ["--dataset", ds]
     if ds == "meshmamba":
         ds_flags += ["--texture-type", track]
-
-    map_note = "rc3_vis_gt" if map_type == "gt" else CONE_NOTE
-    staging_model = staging / f"{ds}_{track}_{model}"
-
-    cmd = [
+    return [
         sys.executable, str(RENDERER),
         *ds_flags, "--model", model,
         "--map-type", map_type,
         "--map-path", str(map_path),
         "--mesh", str(paths["mesh"]),
-        "--placement", str(paths["placement"]),
+        "--placement-json", str(paths["placement"]),
         "--output-dir", str(staging_model),
         "--background-color", "white",
         "--full-turn",
         "--map-provenance-note", map_note,
     ]
+
+
+def run_render(ds: str, track: str, model: str, map_type: str,
+               map_path: Path, paths: dict, staging: Path, model_out: Path) -> tuple[bool, float, str]:
+    map_note = "rc3_vis_gt" if map_type == "gt" else CONE_NOTE
+    staging_model = staging / f"{ds}_{track}_{model}"
+    cmd = _build_renderer_cmd(ds, track, model, map_type, map_path, paths, staging_model, map_note)
 
     t0 = time.time()
     result = subprocess.run(cmd, capture_output=True, text=True, cwd=str(REPO))

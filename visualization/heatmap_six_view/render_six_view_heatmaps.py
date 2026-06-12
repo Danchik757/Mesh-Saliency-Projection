@@ -255,22 +255,34 @@ def _find_obj_nested(mesh_dir: Path, model: str) -> Path | None:
     if direct is not None:
         return direct
     # Nested subdir lookup (MeshMamba layout)
-    model_dir: Path | None = None
-    if mesh_dir.is_dir():
-        for p in mesh_dir.iterdir():
-            if p.is_dir() and _normalise_lookup_name(p.name) == _normalise_lookup_name(model):
-                model_dir = p
-                break
-    if model_dir is None:
+    if not mesh_dir.is_dir():
         return None
+    matching_dirs = sorted(
+        [p for p in mesh_dir.iterdir()
+         if p.is_dir() and _normalise_lookup_name(p.name) == _normalise_lookup_name(model)],
+        key=lambda p: p.name,
+    )
+    if len(matching_dirs) > 1:
+        raise ValueError(
+            f"Ambiguous model directories matching '{model}' in {mesh_dir}: "
+            + ", ".join(d.name for d in matching_dirs)
+        )
+    if not matching_dirs:
+        return None
+    model_dir = matching_dirs[0]
     exact_nested = _find_file_casefold(model_dir, model, ".obj")
     if exact_nested is not None:
         return exact_nested
     wanted = _normalise_lookup_name(model)
     candidates = sorted(model_dir.glob("*.obj"))
-    for p in candidates:
-        if _normalise_lookup_name(p.stem) == wanted:
-            return p
+    norm_matches = [p for p in candidates if _normalise_lookup_name(p.stem) == wanted]
+    if len(norm_matches) == 1:
+        return norm_matches[0]
+    if len(norm_matches) > 1:
+        raise ValueError(
+            f"Ambiguous OBJ files matching '{model}' in {model_dir}: "
+            + ", ".join(p.name for p in norm_matches)
+        )
     if len(candidates) == 1:
         return candidates[0]
     return None
@@ -689,7 +701,13 @@ def process_model(
     rows: list[dict] = []
     created_at = datetime.datetime.utcnow().isoformat(timespec="seconds") + "Z"
 
-    obj_path = resolve_obj_path(dataset, dataset_root, model, texture_type)
+    # --- Load mesh once ---
+    try:
+        obj_path = resolve_obj_path(dataset, dataset_root, model, texture_type)
+    except ValueError as exc:
+        for mt in map_types:
+            rows.append(_error_row(dataset, texture_type, model, mt, str(exc)))
+        return rows
     if obj_path is None or not obj_path.exists():
         for mt in map_types:
             rows.append(_error_row(dataset, texture_type, model, mt,

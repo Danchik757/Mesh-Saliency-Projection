@@ -806,3 +806,27 @@ class TestFindObjNestedDashNamedDir:
         (model_dir / "Starfruit-L3.obj").touch()
         result = resolve_obj_path("meshmamba", dataset_root, "Starfruit_L3", "non_texture")
         assert result is not None and result.name == "Starfruit-L3.obj"
+
+
+# ---------------------------------------------------------------------------
+# _find_obj_nested — ambiguity (Gate 2c)
+# ---------------------------------------------------------------------------
+
+class TestFindObjNestedAmbig:
+    """Multiple normalized matches must raise ValueError, never silently pick one."""
+
+    def test_two_dirs_same_norm_raises(self, tmp_path):
+        (tmp_path / "Starfruit-L3").mkdir()
+        (tmp_path / "Starfruit_L3").mkdir()
+        (tmp_path / "Starfruit-L3" / "Starfruit-L3.obj").touch()
+        (tmp_path / "Starfruit_L3" / "Starfruit_L3.obj").touch()
+        with pytest.raises(ValueError, match="[Aa]mbigu"):
+            _find_obj_nested(tmp_path, "Starfruit_L3")
+
+    def test_two_files_same_norm_stem_raises(self, tmp_path):
+        sub = tmp_path / "AB"
+        sub.mkdir()
+        (sub / "A-B.obj").touch()
+        (sub / "A_B.obj").touch()
+        with pytest.raises(ValueError, match="[Aa]mbigu"):
+            _find_obj_nested(tmp_path, "AB")

@@ -36,6 +36,7 @@ from video_creation.heatmap_on_mesh_video.render_heatmap_video import (
     write_manifest,
     write_manifest_csv,
     _casefold_find_nested,
+    _is_wsl,
     _rotate_x,
     _rotate_z,
 )
@@ -630,54 +631,88 @@ class TestWriteManifestCsv:
 # ── GPU preflight ─────────────────────────────────────────────────────────────
 
 class TestGpuPreflight:
-    """Tests for probe_gpu_backend() and related constants.
+    """Tests for probe_gpu_backend(). All subprocess calls are mocked."""
 
-    probe_gpu_backend() may attempt real nvidia-smi and VTK calls, so these
-    tests only check the shape/contract of the result, not specific values.
-    """
-
-    def test_returns_required_keys(self):
-        result = probe_gpu_backend()
-        required = {
-            "gpu_available", "gpu_name",
-            "opengl_renderer", "opengl_vendor", "opengl_version",
-            "pyvista_version", "vtk_version",
-            "pyvista_backend", "offscreen_backend",
-            "used_cpu_fallback",
-        }
-        assert required.issubset(result.keys())
-
-    def test_gpu_available_is_bool(self):
-        result = probe_gpu_backend()
-        assert isinstance(result["gpu_available"], bool)
-
-    def test_used_cpu_fallback_is_bool(self):
-        result = probe_gpu_backend()
-        assert isinstance(result["used_cpu_fallback"], bool)
-
-    def test_opengl_renderer_is_str(self):
-        result = probe_gpu_backend()
-        assert isinstance(result["opengl_renderer"], str)
-        assert len(result["opengl_renderer"]) > 0
-
-    def test_cpu_fallback_set_when_llvmpipe(self):
+    @staticmethod
+    def _cpu_probe_mock():
         import unittest.mock as mock
-        # Two subprocess.run calls: nvidia-smi (no GPU) then VTK probe (llvmpipe)
         nvidia_result = mock.Mock(returncode=1, stdout="", stderr="")
         vtk_result = mock.Mock(
             returncode=0,
             stdout='{"ok": true, "vendor": "Mesa", "renderer": "llvmpipe (LLVM 20.0, 256 bits)", "version": "4.5"}\n',
             stderr="",
         )
+        return mock.patch(
+            "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
+            side_effect=[nvidia_result, vtk_result],
+        )
+
+    def test_returns_required_keys(self):
+        with self._cpu_probe_mock():
+            result = probe_gpu_backend()
+        required = {
+            "gpu_available", "gpu_name",
+            "opengl_renderer", "opengl_vendor", "opengl_version",
+            "pyvista_version", "vtk_version",
+            "pyvista_backend", "offscreen_backend",
+            "probe_succeeded", "used_cpu_fallback",
+        }
+        assert required.issubset(result.keys())
+
+    def test_gpu_available_is_bool(self):
+        with self._cpu_probe_mock():
+            result = probe_gpu_backend()
+        assert isinstance(result["gpu_available"], bool)
+
+    def test_used_cpu_fallback_is_bool(self):
+        with self._cpu_probe_mock():
+            result = probe_gpu_backend()
+        assert isinstance(result["used_cpu_fallback"], bool)
+
+    def test_opengl_renderer_is_str(self):
+        with self._cpu_probe_mock():
+            result = probe_gpu_backend()
+        assert isinstance(result["opengl_renderer"], str)
+        assert len(result["opengl_renderer"]) > 0
+
+    def test_cpu_fallback_set_when_llvmpipe(self):
+        with self._cpu_probe_mock():
+            r = probe_gpu_backend()
+        assert r["used_cpu_fallback"] is True
+        assert r["pyvista_backend"] == "cpu_software"
+        assert "llvmpipe" in r["opengl_renderer"]
+
+    def test_probe_failed_never_classified_as_gpu(self):
+        import unittest.mock as mock
+        nvidia_result = mock.Mock(returncode=0, stdout="NVIDIA GeForce RTX 3060\n", stderr="")
+        vtk_crash = mock.Mock(returncode=139, stdout="", stderr="Segmentation fault")
+        with mock.patch(
+            "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
+            side_effect=[nvidia_result, vtk_crash],
+        ):
+            r = probe_gpu_backend()
+        assert r["probe_succeeded"] is False
+        assert r["pyvista_backend"] != "d3d12_gpu"
+
+    def test_gallium_driver_not_set_on_non_wsl(self):
+        import os
+        import unittest.mock as mock
+        nvidia_result = mock.Mock(returncode=0, stdout="NVIDIA GeForce RTX 3060\n", stderr="")
+        vtk_result = mock.Mock(
+            returncode=0,
+            stdout='{"ok": true, "vendor": "Microsoft", "renderer": "D3D12 (NVIDIA GeForce RTX 3060)", "version": "4.2"}\n',
+            stderr="",
+        )
         with mock.patch(
             "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
             side_effect=[nvidia_result, vtk_result],
-        ):
-            from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
-            r = pg()
-            assert r["used_cpu_fallback"] is True
-            assert r["pyvista_backend"] == "cpu_software"
-            assert "llvmpipe" in r["opengl_renderer"]
+        ), mock.patch(
+            "video_creation.heatmap_on_mesh_video.render_heatmap_video._is_wsl",
+            return_value=False,
+        ), mock.patch.dict(os.environ, {}, clear=False):
+            os.environ.pop("GALLIUM_DRIVER", None)
+            probe_gpu_backend()
+            assert "GALLIUM_DRIVER" not in os.environ
 
     def test_cpu_renderer_patterns_include_llvmpipe(self):
         assert any("llvmpipe" in p for p in _CPU_RENDERER_PATTERNS)
@@ -715,6 +750,7 @@ class TestVtkProbeSubprocess:
             from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
             r = pg()
             assert r["offscreen_backend"].startswith("error:")
+            assert r["probe_succeeded"] is False
 
     def test_vtk_probe_ok_false_gives_error_offscreen(self):
         import unittest.mock as mock
@@ -751,6 +787,7 @@ class TestVtkProbeSubprocess:
             assert r["gpu_available"] is True
             assert r["used_cpu_fallback"] is False
             assert r["pyvista_backend"] == "d3d12_gpu"
+            assert r["probe_succeeded"] is True
 
 
 class TestCasefoldFindNestedDashDir:
@@ -776,6 +813,26 @@ class TestCasefoldFindNestedDashDir:
         (sub / "Apple_Red_v1_L3.obj").touch()
         result = _casefold_find_nested(tmp_path, "Apple_Red_v1_L3", ".obj")
         assert result is not None
+
+
+class TestCasefoldFindNestedAmbig:
+    """Ambiguous directory/file cases must raise ValueError."""
+
+    def test_two_matching_dirs_raises(self, tmp_path):
+        (tmp_path / "Starfruit-L3").mkdir()
+        (tmp_path / "Starfruit_L3").mkdir()
+        (tmp_path / "Starfruit-L3" / "Starfruit-L3.obj").touch()
+        (tmp_path / "Starfruit_L3" / "Starfruit_L3.obj").touch()
+        with pytest.raises(ValueError, match="[Aa]mbigu"):
+            _casefold_find_nested(tmp_path, "Starfruit_L3", ".obj")
+
+    def test_two_files_same_norm_stem_raises(self, tmp_path):
+        sub = tmp_path / "AB"
+        sub.mkdir()
+        (sub / "A-B.obj").touch()
+        (sub / "A_B.obj").touch()
+        with pytest.raises(ValueError, match="[Aa]mbigu"):
+            _casefold_find_nested(tmp_path, "AB", ".obj")
 
 
 # ── build_parser — CLI flag defaults and constraints ──────────────────────────

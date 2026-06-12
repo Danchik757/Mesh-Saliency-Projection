@@ -13,10 +13,12 @@ if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
 from video_creation.heatmap_on_mesh_video.render_batch_gt_cone import (
+    _build_renderer_cmd,
     _pick_mesh_obj,
     resolve_paths,
     PLACE,
 )
+from video_creation.heatmap_on_mesh_video.render_heatmap_video import build_parser
 
 
 # ---------------------------------------------------------------------------
@@ -196,3 +198,69 @@ class TestResolvePathsSal3d:
         )
         assert "sal3d_jsons" in str(paths["placement"])
         assert "Sal3D_vase.json" in str(paths["placement"])
+
+
+# ---------------------------------------------------------------------------
+# _build_renderer_cmd
+# ---------------------------------------------------------------------------
+
+class TestBuildRendererCmd:
+    def _make_paths(self, tmp_path):
+        return {
+            "mesh": tmp_path / "model.obj",
+            "placement": tmp_path / "placement.json",
+            "gt": tmp_path / "gt.txt",
+            "cone": tmp_path / "cone.txt",
+            "ds_canon": "MeshMamba",
+        }
+
+    def test_uses_placement_json_flag(self, tmp_path):
+        paths = self._make_paths(tmp_path)
+        cmd = _build_renderer_cmd(
+            "meshmamba", "non_texture", "chair", "gt",
+            paths["gt"], paths, tmp_path / "staging", "rc3_vis_gt",
+        )
+        assert "--placement-json" in cmd
+        assert "--placement" not in cmd
+
+    def test_build_renderer_cmd_parseable(self, tmp_path):
+        paths = self._make_paths(tmp_path)
+        cmd = _build_renderer_cmd(
+            "meshmamba", "non_texture", "chair", "gt",
+            paths["gt"], paths, tmp_path / "staging", "rc3_vis_gt",
+        )
+        cli_args = cmd[2:]
+        args = build_parser().parse_args(cli_args)
+        assert Path(args.placement_json) == Path(paths["placement"])
+        assert args.model == "chair"
+        assert args.map_type == "gt"
+
+    def test_sal3d_no_texture_type_flag(self, tmp_path):
+        paths = self._make_paths(tmp_path)
+        cmd = _build_renderer_cmd(
+            "sal3d", "sal3d", "vase", "gt",
+            paths["gt"], paths, tmp_path / "staging", "rc3_vis_gt",
+        )
+        assert "--texture-type" not in cmd
+
+    def test_meshmamba_includes_texture_type(self, tmp_path):
+        paths = self._make_paths(tmp_path)
+        cmd = _build_renderer_cmd(
+            "meshmamba", "rgb_texture", "pear", "cone",
+            paths["cone"], paths, tmp_path / "staging", "note",
+        )
+        assert "--texture-type" in cmd
+        idx = cmd.index("--texture-type")
+        assert cmd[idx + 1] == "rgb_texture"
+
+
+# ---------------------------------------------------------------------------
+# _pick_mesh_obj — duplicate normalized stems
+# ---------------------------------------------------------------------------
+
+class TestPickMeshObjDuplicateNormStems:
+    def test_duplicate_normalized_stems_raises(self, tmp_path):
+        (tmp_path / "A-B.obj").touch()
+        (tmp_path / "A_B.obj").touch()
+        with pytest.raises(ValueError, match="[Aa]mbigu"):
+            _pick_mesh_obj(tmp_path, "AB")
