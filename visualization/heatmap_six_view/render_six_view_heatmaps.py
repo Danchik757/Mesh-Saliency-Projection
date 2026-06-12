@@ -233,6 +233,47 @@ def _find_file_casefold(directory: Path, stem: str, suffix: str) -> Path | None:
     return None
 
 
+def _normalise_lookup_name(value: str) -> str:
+    """Lowercase and strip _ and - for fuzzy stem matching."""
+    return value.lower().replace("_", "").replace("-", "")
+
+
+def _find_obj_nested(mesh_dir: Path, model: str) -> Path | None:
+    """Case-insensitive OBJ lookup supporting flat and nested layouts.
+
+    Flat:   mesh_dir/{model}.obj              (SAL3D, 3DVA)
+    Nested: mesh_dir/{model}/{obj_stem}.obj   (MeshMamba canonical)
+
+    When the nested subdir exists but stem differs from model name (e.g.
+    Starfruit_L3/Starfruit-L3.obj), a normalised-stem comparison is used as
+    fallback; if that also fails, the single-OBJ-in-subdir fallback fires.
+    """
+    exact = mesh_dir / f"{model}.obj"
+    if exact.exists():
+        return exact
+    direct = _find_file_casefold(mesh_dir, model, ".obj")
+    if direct is not None:
+        return direct
+    # Nested subdir lookup (MeshMamba layout)
+    model_dir: Path | None = None
+    if mesh_dir.is_dir():
+        for p in mesh_dir.iterdir():
+            if p.is_dir() and p.name.lower() == model.lower():
+                model_dir = p
+                break
+    if model_dir is None:
+        return None
+    exact_nested = _find_file_casefold(model_dir, model, ".obj")
+    if exact_nested is not None:
+        return exact_nested
+    wanted = _normalise_lookup_name(model)
+    candidates = sorted(model_dir.glob("*.obj"))
+    for p in candidates:
+        if _normalise_lookup_name(p.stem) == wanted:
+            return p
+    return candidates[0] if len(candidates) == 1 else None
+
+
 # ---------------------------------------------------------------------------
 # Dataset-specific path resolution
 # ---------------------------------------------------------------------------
@@ -252,14 +293,8 @@ def resolve_obj_path(
         return _find_file_casefold(mesh_dir, model, ".obj")
     if dataset == "meshmamba":
         assert texture_type is not None
-        # OBJ lives inside a per-model subdirectory; the filename may differ
-        # (e.g. Starfruit_L3/ contains Starfruit-L3.obj)
-        model_subdir = dataset_root / "MeshFile" / texture_type / model
-        if model_subdir.is_dir():
-            objs = [p for p in model_subdir.iterdir() if p.suffix.lower() == ".obj"]
-            return objs[0] if objs else None
-        # flat fallback (shouldn't be needed)
-        return _find_file_casefold(dataset_root / "MeshFile" / texture_type, model, ".obj")
+        mesh_dir = dataset_root / "MeshFile" / texture_type
+        return _find_obj_nested(mesh_dir, model)
     if dataset == "3dva":
         mesh_dir = dataset_root / "3DModels-Simplif-up"
         exact = mesh_dir / f"{model}.obj"

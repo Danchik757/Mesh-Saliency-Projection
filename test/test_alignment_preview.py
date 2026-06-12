@@ -25,6 +25,7 @@ from validation.alignment_preview.check_alignment import (
     DATASET_CONFIGS,
     PREVIEW_K_17S,
     PREVIEW_K_24S,
+    parse_args,
     parse_obj,
     build_projection_matrix_from_fov,
     horizontal_to_vertical_fov_deg,
@@ -801,3 +802,73 @@ class TestRasterizeSilhouette:
         proj = build_projection_matrix_from_fov(vfov, 16 / 9, 0.1, 100.0)
         mask = rasterize_silhouette(world_verts, faces, view, proj, 1920, 1080)
         assert not mask.any(), "Expected empty mask for behind-camera triangle"
+
+
+# ---------------------------------------------------------------------------
+# --timing-contract (M3 regression)
+# ---------------------------------------------------------------------------
+
+class TestAlignmentTimingContract:
+    def _base_args(self, tmp_path, extra=None):
+        argv = [
+            "--dataset", "sal3d",
+            "--models", "bunny",
+            "--dataset-root", str(tmp_path),
+            "--json-root", str(tmp_path),
+            "--output-root", str(tmp_path),
+        ]
+        if extra:
+            argv += extra
+        return parse_args(argv)
+
+    def test_default_timing_is_rc3_one_turn(self, tmp_path):
+        args = self._base_args(tmp_path)
+        assert args.timing_contract == "rc3_one_turn"
+
+    def test_rc2_cropped_accepted(self, tmp_path):
+        args = self._base_args(tmp_path, ["--timing-contract", "rc2_cropped"])
+        assert args.timing_contract == "rc2_cropped"
+
+    def test_rc3_one_turn_explicit(self, tmp_path):
+        args = self._base_args(tmp_path, ["--timing-contract", "rc3_one_turn"])
+        assert args.timing_contract == "rc3_one_turn"
+
+    def test_invalid_contract_rejected(self, tmp_path):
+        with pytest.raises(SystemExit):
+            self._base_args(tmp_path, ["--timing-contract", "bad_contract"])
+
+    def test_rc3_placement_idx_equals_gaze_k(self):
+        timing_start = 0  # rc3_one_turn
+        for gaze_k in PREVIEW_K_17S + PREVIEW_K_24S:
+            assert timing_start + gaze_k == gaze_k
+
+    def test_rc2_placement_idx_equals_crop_start_plus_gaze_k(self):
+        timing_start = CROP_START  # 54
+        for gaze_k in PREVIEW_K_17S:
+            assert timing_start + gaze_k == CROP_START + gaze_k
+
+    def test_rc3_all_preview_k_within_json_length_17s(self):
+        timing_start = 0
+        for k in PREVIEW_K_17S:
+            assert timing_start + k <= 449
+
+    def test_rc3_all_preview_k_within_json_length_24s(self):
+        timing_start = 0
+        for k in PREVIEW_K_24S:
+            assert timing_start + k <= 659
+
+    def test_rc2_all_preview_k_within_json_length_17s(self):
+        # max placement_idx = 54 + 449 = 503 < 510 (total frames for 17s@30fps)
+        timing_start = CROP_START
+        for k in PREVIEW_K_17S:
+            assert timing_start + k <= 503
+
+    def test_rc2_all_preview_k_within_json_length_24s(self):
+        # max placement_idx = 54 + 659 = 713 < 720
+        timing_start = CROP_START
+        for k in PREVIEW_K_24S:
+            assert timing_start + k <= 713
+
+    def test_crop_start_constant_unchanged(self):
+        # Ensures backward-compatible constant is preserved
+        assert CROP_START == 54

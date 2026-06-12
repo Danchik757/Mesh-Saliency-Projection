@@ -20,6 +20,8 @@ if str(REPO_ROOT) not in sys.path:
 from visualization.heatmap_six_view.render_six_view_heatmaps import (
     _error_row,
     _find_file_casefold,
+    _find_obj_nested,
+    _normalise_lookup_name,
     _rel,
     discover_models,
     load_and_prepare_map,
@@ -651,3 +653,118 @@ class TestCompareCollageColorbar:
 
         assert len(colorbar_ranges) == 3
         assert all(r == (0.0, 1.0) for r in colorbar_ranges)
+
+
+# ---------------------------------------------------------------------------
+# _normalise_lookup_name
+# ---------------------------------------------------------------------------
+
+class TestNormaliseLookupName:
+    def test_strips_underscores(self):
+        assert _normalise_lookup_name("Starfruit_L3") == "starfruitl3"
+
+    def test_strips_dashes(self):
+        assert _normalise_lookup_name("Starfruit-L3") == "starfruitl3"
+
+    def test_lowercases(self):
+        assert _normalise_lookup_name("PEAR") == "pear"
+
+    def test_underscore_and_dash_equivalent(self):
+        assert _normalise_lookup_name("Pear_L3") == _normalise_lookup_name("Pear-L3")
+
+
+# ---------------------------------------------------------------------------
+# _find_obj_nested — H1 regression tests
+# ---------------------------------------------------------------------------
+
+class TestFindObjNested:
+    def test_flat_exact(self, tmp_path):
+        (tmp_path / "bunny.obj").touch()
+        assert _find_obj_nested(tmp_path, "bunny") == tmp_path / "bunny.obj"
+
+    def test_flat_casefold(self, tmp_path):
+        (tmp_path / "BUNNY.OBJ").touch()
+        result = _find_obj_nested(tmp_path, "bunny")
+        assert result is not None
+
+    def test_nested_exact_name(self, tmp_path):
+        sub = tmp_path / "chair"
+        sub.mkdir()
+        (sub / "chair.obj").touch()
+        assert _find_obj_nested(tmp_path, "chair") == sub / "chair.obj"
+
+    def test_nested_case_insensitive_subdir(self, tmp_path):
+        sub = tmp_path / "Chair"
+        sub.mkdir()
+        (sub / "Chair.obj").touch()
+        result = _find_obj_nested(tmp_path, "chair")
+        assert result is not None
+
+    def test_nested_dash_variant(self, tmp_path):
+        sub = tmp_path / "Starfruit_L3"
+        sub.mkdir()
+        (sub / "Starfruit-L3.obj").touch()
+        result = _find_obj_nested(tmp_path, "Starfruit_L3")
+        assert result is not None
+        assert result.name == "Starfruit-L3.obj"
+
+    def test_nested_single_obj_fallback(self, tmp_path):
+        sub = tmp_path / "MyModel"
+        sub.mkdir()
+        (sub / "totally_different.obj").touch()
+        result = _find_obj_nested(tmp_path, "MyModel")
+        assert result is not None
+
+    def test_nested_multiple_objs_no_match_returns_none(self, tmp_path):
+        sub = tmp_path / "MyModel"
+        sub.mkdir()
+        (sub / "alpha.obj").touch()
+        (sub / "beta.obj").touch()
+        result = _find_obj_nested(tmp_path, "MyModel")
+        assert result is None
+
+    def test_missing_returns_none(self, tmp_path):
+        assert _find_obj_nested(tmp_path, "ghost") is None
+
+    def test_empty_subdir_returns_none(self, tmp_path):
+        (tmp_path / "MyModel").mkdir()
+        assert _find_obj_nested(tmp_path, "MyModel") is None
+
+
+# ---------------------------------------------------------------------------
+# resolve_obj_path — MeshMamba nested layout (H1 regression)
+# ---------------------------------------------------------------------------
+
+class TestResolveObjPathMeshMambaNested:
+    def test_nested_obj_found(self, tmp_path):
+        dataset_root = tmp_path / "ds"
+        model_dir = dataset_root / "MeshFile" / "non_texture" / "chair"
+        model_dir.mkdir(parents=True)
+        (model_dir / "chair.obj").touch()
+        result = resolve_obj_path("meshmamba", dataset_root, "chair", "non_texture")
+        assert result is not None
+        assert result.name == "chair.obj"
+
+    def test_nested_dash_stem_variant(self, tmp_path):
+        dataset_root = tmp_path / "ds"
+        model_dir = dataset_root / "MeshFile" / "non_texture" / "Starfruit_L3"
+        model_dir.mkdir(parents=True)
+        (model_dir / "Starfruit-L3.obj").touch()
+        result = resolve_obj_path("meshmamba", dataset_root, "Starfruit_L3", "non_texture")
+        assert result is not None
+        assert result.name == "Starfruit-L3.obj"
+
+    def test_flat_obj_still_found(self, tmp_path):
+        dataset_root = tmp_path / "ds"
+        mesh_dir = dataset_root / "MeshFile" / "rgb_texture"
+        mesh_dir.mkdir(parents=True)
+        (mesh_dir / "sofa.obj").touch()
+        result = resolve_obj_path("meshmamba", dataset_root, "sofa", "rgb_texture")
+        assert result is not None
+        assert result.name == "sofa.obj"
+
+    def test_missing_returns_none(self, tmp_path):
+        dataset_root = tmp_path / "ds"
+        (dataset_root / "MeshFile" / "non_texture").mkdir(parents=True)
+        result = resolve_obj_path("meshmamba", dataset_root, "ghost", "non_texture")
+        assert result is None

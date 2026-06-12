@@ -185,6 +185,33 @@ def _casefold_find(directory: Path, stem: str, suffix: str) -> Path | None:
     return None
 
 
+def _casefold_find_nested(directory: Path, stem: str, suffix: str) -> Path | None:
+    """Like _casefold_find but also checks a model-named subdirectory.
+
+    Handles MeshMamba layout: MeshFile/{tt}/{model}/{obj_stem}.obj
+    where obj_stem may differ from model (dash vs underscore, short stems).
+    """
+    direct = _casefold_find(directory, stem, suffix)
+    if direct is not None:
+        return direct
+    if not directory.is_dir():
+        return None
+    for d in directory.iterdir():
+        if not d.is_dir() or d.name.lower() != stem.lower():
+            continue
+        nested = _casefold_find(d, stem, suffix)
+        if nested is not None:
+            return nested
+        wanted = stem.lower().replace("_", "").replace("-", "")
+        candidates = sorted(d.glob(f"*{suffix}"))
+        for f in candidates:
+            if f.stem.lower().replace("_", "").replace("-", "") == wanted:
+                return f
+        if len(candidates) == 1:
+            return candidates[0]
+    return None
+
+
 def auto_resolve_obj(
     dataset: str, texture_type: str, model: str, dataset_root: Path
 ) -> Path:
@@ -193,7 +220,7 @@ def auto_resolve_obj(
     if ds == "3dva":
         candidate = _casefold_find(dataset_root / "3DModels-Simplif-up", model, ".obj")
     elif ds == "meshmamba":
-        candidate = _casefold_find(dataset_root / "MeshFile" / texture_type, model, ".obj")
+        candidate = _casefold_find_nested(dataset_root / "MeshFile" / texture_type, model, ".obj")
     elif ds == "sal3d":
         candidate = _casefold_find(dataset_root / "Meshes", model, ".obj")
     else:
@@ -536,7 +563,7 @@ def probe_gpu_backend() -> dict:
         rw = _vtk.vtkRenderWindow()
         rw.SetOffScreenRendering(1)
         rw.Initialize()
-        _vtk.vtkRenderer()  # ignored; just need the context
+        rw.AddRenderer(_vtk.vtkRenderer())
         rw.Render()
         try:
             lib = ctypes.CDLL(ctypes.util.find_library("GL") or "libGL.so.1")

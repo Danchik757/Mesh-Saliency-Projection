@@ -23,6 +23,7 @@ from video_creation.heatmap_on_mesh_video.render_heatmap_video import (
     _CPU_RENDERER_PATTERNS,
     _DATASET_EXTRA_ROTATE_X,
     apply_frame_rotation,
+    auto_resolve_obj,
     build_parser,
     camera_from_placement,
     compute_rgb_colors,
@@ -34,6 +35,7 @@ from video_creation.heatmap_on_mesh_video.render_heatmap_video import (
     select_preview_indices,
     write_manifest,
     write_manifest_csv,
+    _casefold_find_nested,
     _rotate_x,
     _rotate_z,
 )
@@ -923,3 +925,75 @@ class TestDatasetExtraRotateX:
         ]
         args = build_parser().parse_args(base)
         assert args.extra_rotate_x_deg == pytest.approx(45.0)
+
+
+# ── _casefold_find_nested and auto_resolve_obj (M1 regression) ────────────────
+
+class TestCasefoldFindNested:
+    def test_flat_exact_found(self, tmp_path):
+        (tmp_path / "bunny.obj").touch()
+        result = _casefold_find_nested(tmp_path, "bunny", ".obj")
+        assert result is not None and result.name == "bunny.obj"
+
+    def test_flat_case_insensitive(self, tmp_path):
+        (tmp_path / "BUNNY.OBJ").touch()
+        result = _casefold_find_nested(tmp_path, "bunny", ".obj")
+        assert result is not None
+
+    def test_nested_exact(self, tmp_path):
+        sub = tmp_path / "chair"
+        sub.mkdir()
+        (sub / "chair.obj").touch()
+        result = _casefold_find_nested(tmp_path, "chair", ".obj")
+        assert result is not None and result.name == "chair.obj"
+
+    def test_nested_dash_variant(self, tmp_path):
+        sub = tmp_path / "Starfruit_L3"
+        sub.mkdir()
+        (sub / "Starfruit-L3.obj").touch()
+        result = _casefold_find_nested(tmp_path, "Starfruit_L3", ".obj")
+        assert result is not None and result.name == "Starfruit-L3.obj"
+
+    def test_nested_single_obj_fallback(self, tmp_path):
+        sub = tmp_path / "MyModel"
+        sub.mkdir()
+        (sub / "other_name.obj").touch()
+        result = _casefold_find_nested(tmp_path, "MyModel", ".obj")
+        assert result is not None
+
+    def test_missing_returns_none(self, tmp_path):
+        result = _casefold_find_nested(tmp_path, "ghost", ".obj")
+        assert result is None
+
+    def test_empty_subdir_returns_none(self, tmp_path):
+        (tmp_path / "MyModel").mkdir()
+        result = _casefold_find_nested(tmp_path, "MyModel", ".obj")
+        assert result is None
+
+
+class TestAutoResolveObjMeshMambaNested:
+    def test_nested_exact_obj_found(self, tmp_path):
+        model_dir = tmp_path / "MeshFile" / "non_texture" / "chair"
+        model_dir.mkdir(parents=True)
+        (model_dir / "chair.obj").touch()
+        result = auto_resolve_obj("meshmamba", "non_texture", "chair", tmp_path)
+        assert result.name == "chair.obj"
+
+    def test_nested_dash_stem_found(self, tmp_path):
+        model_dir = tmp_path / "MeshFile" / "non_texture" / "Starfruit_L3"
+        model_dir.mkdir(parents=True)
+        (model_dir / "Starfruit-L3.obj").touch()
+        result = auto_resolve_obj("meshmamba", "non_texture", "Starfruit_L3", tmp_path)
+        assert result.name == "Starfruit-L3.obj"
+
+    def test_nested_single_fallback(self, tmp_path):
+        model_dir = tmp_path / "MeshFile" / "rgb_texture" / "Pear_L3"
+        model_dir.mkdir(parents=True)
+        (model_dir / "Pear.obj").touch()
+        result = auto_resolve_obj("meshmamba", "rgb_texture", "Pear_L3", tmp_path)
+        assert result is not None
+
+    def test_missing_raises_file_not_found(self, tmp_path):
+        (tmp_path / "MeshFile" / "non_texture").mkdir(parents=True)
+        with pytest.raises(FileNotFoundError, match="OBJ not found"):
+            auto_resolve_obj("meshmamba", "non_texture", "ghost", tmp_path)

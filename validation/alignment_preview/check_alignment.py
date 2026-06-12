@@ -579,9 +579,11 @@ def process_frame(
     transform_order: str,
     video_path: Path | None,
     frame_out_dir: Path,
+    *,
+    timing_start: int = 0,
 ) -> dict:
     """Render silhouette, extract video frame, compute overlay and IoU for one k."""
-    placement_idx = CROP_START + gaze_k
+    placement_idx = timing_start + gaze_k
     result: dict[str, Any] = {
         "gaze_k":        gaze_k,
         "placement_idx": placement_idx,
@@ -723,6 +725,7 @@ def write_summary_csv(rows: list[dict], output_root: Path) -> Path:
     p.parent.mkdir(parents=True, exist_ok=True)
     fieldnames = [
         "dataset", "texture_type", "model",
+        "timing_contract", "timing_crop_start",
         "gaze_k", "placement_idx",
         "status", "error_message",
         "rendered_pixels",
@@ -753,6 +756,9 @@ def process_model(
     output_root: Path,
     commit_hash: str,
     hostname: str,
+    *,
+    timing_start: int = 0,
+    timing_contract: str = "rc3_one_turn",
 ) -> list[dict]:
     """Process all preview frames for one model. Returns list of summary rows."""
     cfg = DATASET_CONFIGS[dataset]
@@ -824,7 +830,8 @@ def process_model(
         "extra_rotate_y_deg":   cfg["extra_rotate_y_deg"],
         "fov_mode":             cfg["fov_mode"],
         "fov_info":             proj_info,
-        "timing_crop_start":    CROP_START,
+        "timing_contract":      timing_contract,
+        "timing_crop_start":    timing_start,
         "timing_fps":           FPS,
         "commit_hash":          commit_hash,
         "server_hostname":      hostname,
@@ -834,7 +841,7 @@ def process_model(
     model_out_dir = _model_output_dir(output_root, dataset, texture_type, model)
 
     for gaze_k in list(cfg["preview_k"]):
-        placement_idx = CROP_START + gaze_k
+        placement_idx = timing_start + gaze_k
         frame_dir = model_out_dir / f"frame_{gaze_k:04d}_p{placement_idx:04d}"
 
         try:
@@ -851,6 +858,7 @@ def process_model(
                 transform_order=str(cfg["transform_order"]),
                 video_path=video_path,
                 frame_out_dir=frame_dir,
+                timing_start=timing_start,
             )
         except Exception as exc:
             frame_result = {
@@ -874,6 +882,8 @@ def process_model(
 
         row = {
             **base_row,
+            "timing_contract":   timing_contract,
+            "timing_crop_start": timing_start,
             "gaze_k":            gaze_k,
             "placement_idx":     placement_idx,
             "status":            frame_result.get("status", "error"),
@@ -919,6 +929,16 @@ def parse_args(argv=None):
                          "IoU reported as null when absent)")
     ap.add_argument("--output-root", type=Path, required=True,
                     help="Root for rendered output, CSVs, and manifests")
+    ap.add_argument("--timing-contract",
+                    choices=["rc3_one_turn", "rc2_cropped"],
+                    default="rc3_one_turn",
+                    help=(
+                        "Timing contract for placement JSON frame lookup. "
+                        "rc3_one_turn (default): placement_idx=gaze_k, start=0 — "
+                        "matches rc3 heatmap renders. "
+                        "rc2_cropped: placement_idx=54+gaze_k — matches rc2 "
+                        "(1.8s-cropped) renders."
+                    ))
     return ap.parse_args(argv)
 
 
@@ -944,12 +964,15 @@ def main(argv=None):
               file=sys.stderr)
         args.video_root = None
 
-    commit_hash = _git_commit_hash()
-    hostname    = socket.gethostname()
+    commit_hash     = _git_commit_hash()
+    hostname        = socket.gethostname()
+    timing_contract = args.timing_contract
+    timing_start    = CROP_START if timing_contract == "rc2_cropped" else 0
 
     print(
         f"[INFO] dataset={args.dataset}  texture={args.texture_type or '-'}  "
-        f"models={args.models}  output={args.output_root}",
+        f"models={args.models}  output={args.output_root}  "
+        f"timing={timing_contract}(start={timing_start})",
         flush=True,
     )
 
@@ -967,6 +990,8 @@ def main(argv=None):
             output_root=args.output_root,
             commit_hash=commit_hash,
             hostname=hostname,
+            timing_start=timing_start,
+            timing_contract=timing_contract,
         )
         for row in rows:
             k    = row.get("gaze_k", "?")
