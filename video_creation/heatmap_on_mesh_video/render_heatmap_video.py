@@ -196,8 +196,9 @@ def _casefold_find_nested(directory: Path, stem: str, suffix: str) -> Path | Non
         return direct
     if not directory.is_dir():
         return None
+    stem_norm = stem.lower().replace("_", "").replace("-", "")
     for d in directory.iterdir():
-        if not d.is_dir() or d.name.lower() != stem.lower():
+        if not d.is_dir() or d.name.lower().replace("_", "").replace("-", "") != stem_norm:
             continue
         nested = _casefold_find(d, stem, suffix)
         if nested is not None:
@@ -511,6 +512,52 @@ _CPU_RENDERER_PATTERNS = ("llvmpipe", "softpipe", "mesa software", "virtualbox",
 # Minimum frame cap when running on CPU fallback.
 _CPU_FALLBACK_MAX_FRAMES = 30
 
+# Probe script run in a subprocess so vtkRenderWindow.Initialize() — which can
+# call exit() on headless systems — never runs inside the main Python process.
+_VTK_PROBE_SCRIPT = """\
+import json, platform
+
+try:
+    import vtk as _vtk
+    rw = _vtk.vtkRenderWindow()
+    rw.SetOffScreenRendering(1)
+    rw.Initialize()
+    rw.AddRenderer(_vtk.vtkRenderer())
+    rw.Render()
+    vendor = renderer = version = "unknown"
+    try:
+        import ctypes, ctypes.util
+        lib_names = {"Darwin": ["OpenGL"], "Windows": ["opengl32"]}.get(
+            platform.system(), ["GL", "libGL.so.1"]
+        )
+        for _n in lib_names:
+            _pt = ctypes.util.find_library(_n)
+            if not _pt:
+                continue
+            try:
+                lib = ctypes.CDLL(_pt)
+                lib.glGetString.restype = ctypes.c_char_p
+                def _gl(e):
+                    v = lib.glGetString(e)
+                    return v.decode() if v else "unknown"
+                vendor = _gl(0x1F00)
+                renderer = _gl(0x1F01)
+                version = _gl(0x1F02)
+                break
+            except Exception:
+                pass
+    except Exception as ge:
+        renderer = "ctypes-error:" + str(ge)
+    finally:
+        try:
+            rw.Finalize()
+        except Exception:
+            pass
+    print(json.dumps({"ok": True, "vendor": vendor, "renderer": renderer, "version": version}))
+except Exception as exc:
+    print(json.dumps({"ok": False, "error": str(exc)}))
+"""
+
 
 def probe_gpu_backend() -> dict:
     """Probe the OpenGL/VTK backend and return a preflight result dict.
@@ -530,9 +577,6 @@ def probe_gpu_backend() -> dict:
       offscreen_backend    str   — "vtk_offscreen" | "error:<msg>"
       used_cpu_fallback    bool  — True when renderer matches a software rasterizer
     """
-    import ctypes
-    import ctypes.util
-
     # ── 1. nvidia-smi ──────────────────────────────────────────────────────────
     gpu_available = False
     gpu_name = ""
@@ -547,39 +591,44 @@ def probe_gpu_backend() -> dict:
     except Exception:
         pass
 
-    # ── 2. Try to steer Mesa to the D3D12 (NVIDIA) backend ────────────────────
-    # Must be set before VTK creates its first render window.
+    # ── 2. Steer Mesa to D3D12 backend (WSL) and build subprocess env ─────────
+    # Set in the current process so later pv.Plotter() picks it up; also pass
+    # to the probe subprocess so VTK inside it uses the same driver.
     if gpu_available and "GALLIUM_DRIVER" not in os.environ:
         os.environ["GALLIUM_DRIVER"] = "d3d12"
         os.environ.setdefault("MESA_D3D12_DEFAULT_ADAPTER_NAME", "NVIDIA")
+    probe_env = os.environ.copy()
 
-    # ── 3. Create a minimal off-screen VTK context and query GL strings ───────
+    # ── 3. Run VTK probe in an isolated subprocess ────────────────────────────
+    # vtkRenderWindow.Initialize() can call exit() on headless systems.
+    # Subprocess isolation prevents that from aborting the caller (pytest).
     opengl_renderer = "unknown"
     opengl_vendor   = "unknown"
     opengl_version  = "unknown"
     offscreen_backend = "vtk_offscreen"
     try:
-        import vtk as _vtk
-        rw = _vtk.vtkRenderWindow()
-        rw.SetOffScreenRendering(1)
-        rw.Initialize()
-        rw.AddRenderer(_vtk.vtkRenderer())
-        rw.Render()
-        try:
-            lib = ctypes.CDLL(ctypes.util.find_library("GL") or "libGL.so.1")
-            lib.glGetString.restype = ctypes.c_char_p
-            def _gl(e: int) -> str:
-                v = lib.glGetString(e)
-                return v.decode() if v else "unknown"
-            opengl_vendor   = _gl(0x1F00)
-            opengl_renderer = _gl(0x1F01)
-            opengl_version  = _gl(0x1F02)
-        except Exception as gl_err:
-            opengl_renderer = f"ctypes-error:{gl_err}"
-        finally:
-            rw.Finalize()
-    except Exception as vtk_err:
-        offscreen_backend = f"error:{vtk_err}"
+        probe = subprocess.run(
+            [sys.executable, "-c", _VTK_PROBE_SCRIPT],
+            capture_output=True, text=True, timeout=20,
+            env=probe_env,
+        )
+        last_line = (probe.stdout or "").strip().rsplit("\n", 1)[-1]
+        if probe.returncode == 0 and last_line.startswith("{"):
+            data = json.loads(last_line)
+            if data.get("ok"):
+                opengl_vendor   = data.get("vendor",   "unknown")
+                opengl_renderer = data.get("renderer", "unknown")
+                opengl_version  = data.get("version",  "unknown")
+            else:
+                offscreen_backend = "error:" + str(data.get("error", "unknown"))
+        elif probe.returncode != 0:
+            offscreen_backend = f"error:probe_exit_{probe.returncode}"
+        else:
+            offscreen_backend = "error:probe_no_output"
+    except subprocess.TimeoutExpired:
+        offscreen_backend = "error:vtk_probe_timeout"
+    except Exception as exc:
+        offscreen_backend = f"error:{exc}"
 
     # ── 4. Classify backend ────────────────────────────────────────────────────
     renderer_lc = opengl_renderer.lower()

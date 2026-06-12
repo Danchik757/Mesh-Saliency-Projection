@@ -258,7 +258,7 @@ def _find_obj_nested(mesh_dir: Path, model: str) -> Path | None:
     model_dir: Path | None = None
     if mesh_dir.is_dir():
         for p in mesh_dir.iterdir():
-            if p.is_dir() and p.name.lower() == model.lower():
+            if p.is_dir() and _normalise_lookup_name(p.name) == _normalise_lookup_name(model):
                 model_dir = p
                 break
     if model_dir is None:
@@ -271,7 +271,9 @@ def _find_obj_nested(mesh_dir: Path, model: str) -> Path | None:
     for p in candidates:
         if _normalise_lookup_name(p.stem) == wanted:
             return p
-    return candidates[0] if len(candidates) == 1 else None
+    if len(candidates) == 1:
+        return candidates[0]
+    return None
 
 
 # ---------------------------------------------------------------------------

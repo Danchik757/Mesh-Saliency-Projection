@@ -768,3 +768,41 @@ class TestResolveObjPathMeshMambaNested:
         (dataset_root / "MeshFile" / "non_texture").mkdir(parents=True)
         result = resolve_obj_path("meshmamba", dataset_root, "ghost", "non_texture")
         assert result is None
+
+
+# ---------------------------------------------------------------------------
+# _find_obj_nested — dash-named directory (Gate 2b regression)
+# ---------------------------------------------------------------------------
+
+class TestFindObjNestedDashNamedDir:
+    """Exact reproduction of Gate 2b failure: directory Starfruit-L3/ with model Starfruit_L3."""
+
+    def test_dir_dash_model_underscore(self, tmp_path):
+        sub = tmp_path / "Starfruit-L3"
+        sub.mkdir()
+        (sub / "Starfruit-L3.obj").touch()
+        result = _find_obj_nested(tmp_path, "Starfruit_L3")
+        assert result is not None and result.name == "Starfruit-L3.obj"
+
+    def test_dir_underscore_model_dash(self, tmp_path):
+        sub = tmp_path / "Starfruit_L3"
+        sub.mkdir()
+        (sub / "Starfruit_L3.obj").touch()
+        result = _find_obj_nested(tmp_path, "Starfruit-L3")
+        assert result is not None
+
+    def test_dir_mixed_case_dash(self, tmp_path):
+        sub = tmp_path / "Apple-Red-v1-L3"
+        sub.mkdir()
+        (sub / "Apple_Red_v1_L3.obj").touch()
+        result = _find_obj_nested(tmp_path, "Apple_Red_v1_L3")
+        assert result is not None
+
+    def test_resolve_obj_path_dash_dir(self, tmp_path):
+        """resolve_obj_path with directory named Starfruit-L3, model Starfruit_L3."""
+        dataset_root = tmp_path / "ds"
+        model_dir = dataset_root / "MeshFile" / "non_texture" / "Starfruit-L3"
+        model_dir.mkdir(parents=True)
+        (model_dir / "Starfruit-L3.obj").touch()
+        result = resolve_obj_path("meshmamba", dataset_root, "Starfruit_L3", "non_texture")
+        assert result is not None and result.name == "Starfruit-L3.obj"

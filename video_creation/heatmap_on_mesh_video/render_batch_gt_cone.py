@@ -40,11 +40,6 @@ RENDERER  = Path(__file__).parent / "render_heatmap_video.py"
 MM_LONG   = REPO / "results/benchmark_runs/meshmamba/2026-06-02_meshmamba_reference/meshmamba_reference_long.csv"
 PLACE     = REPO / "jsons/object_placement"
 
-# Dataset roots are passed via CLI (--mm-dataset-root / --sal3d-dataset-root)
-# or environment variables (MM_DATASET_ROOT / SAL3D_DATASET_ROOT).
-_MM_DATASET_ROOT_DEFAULT    = "/mnt/f/ClaudeCode/MeshMamba-main/dataset"
-_SAL3D_DATASET_ROOT_DEFAULT = "/mnt/f/ClaudeCode/sal3d_benchmark_pkg"
-
 CONE_NOTE = (
     "rc3_full_metrics_20260611_004003 baseline_cone renderer batch; "
     "final optimized renders should use optimized full-run maps when available"
@@ -60,14 +55,42 @@ def load_gt_lookup() -> dict:
     return gt
 
 
+def _pick_mesh_obj(mesh_dir: Path, model: str) -> Path:
+    """Deterministically select the OBJ for model from mesh_dir.
+
+    Returns the single matching OBJ, or a placeholder path when the directory
+    is empty (caller's preflight check will report it missing).
+    Raises ValueError when multiple OBJs exist and none match model's
+    normalised stem — never chooses arbitrarily.
+    """
+    objs = sorted(mesh_dir.glob("*.obj"))
+    if not objs:
+        return mesh_dir / f"{model}.obj"
+    wanted = model.lower().replace("_", "").replace("-", "")
+    matches = [p for p in objs if p.stem.lower().replace("_", "").replace("-", "") == wanted]
+    if matches:
+        return matches[0]
+    if len(objs) == 1:
+        return objs[0]
+    raise ValueError(
+        f"Ambiguous OBJ files for model '{model}' in {mesh_dir}: "
+        + ", ".join(p.name for p in objs)
+        + ". Rename files or provide --mesh override."
+    )
+
+
 def resolve_paths(ds: str, track: str, model: str, cone_root: Path, gt_lookup: dict, *,
                   mm_dataset_root: Path, sal3d_dataset_root: Path) -> dict:
     if ds == "meshmamba":
-        gt_file   = gt_lookup[(track, model)]
+        gt_file = gt_lookup.get((track, model))
+        if gt_file is None:
+            raise RuntimeError(
+                f"No GT entry for track={track!r}, model={model!r}. "
+                f"Ensure {MM_LONG.name} has a row with method=cone, status=ok."
+            )
         gt_path   = mm_dataset_root / "SaliencyMap" / track / gt_file
         mesh_dir  = mm_dataset_root / "MeshFile" / track / model
-        objs      = list(mesh_dir.glob("*.obj"))
-        mesh      = objs[0] if objs else mesh_dir / f"{model}.obj"
+        mesh      = _pick_mesh_obj(mesh_dir, model)
         sub       = "mamba_non_jsons" if track == "non_texture" else "mamba_rgb_jsons"
         placement = PLACE / sub / f"MeshMamba_{track}_{model}.json"
         cone      = cone_root / "meshmamba" / track / model / f"{model}_cone_faces.txt"
@@ -145,26 +168,32 @@ def run_render(ds: str, track: str, model: str, map_type: str,
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--models-tsv",    default=None, help="TSV with columns: dataset,track,model,cone_CC")
-    ap.add_argument("--output-dir",    default="/mnt/c/Users/Danya/Downloads/heatmap_3d_batch_gt_cone")
-    ap.add_argument("--cone-maps-root", default=os.environ.get("CONE_MAPS_ROOT",
-                                                                "/mnt/f/ClaudeCode/rc3_cone_maps"))
+    ap.add_argument("--output-dir",    default=str(REPO / "batch_output" / "heatmap_gt_cone"),
+                    help="Output directory (default: <repo>/batch_output/heatmap_gt_cone)")
+    ap.add_argument("--cone-maps-root", default=os.environ.get("CONE_MAPS_ROOT"),
+                    help="Root containing per-model cone map files. Env: CONE_MAPS_ROOT")
     ap.add_argument("--staging",       default="/tmp/render_batch_staging")
     ap.add_argument("--dry-run",       action="store_true", help="Check paths only, no rendering")
     ap.add_argument("--mm-dataset-root",
-                    default=os.environ.get("MM_DATASET_ROOT", _MM_DATASET_ROOT_DEFAULT),
+                    default=os.environ.get("MM_DATASET_ROOT"),
                     help="MeshMamba dataset root (expects MeshFile/ and SaliencyMap/ subdirs). "
                          "Env: MM_DATASET_ROOT")
     ap.add_argument("--sal3d-dataset-root",
-                    default=os.environ.get("SAL3D_DATASET_ROOT", _SAL3D_DATASET_ROOT_DEFAULT),
+                    default=os.environ.get("SAL3D_DATASET_ROOT"),
                     help="SAL3D dataset root (expects sal3d_fixed_face_gt/ and Meshes/ subdirs). "
                          "Env: SAL3D_DATASET_ROOT")
     args = ap.parse_args()
 
+    if args.cone_maps_root is None:
+        print("[ERROR] --cone-maps-root is required. Set CONE_MAPS_ROOT env var or pass --cone-maps-root.",
+              file=sys.stderr)
+        sys.exit(1)
+
     cone_root          = Path(args.cone_maps_root)
     out_root           = Path(args.output_dir)
     staging            = Path(args.staging)
-    mm_dataset_root    = Path(args.mm_dataset_root)
-    sal3d_dataset_root = Path(args.sal3d_dataset_root)
+    mm_dataset_root    = Path(args.mm_dataset_root) if args.mm_dataset_root else None
+    sal3d_dataset_root = Path(args.sal3d_dataset_root) if args.sal3d_dataset_root else None
     gt_lookup = load_gt_lookup()
 
     # Load model list
@@ -204,18 +233,27 @@ def main():
         (mm_dataset_root,    "MM_DATASET_ROOT / --mm-dataset-root",    needs_mm),
         (sal3d_dataset_root, "SAL3D_DATASET_ROOT / --sal3d-dataset-root", needs_sal3d),
     ]:
-        if needed and not root.is_dir():
-            print(f"[ERROR] Dataset root not found: {root}\n"
-                  f"  Set via env var or CLI flag: {flag}", file=sys.stderr)
+        if needed and (root is None or not root.is_dir()):
+            if root is None:
+                print(f"[ERROR] Dataset root not set. Set via env var or CLI flag: {flag}",
+                      file=sys.stderr)
+            else:
+                print(f"[ERROR] Dataset root not found: {root}\n"
+                      f"  Set via env var or CLI flag: {flag}", file=sys.stderr)
             sys.exit(1)
 
     # Path check
     all_ok = True
     print(f"\n{'DRY-RUN' if args.dry_run else 'PATH CHECK'}: {len(models)} models")
     for ds, track, model in models:
-        p = resolve_paths(ds, track, model, cone_root, gt_lookup,
-                          mm_dataset_root=mm_dataset_root,
-                          sal3d_dataset_root=sal3d_dataset_root)
+        try:
+            p = resolve_paths(ds, track, model, cone_root, gt_lookup,
+                              mm_dataset_root=mm_dataset_root,
+                              sal3d_dataset_root=sal3d_dataset_root)
+        except (RuntimeError, ValueError) as exc:
+            print(f"  {ds:10} {track:12} {model:40}  ERROR: {exc}", file=sys.stderr)
+            all_ok = False
+            continue
         ok = {k: Path(v).exists() for k, v in [("GT", p["gt"]), ("Mesh", p["mesh"]),
                                                  ("JSON", p["placement"]), ("Cone", p["cone"])]}
         status = "OK" if all(ok.values()) else "MISS:" + ",".join(k for k, v in ok.items() if not v)
@@ -238,9 +276,15 @@ def main():
     batch_t0 = time.time()
 
     for i, (ds, track, model) in enumerate(models, 1):
-        paths   = resolve_paths(ds, track, model, cone_root, gt_lookup,
-                                mm_dataset_root=mm_dataset_root,
-                                sal3d_dataset_root=sal3d_dataset_root)
+        try:
+            paths = resolve_paths(ds, track, model, cone_root, gt_lookup,
+                                  mm_dataset_root=mm_dataset_root,
+                                  sal3d_dataset_root=sal3d_dataset_root)
+        except (RuntimeError, ValueError) as exc:
+            print(f"\n[{i:02d}/{len(models)}] SKIP {ds} {track} {model}: {exc}", file=sys.stderr)
+            results.append(dict(ds=ds, track=track, model=model, map_type="gt", ok=False, elapsed=0.0))
+            results.append(dict(ds=ds, track=track, model=model, map_type="cone", ok=False, elapsed=0.0))
+            continue
         ds_canon = paths["ds_canon"]
         model_out = (out_root / ds_canon / model) if ds == "sal3d" else (out_root / ds_canon / track / model)
         turn = 660 if ds == "sal3d" else 450

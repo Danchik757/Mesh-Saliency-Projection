@@ -1,9 +1,9 @@
 # Final Windows Agent Audit — agent/windows-video-overlays-rc3
 **Gate 1: Audit & Report  (no fixes applied)**
 
-Date: 2026-06-12  
-Branch: `agent/windows-video-overlays-rc3`  
-HEAD: `4ee7e58`  
+Date: 2026-06-12
+Branch: `agent/windows-video-overlays-rc3`
+HEAD: `4ee7e58`
 Auditor: Windows Claude (independent, no prior session context re-imported)
 
 ---
@@ -35,7 +35,7 @@ def resolve_obj_path(dataset, dataset_root, model, texture_type):
 
 `_find_file_casefold` iterates entries of `MeshFile/{texture_type}/` and looks for a
 file named `{model}.obj` — but the actual on-disk layout is
-`MeshFile/{texture_type}/{model}/{obj_stem}.obj` (model subdir).  
+`MeshFile/{texture_type}/{model}/{obj_stem}.obj` (model subdir).
 `directory.iterdir()` yields subdirectory names, not OBJ files, so this returns `None`
 for every MeshMamba model.
 
@@ -137,7 +137,7 @@ rw.Render()
 established by `Initialize()` and the ctypes GL-string query runs independently of any
 renderer. In practice the GL strings are obtained correctly (confirmed by working
 GPU detection in field use). The technically correct call is
-`rw.AddRenderer(_vtk.vtkRenderer())`.  
+`rw.AddRenderer(_vtk.vtkRenderer())`.
 Severity is LOW because the function contract (detect GPU/CPU backend) is satisfied
 and all tests pass.
 

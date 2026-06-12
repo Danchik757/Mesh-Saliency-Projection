@@ -661,28 +661,23 @@ class TestGpuPreflight:
         assert len(result["opengl_renderer"]) > 0
 
     def test_cpu_fallback_set_when_llvmpipe(self):
-        # Simulate result with llvmpipe renderer
         import unittest.mock as mock
+        # Two subprocess.run calls: nvidia-smi (no GPU) then VTK probe (llvmpipe)
+        nvidia_result = mock.Mock(returncode=1, stdout="", stderr="")
+        vtk_result = mock.Mock(
+            returncode=0,
+            stdout='{"ok": true, "vendor": "Mesa", "renderer": "llvmpipe (LLVM 20.0, 256 bits)", "version": "4.5"}\n',
+            stderr="",
+        )
         with mock.patch(
             "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
-            return_value=mock.Mock(returncode=1, stdout=""),
+            side_effect=[nvidia_result, vtk_result],
         ):
-            with mock.patch(
-                "video_creation.heatmap_on_mesh_video.render_heatmap_video.probe_gpu_backend",
-                return_value={
-                    "gpu_available": False, "gpu_name": "",
-                    "opengl_renderer": "llvmpipe (LLVM 20.0, 256 bits)",
-                    "opengl_vendor": "Mesa", "opengl_version": "4.5",
-                    "pyvista_version": "0.48.4", "vtk_version": "9.6.2",
-                    "pyvista_backend": "cpu_software",
-                    "offscreen_backend": "vtk_offscreen",
-                    "used_cpu_fallback": True,
-                },
-            ):
-                from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
-                r = pg()
-                assert r["used_cpu_fallback"] is True
-                assert r["pyvista_backend"] == "cpu_software"
+            from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
+            r = pg()
+            assert r["used_cpu_fallback"] is True
+            assert r["pyvista_backend"] == "cpu_software"
+            assert "llvmpipe" in r["opengl_renderer"]
 
     def test_cpu_renderer_patterns_include_llvmpipe(self):
         assert any("llvmpipe" in p for p in _CPU_RENDERER_PATTERNS)
@@ -692,6 +687,95 @@ class TestGpuPreflight:
 
     def test_cpu_fallback_max_frames_is_30(self):
         assert _CPU_FALLBACK_MAX_FRAMES == 30
+
+
+class TestVtkProbeSubprocess:
+    """Verify probe_gpu_backend handles subprocess failure modes without crashing."""
+
+    def test_vtk_probe_timeout_gives_error_offscreen(self):
+        import subprocess as _sp
+        import unittest.mock as mock
+        nvidia_result = mock.Mock(returncode=1, stdout="", stderr="")
+        with mock.patch(
+            "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
+            side_effect=[nvidia_result, _sp.TimeoutExpired(cmd=["python"], timeout=20)],
+        ):
+            from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
+            r = pg()
+            assert "timeout" in r["offscreen_backend"]
+
+    def test_vtk_probe_nonzero_exit_gives_error_offscreen(self):
+        import unittest.mock as mock
+        nvidia_result = mock.Mock(returncode=1, stdout="", stderr="")
+        vtk_crash = mock.Mock(returncode=139, stdout="", stderr="Segmentation fault")
+        with mock.patch(
+            "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
+            side_effect=[nvidia_result, vtk_crash],
+        ):
+            from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
+            r = pg()
+            assert r["offscreen_backend"].startswith("error:")
+
+    def test_vtk_probe_ok_false_gives_error_offscreen(self):
+        import unittest.mock as mock
+        nvidia_result = mock.Mock(returncode=1, stdout="", stderr="")
+        vtk_result = mock.Mock(
+            returncode=0,
+            stdout='{"ok": false, "error": "No module named vtk"}\n',
+            stderr="",
+        )
+        with mock.patch(
+            "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
+            side_effect=[nvidia_result, vtk_result],
+        ):
+            from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
+            r = pg()
+            assert r["offscreen_backend"].startswith("error:")
+
+    def test_vtk_probe_d3d12_classified_as_gpu(self):
+        import unittest.mock as mock
+        nvidia_result = mock.Mock(
+            returncode=0, stdout="NVIDIA GeForce RTX 3060\n", stderr=""
+        )
+        vtk_result = mock.Mock(
+            returncode=0,
+            stdout='{"ok": true, "vendor": "Microsoft", "renderer": "D3D12 (NVIDIA GeForce RTX 3060)", "version": "4.2"}\n',
+            stderr="",
+        )
+        with mock.patch(
+            "video_creation.heatmap_on_mesh_video.render_heatmap_video.subprocess.run",
+            side_effect=[nvidia_result, vtk_result],
+        ):
+            from video_creation.heatmap_on_mesh_video.render_heatmap_video import probe_gpu_backend as pg
+            r = pg()
+            assert r["gpu_available"] is True
+            assert r["used_cpu_fallback"] is False
+            assert r["pyvista_backend"] == "d3d12_gpu"
+
+
+class TestCasefoldFindNestedDashDir:
+    """Verify _casefold_find_nested resolves dash-named directories (Gate 2b bug)."""
+
+    def test_dir_dash_model_underscore(self, tmp_path):
+        sub = tmp_path / "Starfruit-L3"
+        sub.mkdir()
+        (sub / "Starfruit-L3.obj").touch()
+        result = _casefold_find_nested(tmp_path, "Starfruit_L3", ".obj")
+        assert result is not None and result.name == "Starfruit-L3.obj"
+
+    def test_dir_underscore_model_dash(self, tmp_path):
+        sub = tmp_path / "Starfruit_L3"
+        sub.mkdir()
+        (sub / "Starfruit-L3.obj").touch()
+        result = _casefold_find_nested(tmp_path, "Starfruit-L3", ".obj")
+        assert result is not None
+
+    def test_dir_allcaps_dash(self, tmp_path):
+        sub = tmp_path / "APPLE-RED-V1-L3"
+        sub.mkdir()
+        (sub / "Apple_Red_v1_L3.obj").touch()
+        result = _casefold_find_nested(tmp_path, "Apple_Red_v1_L3", ".obj")
+        assert result is not None
 
 
 # ── build_parser — CLI flag defaults and constraints ──────────────────────────
