@@ -3,7 +3,7 @@
 ## Rule
 
 `Mesh-Saliency-Projection` owns reproducible metric computation. The
-public `Danchik757/Mesh-Saliency-Tools` repository owns optional alignment,
+private `Danchik757/Mesh-Saliency-Tools` repository owns optional alignment,
 visualization, heatmap, and video/render utilities.
 
 The core repository must run and test successfully without initializing the
@@ -46,16 +46,17 @@ tools/mesh-saliency-tools
    change as the move.
 3. Core tests pass without an initialized submodule.
 4. Tools tests pass from the standalone tools repository.
-5. A clean clone with `--recurse-submodules` can run documented tools examples.
+5. An authenticated clean clone with `--recurse-submodules` can run documented
+   tools examples.
 6. Source auxiliary folders are absent from core.
 
 Current split validation:
 
-- core suite: 324 passed;
-- tools suite with a core checkout: 415 passed;
-- standalone tools suite: 405 passed, 10 core-dependent tests skipped;
-- detached core worktree with uninitialized submodule: 324 passed;
-- clean recursive clone: core 324 passed and tools 415 passed;
+- core suite: 325 passed;
+- tools suite with a core checkout: 419 passed;
+- standalone tools suite: 409 passed, 10 core-dependent tests skipped;
+- detached core worktree with uninitialized submodule: 325 passed;
+- clean recursive clone: core 325 passed and tools 419 passed;
 - core search contains no imports or launcher calls into the old auxiliary
   paths;
-- tools submodule pinned to `f709458`.
+- tools submodule pinned to `1678a10`.

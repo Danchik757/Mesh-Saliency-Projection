@@ -51,11 +51,13 @@ reviewed non-core changes were integrated.
 
 1. Pass core integration tests, compileall, diff-check, data-contract checks,
    and clean release build/validation.
-2. Create and validate the public tools repository and submodule boundary.
+2. Create and validate the tools repository and submodule boundary. The tools
+   repository was later made private for generated-artifact archival.
 3. Run independent post-split audits of both repositories.
 4. Promote the integration branch to `main`.
 5. Publish `v2.0-data-rc4`.
 6. Remove obsolete remote agent branches only after release acceptance.
 
-Steps 1–3 are complete on the integration branch. Promotion, release
-publication, published-download validation, and branch cleanup remain gated.
+All steps are complete. `main` is the only remote branch, `v2.0-data-rc4`
+passed published-download validation, and the private tools repository stores
+large generated artifacts as release assets rather than Git blobs.

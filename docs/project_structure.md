@@ -45,7 +45,7 @@
 ## Auxiliary tools submodule
 
 Alignment, visualization, heatmap, video/render, manifests, and tool-specific
-tests live in the public `Danchik757/Mesh-Saliency-Tools` repository, connected
+tests live in the private `Danchik757/Mesh-Saliency-Tools` repository, connected
 at `tools/mesh-saliency-tools`. See
 [CORE_TOOLS_BOUNDARY.md](./CORE_TOOLS_BOUNDARY.md).
 

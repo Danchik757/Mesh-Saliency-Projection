@@ -32,7 +32,7 @@ The authoritative run parameters and CSV schema are in
 | `participant_data/` | Canonical tracked processed fixation JSON |
 | `results/csv/` | Deduplicated portable CSV results and manifest |
 
-Auxiliary alignment, heatmap, and video tools live in the public
+Auxiliary alignment, heatmap, and video tools live in the private
 [`Mesh-Saliency-Tools`](./tools/mesh-saliency-tools/README.md) submodule. The
 core benchmark remains usable without initializing it.
 
@@ -98,3 +98,6 @@ Clone optional tools with:
 git clone --recurse-submodules https://github.com/Danchik757/Mesh-Saliency-Projection.git
 git submodule update --init --recursive
 ```
+
+Initializing the private submodule requires GitHub authentication and access to
+`Danchik757/Mesh-Saliency-Tools`. Core metric computation does not require it.
