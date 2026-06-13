@@ -1,7 +1,8 @@
 # Project Coordination
 
-This directory is the operational source of truth for the two implementation
-workers and the temporary reviewer/controller.
+This directory preserves multi-agent review instructions, audits, and project
+state. Current technical contracts live in `coordination/DATA_CONTRACT.md` and
+the authoritative documents under `docs/`.
 
 ## Roles
 
@@ -30,36 +31,36 @@ questions.
 
 ## Current Integration State
 
-- Integration branch: `reproject-benchmark`
-- Current rc2 integration point during this review: `15eb036`
-- Data release used by current benchmark runs: `v2.0-data-rc2`
-- Workers never merge directly into `reproject-benchmark`.
-- The reviewer/controller reviews and integrates. Implementation work should
-  happen on worker branches unless the change is documentation-only or an
-  explicitly approved small fix.
-- The Windows worker branch is not to be deleted or rewritten while its WSL
-  state is unresolved.
+- Integration branch: `integration/final-rc4`.
+- Release candidate: `v2.0-data-rc4`, schema version 2.
+- Timing contract: `one_turn_from_start`, offset0 fixation JSON.
+- Auxiliary tools repository:
+  `Danchik757/Mesh-Saliency-Tools`, pinned at `tools/mesh-saliency-tools`.
+- Agent branches remain read-only until final post-split review and promotion
+  to `main`.
 
 ## Current Phase Status
 
-Completed for rc2:
+Completed:
 
 - processed fixation JSON is the default input format;
 - reports include fixation provenance and resume guards;
 - SAL3D fixed per-face GT is supported;
-- alignment preview tooling exists for 3DVA, MeshMamba, and SAL3D;
-- six-view heatmap rendering exists for qualitative inspection;
-- release `v2.0-data-rc2` is published.
+- offset0 participant fixation JSON is tracked and release-packaged;
+- release builder/validator, merge guards, resume identity, and provenance are
+  updated for rc4;
+- alignment, heatmap, and video tools moved to the public tools submodule;
+- rc4 release build and clean-extract validation pass locally.
 
 Current active work:
 
-- full rc2 metric runs on `vg-iai`;
-- review and cleanup of auxiliary tooling before a future submodule split;
-- prepare, but do not yet run, rc2-compatible sigma sweep.
+- independent post-integration reviews;
+- clean-clone/core-without-submodule verification;
+- final promotion to `main` and rc4 upload.
 
 Known excluded/problem data:
 
-- `3DVA_jessi`: empty cropped-reset fixation file, excluded by loader;
+- `3DVA_jessi`: only 41 processed fixation frames, excluded by loader;
 - `SAL3D_gorgoile`: no processed fixation JSON, excluded from participant-gaze metrics.
 
 See also:

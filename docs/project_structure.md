@@ -38,19 +38,16 @@
 - `experiments/`
   - one-off or exploratory scripts before they are promoted into stable modules
 - `test/`
-  - active regression tests and production launchers; auxiliary tests are
-    scheduled to move with their tools
+  - active core regression tests and production launchers
 - `tests/`
-  - reserved compatibility test directory; keep it documented so it is not
-    accidentally swept into a future visualization/helper submodule
+  - reserved compatibility test directory
 
-## Auxiliary tools during final integration
+## Auxiliary tools submodule
 
-`validation/`, `visualization/`, `gt_visualizations/`, `video_creation/`,
-`references/render_scripts/`, and their tool-specific tests remain temporarily
-in this repository. They are planned for the public
-`Danchik757/Mesh-Saliency-Tools` submodule at `tools/mesh-saliency-tools`.
-See [CORE_TOOLS_BOUNDARY.md](./CORE_TOOLS_BOUNDARY.md).
+Alignment, visualization, heatmap, video/render, manifests, and tool-specific
+tests live in the public `Danchik757/Mesh-Saliency-Tools` repository, connected
+at `tools/mesh-saliency-tools`. See
+[CORE_TOOLS_BOUNDARY.md](./CORE_TOOLS_BOUNDARY.md).
 
 ## Recommended rule
 

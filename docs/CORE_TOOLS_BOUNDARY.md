@@ -2,7 +2,7 @@
 
 ## Rule
 
-`Mesh-Saliency-Projection` owns reproducible metric computation. The planned
+`Mesh-Saliency-Projection` owns reproducible metric computation. The
 public `Danchik757/Mesh-Saliency-Tools` repository owns optional alignment,
 visualization, heatmap, and video/render utilities.
 
@@ -20,7 +20,7 @@ tools submodule.
 - `jsons/`, `participant_data/`, `datasets/`, `requirements/`
 - core tests and authoritative documentation
 
-## Planned tools migration
+## Completed tools migration
 
 | Tools path | Current source |
 | --- | --- |
@@ -32,13 +32,13 @@ tools submodule.
 | `manifests/` | `test/manifests/` |
 | `tests/` | tests dedicated only to the migrated tools |
 
-The intended submodule location in the core repository is:
+The submodule location in the core repository is:
 
 ```text
 tools/mesh-saliency-tools
 ```
 
-## Migration acceptance gates
+## Acceptance gates
 
 1. Search confirms core Python and launchers do not import or execute a planned
    tools path.
@@ -47,8 +47,7 @@ tools/mesh-saliency-tools
 3. Core tests pass without an initialized submodule.
 4. Tools tests pass from the standalone tools repository.
 5. A clean clone with `--recurse-submodules` can run documented tools examples.
-6. Source auxiliary folders are deleted only after the submodule commit and
-   both test suites pass.
+6. Source auxiliary folders are absent from core.
 
-Until these gates pass, the auxiliary folders remain in the core repository and
-the submodule migration is considered incomplete.
+Current split validation: core and tools suites pass independently; tools are
+pinned by the core submodule commit.

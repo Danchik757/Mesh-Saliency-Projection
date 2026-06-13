@@ -1,0 +1,3 @@
+[submodule "tools/mesh-saliency-tools"]
+	path = tools/mesh-saliency-tools
+	url = https://github.com/Danchik757/Mesh-Saliency-Tools.git

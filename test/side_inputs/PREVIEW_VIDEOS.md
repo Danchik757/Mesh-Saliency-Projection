@@ -8,15 +8,15 @@ Recommended transfer policy:
 - Preview source videos: as a small `tar.gz` archive built from the manifests you actually plan to validate.
 
 Current key manifests for preview validation:
-- `test/manifests/preview_3dva_bunny.json`
-- `test/manifests/preview_meshmamba_non_texture_starfruit.json`
-- `test/manifests/preview_meshmamba_rgb_texture_starfruit.json`
-- `test/manifests/preview_meshmamba_non_texture_mango.json`
-- `test/manifests/preview_meshmamba_rgb_texture_mango.json`
-- `test/manifests/preview_meshmamba_non_texture_pear.json`
-- `test/manifests/preview_meshmamba_rgb_texture_pear.json`
-- `test/manifests/preview_meshmamba_non_texture_rubber_duck.json`
-- `test/manifests/preview_meshmamba_rgb_texture_rubber_duck.json`
+- `tools/mesh-saliency-tools/manifests/preview_3dva_bunny_up.json`
+- `tools/mesh-saliency-tools/manifests/preview_meshmamba_non_texture_starfruit.json`
+- `tools/mesh-saliency-tools/manifests/preview_meshmamba_rgb_texture_starfruit.json`
+- `tools/mesh-saliency-tools/manifests/preview_meshmamba_non_texture_mango.json`
+- `tools/mesh-saliency-tools/manifests/preview_meshmamba_rgb_texture_mango.json`
+- `tools/mesh-saliency-tools/manifests/preview_meshmamba_non_texture_pear.json`
+- `tools/mesh-saliency-tools/manifests/preview_meshmamba_rgb_texture_pear.json`
+- `tools/mesh-saliency-tools/manifests/preview_meshmamba_non_texture_rubber_duck.json`
+- `tools/mesh-saliency-tools/manifests/preview_meshmamba_rgb_texture_rubber_duck.json`
 
 Build archive locally:
 
@@ -25,9 +25,9 @@ source "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Salienc
 python3 "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/side_inputs/pack_preview_videos.py" \
   --archive "/tmp/reproject_preview_videos.tar.gz" \
   --manifest \
-  "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/manifests/preview_3dva_bunny.json" \
-  "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/manifests/preview_meshmamba_non_texture_starfruit.json" \
-  "/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/manifests/preview_meshmamba_rgb_texture_starfruit.json"
+  "tools/mesh-saliency-tools/manifests/preview_3dva_bunny_up.json" \
+  "tools/mesh-saliency-tools/manifests/preview_meshmamba_non_texture_starfruit.json" \
+  "tools/mesh-saliency-tools/manifests/preview_meshmamba_rgb_texture_starfruit.json"
 ```
 
 Then transfer to the server, for example into:

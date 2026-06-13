@@ -55,3 +55,5 @@ reviewed non-core changes were integrated.
 4. Promote the integration branch to `main`.
 5. Publish `v2.0-data-rc4`.
 6. Remove obsolete remote agent branches only after release acceptance.
+
+Steps 1–2 are complete on the integration branch. Steps 3–6 remain gated.

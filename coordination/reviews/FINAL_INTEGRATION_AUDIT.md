@@ -22,6 +22,13 @@
 - Data contract: no unexpected errors; known blockers are `3DVA_jessi` and
   missing `SAL3D_gorgoile` CSV/processed data.
 - rc4 builder dry-run: strict preflight passes with explicit external sources.
+- Real `v2.0-data-rc4` build: 13 archives, 1.5 GB compressed, validator
+  `status=ok`.
+- Fresh extract: 4.1 GB; 298 fixation JSON byte-identical to tracked source;
+  Smooth Gaze 53 models; fixed-face GT 55 models.
+- Post-split core suite: 306 passed.
+- Standalone `Mesh-Saliency-Tools` suite: 391 passed; submodule pinned to
+  `b2a3be0`.
 
 ## Required before promotion to main
 
@@ -29,7 +36,6 @@
 - Perform a real clean-tree rc4 build and validate manifest, SHA-256, ZIP CRC,
   fixation counts, Smooth Gaze inventory, and fixed-face GT inventory.
 - Perform a clean extract/fresh-download smoke.
-- Complete and validate the public tools submodule migration.
 - Request independent post-integration audits from macOS and Windows reviewers.
 - Confirm optimized full-run CSVs are either downloaded and indexed or
   explicitly remain documented as unavailable.
@@ -42,5 +48,6 @@
   pipeline is not currently in the repository.
 - Smooth Gaze stores 2000 neighbours per record while the current evaluator
   consumes only the first 500.
-- The public tools repository/submodule has not yet been created.
+- Public tools repository created and pinned as
+  `tools/mesh-saliency-tools`; independent post-split review remains required.
 - Agent branches must not be removed until release and submodule acceptance.

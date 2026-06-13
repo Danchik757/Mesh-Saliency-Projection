@@ -37,20 +37,8 @@ $REPROJECT_PYTHON test/launch/run_sal3d_reference_batch.py --workers 4
 | `run_3dva_raycast_cone.sh` | 3DVA | Raycast + cone, uses our gaze CSV |
 | `run_3dva_screen_space.sh` | 3DVA | Screen-space, uses our gaze CSV |
 | `run_sal3d_cone.sh` | SAL3D | Cone method batch launcher |
-| `run_saliency3d_clear_pilot.sh` | Saliency3D_clear | Separate dataset (not SAL3D) |
-
-## Alignment and preview
-
-| Script | What it does |
-|--------|-------------|
-| `run_preview_manifest.sh` | Renders one manifest through the Python trimesh previewer |
-| `run_preview_suite.sh` | Renders a batch of manifests |
-| `run_metric_preflight.sh` | Sanity checks env vars and data paths before running metrics |
-
-```bash
-bash test/launch/run_preview_manifest.sh \
-    test/manifests/preview_meshmamba_non_texture_rubber_duck.json
-```
+Alignment/preview and Saliency3D_clear visualization launchers moved to
+`tools/mesh-saliency-tools/launch/`.
 
 ## Server transfer
 

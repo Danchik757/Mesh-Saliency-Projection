@@ -32,10 +32,9 @@ The authoritative run parameters and CSV schema are in
 | `participant_data/` | Canonical tracked processed fixation JSON |
 | `results/csv/` | Deduplicated portable CSV results and manifest |
 
-Auxiliary alignment, heatmap, and video tools are still present during final
-integration. Their planned public-submodule boundary is documented in
-[docs/CORE_TOOLS_BOUNDARY.md](./docs/CORE_TOOLS_BOUNDARY.md). The core benchmark
-must remain usable without those tools.
+Auxiliary alignment, heatmap, and video tools live in the public
+[`Mesh-Saliency-Tools`](./tools/mesh-saliency-tools/README.md) submodule. The
+core benchmark remains usable without initializing it.
 
 ## Quick Start
 
@@ -92,3 +91,10 @@ SAL3D Smooth Gaze size, inventory mismatch, and usage are explained in
 
 Historical `rc1`, `rc2`, and legacy timing/data paths may remain in archived
 documents or result categories. They are not the current benchmark contract.
+
+Clone optional tools with:
+
+```bash
+git clone --recurse-submodules https://github.com/Danchik757/Mesh-Saliency-Projection.git
+git submodule update --init --recursive
+```

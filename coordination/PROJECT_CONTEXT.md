@@ -22,23 +22,15 @@ For each object:
 1. Load the dataset OBJ and GT map.
 2. Load the canonical object-placement JSON from `jsons/object_placement/`.
 3. Load processed participant screen points from
-   `participant_data/processed_fixations_offset_2000/`.
-4. Crop `1.8 s` from the beginning and `0.2 s` from the end, deriving the
-   resulting full-turn window from placement JSON.
-5. Pair each gaze frame with the correct placement/video frame.
+   `participant_data/processed_fixations_offset0_full_cleaned/`.
+4. Derive one full-turn frame count from placement JSON.
+5. Pair `gaze[k]` with `placement[k]` from frame 0 and drop the trailing 60
+   frames.
 6. Transfer points to mesh vertices or faces with a projection method.
 7. Aggregate participant evidence into a prediction map.
 8. Normalize prediction and GT according to each metric's definition.
 9. Calculate metrics and generate diagnostic previews.
 10. Save per-model reports and compact CSV summaries.
-
-The current evaluators still read old participant CSVs directly. Migrating them
-to the new processed JSON contract is delegated work and must be reviewed before
-new full benchmark results are accepted.
-
-The current 3DVA geometry/FOV checkpoint has useful local smoke evidence, but it
-must be labeled `old_csv_no_common_crop`. It processes more than the approved
-single-turn interval and is not a metric baseline.
 
 The old CSV and new processed JSON remain separate release inputs:
 
@@ -59,15 +51,15 @@ The old CSV and new processed JSON remain separate release inputs:
 | Data or code | Location |
 | --- | --- |
 | Corrected placement/camera/animation JSON | `jsons/object_placement/` |
-| Old participant CSVs | `participant_data/collected_gaze_csv_by_model/` |
-| New postprocessed gaze JSONs | `participant_data/processed_fixations_offset_2000/` |
+| Original participant CSVs | external `GAZE_DATA/csv_for_models/`, release-packaged |
+| New postprocessed gaze JSONs | `participant_data/processed_fixations_offset0_full_cleaned/` |
 | Dataset indexes | `jsons/dataset_model_info/` |
 | Projection methods | `reprojection_methods/` |
 | Shared metrics | `metrics/` |
 | Batch launchers | `test/launch/` |
-| Alignment validation | `test/blender_canonical/`, `test/tools/` |
-| Prediction/GT previews | `gt_visualizations/`, `visualization/` |
-| Video generation | `video_creation/`, `references/render_scripts/` |
+| Alignment validation | `tools/mesh-saliency-tools/alignment/`, `debug/` |
+| Prediction/GT previews | `tools/mesh-saliency-tools/heatmaps/` |
+| Video generation | `tools/mesh-saliency-tools/video/`, `render_reference/` |
 | Historical agent logs | `trash/Claude.md`, `trash/GPT.md` |
 
 ## Known Correctness Risks
