@@ -1,14 +1,16 @@
 # Eval Runbook — Correct Evaluation Pipeline
-Last updated: 2026-06-09
+Last updated: 2026-06-13
 
 This document describes the **correct** way to run gaze-to-mesh saliency evaluation
 for all three datasets. Read this before running any eval on the server.
 
-> **Current migration gate:** commands below describe the validated geometry/FOV
-> baseline, but existing evaluators still consume original participant CSVs.
-> They are diagnostic-only until the shared processed-fixation loader and the
-> approved `processed[k] -> placement[round(1.8*fps)+k]` timing rule are
-> integrated. Do not start final full benchmarks from these commands yet.
+> **Current input contract:** final benchmark runs use processed full-length
+> offset0 fixation JSON, `timing_contract=one_turn_from_start`,
+> `frame_offset=0`, and `delay_seconds=0.0`. Commands below that pass
+> `--csv-root` are retained only as participant-aware legacy/geometry audit
+> examples. Use the batch launchers in `test/launch/` for current full runs.
+> The front-crop plus `0.2 s` delay configuration is a separate ablation
+> documented in `docs/METRIC_RUN_AND_CSV_CONTRACT.md`.
 
 ---
 
@@ -282,7 +284,7 @@ wait && echo "All done"
 Allowed root: /mnt/ssd1/29d_kon/acm_2026
 Repo:         /mnt/ssd1/29d_kon/acm_2026/agents/<workspace>/Mesh-Saliency-Projection
 Env:          /mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python
-Release data: /mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc1/extracted
+Release data: /mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted
 Outputs:      /mnt/ssd1/29d_kon/acm_2026/outputs/<workspace>
 ```
 

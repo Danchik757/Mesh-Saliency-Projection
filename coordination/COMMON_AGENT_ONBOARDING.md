@@ -48,7 +48,7 @@ The following data types are independent and must never be silently substituted:
 | --- | --- | --- |
 | Object placement/camera/animation JSON | `jsons/object_placement/` | What was rendered |
 | Original participant CSV | `participant_gaze_csv_original.zip` | Compatibility and participant-aware audit only |
-| Processed fixation JSON | `participant_fixations_processed_offset_2000.zip` | Default input for new benchmark runs |
+| Processed fixation JSON | `participant_fixations_offset0_full_cleaned.zip` | Default input for new benchmark runs |
 | OBJ and GT | Versioned GitHub Release assets | Geometry and comparison target |
 
 Processed fixation JSON format:
@@ -66,36 +66,50 @@ Known blockers:
 - `SAL3D_gorgoile/fixations.json` and its original CSV are missing;
 - neither case may silently fall back to another input.
 
-## Approved Timing Contract
+## Approved Timing Contracts
 
-This rule applies to every dataset, method, placement timeline, and video
-diagnostic:
+The baseline rule applies to every dataset and method:
 
 ```text
-crop_start_seconds = 1.8
-crop_end_seconds = 0.2
-processed_gaze[k] -> placement/video frame round(1.8 * fps) + k
+timing_contract = one_turn_from_start
+frame_offset = 0
+delay_seconds = 0.0
+processed_gaze[k] -> placement/video frame k
 ```
 
-The usable interval must be derived and verified from placement JSON:
+The baseline usable interval must be derived and verified from placement JSON:
 
-- 17-second tracks: use processed frames `[0, 450)` and placement frames
-  `[54, 504)`, one 15-second turn;
-- 24-second SAL3D: use processed frames `[0, 660)` and placement frames
-  `[54, 714)`, one 22-second turn.
+- 17-second tracks: use gaze and placement frames `[0, 450)`, one 15-second
+  turn, and drop the final 60 frames;
+- 24-second SAL3D: use gaze and placement frames `[0, 660)`, one 22-second
+  turn, and drop the final 60 frames.
+
+The front-crop plus response-delay experiment remains supported, but it is an
+ablation and must never be merged with baseline results:
+
+```text
+frame_offset = 54
+delay_seconds = 0.2
+3DVA/MeshMamba: gaze[60:510] -> placement[54:504]
+SAL3D:           gaze[60:720] -> placement[54:714]
+```
+
+Launch it through `test/launch/run_ablation_window_delay.py` with
+`--frame-offset-override 54 --delays 0.2`. The offset and delay must appear in
+the job key, output path, CSV, and report provenance.
 
 Never clamp an out-of-window gaze sample to the final placement frame. Reject or
 explicitly drop it.
 
 ## Current State and Critical Risks
 
-Current evaluators and batch launchers still use original CSV input and do not
-implement the approved common crop. Their results are diagnostic-only.
+Current evaluators and launchers use the canonical processed offset0 fixation
+JSON input and record timing provenance. Original CSV input is retained only
+for explicitly labelled legacy comparisons.
 
-Before a final run, the assigned workers and reviewer must resolve or explicitly
-decide:
+Before a final run, the assigned workers and reviewer must still verify:
 
-1. processed-fixation loader and evaluator migration;
+1. the requested baseline or ablation timing parameters;
 2. report provenance and resume safety;
 3. deterministic MeshMamba/SAL3D geometry failure handling;
 4. metric normalization and aggregation semantics;

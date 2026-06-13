@@ -3,7 +3,9 @@
 export REPROJECT_OUTPUT_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection/test/output_local"
 export REPROJECT_REPO_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/#meshes_2.0/GITHUB/Mesh-Saliency-Projection"
 export REPROJECT_CANONICAL_JSON_ROOT="${REPROJECT_REPO_ROOT}/jsons/object_placement"
-export REPROJECT_PROCESSED_FIXATIONS_ROOT="${REPROJECT_REPO_ROOT}/participant_data/processed_fixations_offset_2000"
+export REPROJECT_PROCESSED_FIXATIONS_ROOT="${REPROJECT_REPO_ROOT}/participant_data/processed_fixations_offset0_full_cleaned"
+export REPROJECT_FIXATION_DATA_TAG="processed_fixations_offset0_full_cleaned"
+export REPROJECT_TIMING_CONTRACT="one_turn_from_start"
 export REPROJECT_ORIGINAL_GAZE_CSV_ROOT="${REPROJECT_REPO_ROOT}/participant_data/collected_gaze_csv_by_model"
 
 export REPROJECT_DATASET_3DVA_ROOT="/Users/admin/Documents/LAB/Dataset/3DVA"

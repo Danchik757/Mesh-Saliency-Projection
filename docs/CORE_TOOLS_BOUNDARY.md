@@ -56,4 +56,4 @@ Current split validation:
 - detached core worktree with uninitialized submodule: 306 passed;
 - core search contains no imports or launcher calls into the old auxiliary
   paths;
-- tools submodule pinned to `b2a3be0`.
+- tools submodule pinned to `eb42cd4`.

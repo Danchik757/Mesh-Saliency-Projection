@@ -25,7 +25,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_A380/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_A380/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -103,13 +103,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -140,7 +142,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_bimba/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_bimba/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -218,13 +220,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -255,7 +259,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_blade-200K/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_blade-200K/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -333,13 +337,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -370,7 +376,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_bunny/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_bunny/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -448,13 +454,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -485,7 +493,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_camel/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_camel/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -563,13 +571,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -600,7 +610,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_car-vasa/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_car-vasa/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -678,13 +688,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -715,7 +727,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_carter/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_carter/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -793,13 +805,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -830,7 +844,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_casting/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_casting/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -908,13 +922,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -945,7 +961,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_chair107/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_chair107/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1023,13 +1039,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1060,7 +1078,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_cow/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_cow/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1138,13 +1156,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1175,7 +1195,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_dinosaur-40K/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_dinosaur-40K/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1253,13 +1273,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1290,7 +1312,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_dragon/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_dragon/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1368,13 +1390,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1405,7 +1429,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_fandisk/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_fandisk/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1483,13 +1507,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1520,7 +1546,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_flowerpot/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_flowerpot/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1598,13 +1624,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1635,7 +1663,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_gorgoile/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_gorgoile/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1713,13 +1741,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1750,7 +1780,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_hand-35K/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_hand-35K/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1828,13 +1858,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1865,7 +1897,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_Harley/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_Harley/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1943,13 +1975,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -1980,7 +2014,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_horse-110k/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_horse-110k/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2058,13 +2092,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -2095,7 +2131,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_house/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_house/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2173,13 +2209,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -2210,7 +2248,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_igea-100K/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_igea-100K/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2288,13 +2326,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -2325,7 +2365,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_james/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_james/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2403,13 +2443,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -2440,7 +2482,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_jessi/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_jessi/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2518,13 +2560,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -2555,7 +2599,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_Max-Planck/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_Max-Planck/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2633,13 +2677,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -2670,7 +2716,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_meca-15k/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_meca-15k/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2748,13 +2794,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -2785,7 +2833,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_michael3/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_michael3/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2863,13 +2911,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -2900,7 +2950,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_michael8/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_michael8/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2978,13 +3028,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -3015,7 +3067,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_octopus/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_octopus/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3093,13 +3145,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -3130,7 +3184,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_prot/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_prot/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3208,13 +3262,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -3245,7 +3301,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_rockerarm/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_rockerarm/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3323,13 +3379,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -3360,7 +3418,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_torso/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_torso/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3438,13 +3496,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -3475,7 +3535,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_turbine/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_turbine/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3553,13 +3613,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {
@@ -3590,7 +3652,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/3DVA_vase-15k/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/3DVA_vase-15k/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3668,13 +3730,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 504,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 450,
           "usable_frames": 450,
+          "total_frames": 510,
           "full_turn_seconds_from_rotation_speed": 15.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 510,
         "first_frame": {

@@ -30,7 +30,8 @@ Before integration:
 The core audit fixed incompatible-run merges, NaN/Inf aggregation, stale release
 building, resume identity, delay provenance, and release validation. The tools
 audit fixed nested MeshMamba OBJ lookup, portable paths, timing defaults, VTK
-probing, placement CLI generation, and ambiguity handling.
+probing, placement CLI generation, ambiguity handling, and canonical offset0
+gaze loading in alignment viewers.
 
 Windows core evaluator changes were deliberately not merged because they were
 based on a stale core without the final frame-offset/provenance contract. Only
@@ -56,4 +57,6 @@ reviewed non-core changes were integrated.
 5. Publish `v2.0-data-rc4`.
 6. Remove obsolete remote agent branches only after release acceptance.
 
-Steps 1–2 are complete on the integration branch. Steps 3–6 remain gated.
+Steps 1–2 are complete on the integration branch. Independent post-split tools
+review is complete; final core review, promotion, release publication, and
+branch cleanup remain gated.

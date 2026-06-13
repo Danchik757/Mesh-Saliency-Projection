@@ -23,7 +23,8 @@
     "delay_seconds_default": 0.0,
     "crop_start_seconds": 0.0,
     "crop_end_seconds": 0.0,
-    "pairing": "gaze[k] -> placement[k] for one full object rotation"
+    "pairing": "gaze[k] -> placement[k] for one full object rotation",
+    "derive_full_turn_from_placement_json": true
   },
   "datasets": [
     {

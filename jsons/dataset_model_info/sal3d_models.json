@@ -25,7 +25,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_A380/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_A380/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -100,13 +100,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -137,7 +139,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_alien/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_alien/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -212,13 +214,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -249,7 +253,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_alien2/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_alien2/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -324,13 +328,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -361,7 +367,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_armadillo/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_armadillo/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -436,13 +442,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -473,7 +481,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_building/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_building/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -548,13 +556,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -585,7 +595,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_bunny/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_bunny/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -660,13 +670,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -697,7 +709,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_camel/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_camel/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -772,13 +784,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -809,7 +823,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_car/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_car/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -884,13 +898,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -921,7 +937,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_cart/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_cart/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -996,13 +1012,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1033,7 +1051,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_carter/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_carter/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1108,13 +1126,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1145,7 +1165,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_casting/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_casting/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1220,13 +1240,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1257,7 +1279,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_cat/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_cat/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1332,13 +1354,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1369,7 +1393,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_centauro/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_centauro/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1444,13 +1468,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1481,7 +1507,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_chair/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_chair/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1556,13 +1582,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1593,7 +1621,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_chicken/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_chicken/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1668,13 +1696,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1705,7 +1735,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_cow/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_cow/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1780,13 +1810,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1817,7 +1849,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_dinosaur/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_dinosaur/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -1892,13 +1924,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -1929,7 +1963,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_dog/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_dog/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2004,13 +2038,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2041,7 +2077,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_dragon/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_dragon/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2116,13 +2152,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2153,7 +2191,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_facestatue/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_facestatue/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2228,13 +2266,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2265,7 +2305,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_fandisk/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_fandisk/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2340,13 +2380,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2377,7 +2419,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_flowerpot/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_flowerpot/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2452,13 +2494,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2489,7 +2533,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_footballplayer/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_footballplayer/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2564,13 +2608,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2601,7 +2647,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_gamecontroller/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_gamecontroller/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2676,13 +2722,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2713,7 +2761,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_gorgoile/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_gorgoile/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2788,13 +2836,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2825,7 +2875,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_gorilla/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_gorilla/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -2900,13 +2950,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -2937,7 +2989,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_hand/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_hand/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3012,13 +3064,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3049,7 +3103,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_harley/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_harley/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3124,13 +3178,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3161,7 +3217,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_hay/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_hay/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3236,13 +3292,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3273,7 +3331,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_horse/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_horse/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3348,13 +3406,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3385,7 +3445,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_house/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_house/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3460,13 +3520,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3497,7 +3559,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_igea/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_igea/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3572,13 +3634,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3609,7 +3673,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_james/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_james/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3684,13 +3748,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3721,7 +3787,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_jessi/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_jessi/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3796,13 +3862,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3833,7 +3901,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_lion/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_lion/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -3908,13 +3976,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -3945,7 +4015,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_MaxPlanck/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_MaxPlanck/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4020,13 +4090,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4057,7 +4129,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_meca/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_meca/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4132,13 +4204,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4169,7 +4243,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_michael3/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_michael3/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4244,13 +4318,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4281,7 +4357,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_michael8/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_michael8/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4356,13 +4432,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4393,7 +4471,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_octopus/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_octopus/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4468,13 +4546,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4505,7 +4585,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_prot/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_prot/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4580,13 +4660,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4617,7 +4699,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_ring/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_ring/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4692,13 +4774,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4729,7 +4813,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_ringdragon/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_ringdragon/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4804,13 +4888,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4841,7 +4927,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_rockerarm/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_rockerarm/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -4916,13 +5002,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -4953,7 +5041,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_skull/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_skull/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5028,13 +5116,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5065,7 +5155,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_sofa/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_sofa/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5140,13 +5230,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5177,7 +5269,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_spaceshuttle/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_spaceshuttle/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5252,13 +5344,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5289,7 +5383,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_spanner/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_spanner/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5364,13 +5458,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5401,7 +5497,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_starfish/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_starfish/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5476,13 +5572,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5513,7 +5611,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_teapot/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_teapot/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5588,13 +5686,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5625,7 +5725,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_torso/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_torso/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5700,13 +5800,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5737,7 +5839,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_triceratop/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_triceratop/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5812,13 +5914,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5849,7 +5953,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_turbine/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_turbine/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -5924,13 +6028,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -5961,7 +6067,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_vase/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_vase/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -6036,13 +6142,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -6073,7 +6181,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_victoria/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_victoria/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -6148,13 +6256,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -6185,7 +6295,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_watchtower/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_watchtower/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -6260,13 +6370,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
@@ -6297,7 +6409,7 @@
         "processed_fixations_json": {
           "repository_staging_path": "participant_data/processed_fixations_offset0_full_cleaned/SAL3D_wolf/fixations.json",
           "release_path": "participant_fixations_offset0_full_cleaned/SAL3D_wolf/fixations.json",
-          "timing": "implicit_frame_index",
+          "timing": "one_turn_from_start_offset_0",
           "participant_ids_available": false
         },
         "original_csv_compatibility": {
@@ -6372,13 +6484,15 @@
           "aspect_ratio": 1.7777777777777777
         },
         "timing_contract": {
-          "crop_start_seconds": 1.8,
-          "crop_end_seconds": 0.2,
-          "placement_start_frame_zero_based": 54,
-          "placement_end_frame_exclusive_zero_based": 714,
+          "name": "one_turn_from_start",
+          "crop_start_seconds": 0.0,
+          "crop_end_seconds": 0.0,
+          "placement_start_frame_zero_based": 0,
+          "placement_end_frame_exclusive_zero_based": 660,
           "usable_frames": 660,
+          "total_frames": 720,
           "full_turn_seconds_from_rotation_speed": 22.0,
-          "pairing_rule": "processed_gaze[k] -> placement[start_frame + k]"
+          "pairing_rule": "processed_gaze[k] -> placement[k] for one full turn"
         },
         "frame_count": 720,
         "first_frame": {
