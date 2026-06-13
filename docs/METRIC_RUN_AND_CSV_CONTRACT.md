@@ -93,6 +93,25 @@ This run is not the baseline. It tests whether metrics improve if the beginning 
 
 This run should be reported separately from baseline.
 
+### Reproducible Ablation Command
+
+The evaluator contract supports this timing directly, and the ablation runner
+must record the explicit offset so it cannot be confused with standard
+`cut_head` (`frame_offset=60`):
+
+```bash
+python3 test/launch/run_ablation_window_delay.py \
+  --window-modes cut_head \
+  --frame-offset-override 54 \
+  --delays 0.2 \
+  --batch-output-dir /path/to/start_crop_delay_0p2
+```
+
+The resulting job key, task output path, CSV row, and evaluator provenance all
+contain `frame_offset=54`. Do not substitute standard `cut_head` without the
+override: that would produce `gaze[66:...] -> placement[60:...]`, which is a
+different experiment.
+
 ## Metrics We Report
 
 The compact CSV must include the following metrics in this exact order:

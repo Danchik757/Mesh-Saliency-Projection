@@ -52,6 +52,18 @@ Window modes
     delay=+0.2: gaze[hs+6 : hs+6+N] → placement[hs : hs+N]
     Evaluator flag: --frame-offset <tail//2> --delay-seconds <value>
 
+Explicit frame-offset override
+──────────────────────────────
+  --frame-offset-override replaces the offset derived from --window-modes.
+  This preserves controlled timing experiments that do not use the standard
+  0 / tail//2 / tail offsets.  In particular:
+
+    --window-modes cut_head --frame-offset-override 54 --delays 0.2
+
+  produces gaze[60:60+N] → placement[54:54+N] at 30 fps.  The explicit
+  offset is recorded in the job key, output path, CSV, and evaluator report
+  provenance, so it cannot collide with the standard cut_head offset=60 run.
+
 Delay grid (seconds):  -0.3  -0.2  -0.1  0.0  +0.1  +0.2  +0.3
   delay=+0.2 @ 30fps → d=+6 frames, so gaze[6:6+N] → placement[0:N]
 
@@ -70,6 +82,11 @@ Usage
   python3 test/launch/run_ablation_window_delay.py --dry-run \\
       --datasets 3dva --models A380 \\
       --delays -0.1 0.0 0.1 --window-modes cut_tail cut_head center
+
+  # Historical start-crop + response-delay experiment:
+  python3 test/launch/run_ablation_window_delay.py --dry-run \\
+      --datasets 3dva --models A380 --window-modes cut_head \\
+      --frame-offset-override 54 --delays 0.2
 
   # Real run — shard 0 on vg-gml01 (requires authorization):
   source configs/server_vg_gml01.env
@@ -146,7 +163,7 @@ _WINDOW_MODE_EVALUATOR_READY: frozenset[str] = frozenset({"cut_tail", "cut_head"
 TIMING_CONTRACT = "one_turn_from_start"
 FIXATION_DATA_TAG = "processed_fixations_offset0_full_cleaned"
 # Environment-driven release tag so an rc4 ablation records correct provenance.
-RELEASE_TAG = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc3")
+RELEASE_TAG = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc4")
 
 
 def _frame_offset_for(dataset: str, window_mode: str) -> int:
@@ -263,6 +280,7 @@ class AblationJob:
     method: str
     window_mode: str
     delay_seconds: float
+    frame_offset_override: int | None = None
 
     @property
     def sigma(self) -> dict[str, Any]:
@@ -274,6 +292,8 @@ class AblationJob:
 
     @property
     def frame_offset(self) -> int:
+        if self.frame_offset_override is not None:
+            return self.frame_offset_override
         return _frame_offset_for(self.dataset, self.window_mode)
 
     @property
@@ -300,7 +320,14 @@ def build_job_list(args: argparse.Namespace) -> list[AblationJob]:
             for method in args.methods:
                 for wm in args.window_modes:
                     for delay in args.delays:
-                        jobs.append(AblationJob(dataset, model, method, wm, delay))
+                        jobs.append(AblationJob(
+                            dataset,
+                            model,
+                            method,
+                            wm,
+                            delay,
+                            getattr(args, "frame_offset_override", None),
+                        ))
     if args.num_shards > 1:
         jobs = [j for j in jobs if j.shard(args.num_shards) == args.shard_index]
     return jobs
@@ -352,25 +379,16 @@ def load_completed_keys(jsonl_path: Path) -> set[str]:
 def describe_pairing(job: AblationJob) -> str:
     info = _DATASET_FRAMES[job.dataset]
     N = info["turn_frames"]
-    total = info["total_frames"]
     fps = info["fps"]
     d = round(job.delay_seconds * fps)
-
-    if job.window_mode == "cut_tail":
-        gs = max(0, d)
-        ps = max(0, -d)
-        return f"gaze[{gs}:{gs+N}] → placement[{ps}:{ps+N}]  (d={job.delay_seconds:+.1f}s={d:+d}fr)"
-    elif job.window_mode == "cut_head":
-        tail = total - N
-        gs = tail + max(0, d)
-        ps = tail + max(0, -d)
-        return f"gaze[{gs}:{gs+N}] → placement[{ps}:{ps+N}]  (tail={tail}, d={job.delay_seconds:+.1f}s={d:+d}fr)"
-    elif job.window_mode == "center":
-        hs = (total - N) // 2
-        gs = hs + max(0, d)
-        ps = hs + max(0, -d)
-        return f"gaze[{gs}:{gs+N}] → placement[{ps}:{ps+N}]  (head_skip={hs}, d={job.delay_seconds:+.1f}s={d:+d}fr)"
-    return f"unknown window_mode={job.window_mode!r}"
+    base = job.frame_offset
+    gs = base + max(0, d)
+    ps = base + max(0, -d)
+    override = ", explicit_override" if job.frame_offset_override is not None else ""
+    return (
+        f"gaze[{gs}:{gs+N}] → placement[{ps}:{ps+N}]  "
+        f"(frame_offset={base}{override}, d={job.delay_seconds:+.1f}s={d:+d}fr)"
+    )
 
 
 # ── per-job frame offset fields ───────────────────────────────────────────────
@@ -378,19 +396,15 @@ def describe_pairing(job: AblationJob) -> str:
 def frame_offsets(job: AblationJob) -> dict[str, int]:
     info = _DATASET_FRAMES[job.dataset]
     N = info["turn_frames"]
-    total = info["total_frames"]
     fps = info["fps"]
     d = round(job.delay_seconds * fps)
-
-    if job.window_mode == "cut_tail":
-        return {"gaze_start_frame": max(0, d), "placement_start_frame": max(0, -d), "turn_frames_used": N, "fps": fps}
-    elif job.window_mode == "cut_head":
-        tail = total - N
-        return {"gaze_start_frame": tail + max(0, d), "placement_start_frame": tail + max(0, -d), "turn_frames_used": N, "fps": fps}
-    elif job.window_mode == "center":
-        hs = (total - N) // 2
-        return {"gaze_start_frame": hs + max(0, d), "placement_start_frame": hs + max(0, -d), "turn_frames_used": N, "fps": fps}
-    return {"gaze_start_frame": -1, "placement_start_frame": -1, "turn_frames_used": N, "fps": fps}
+    base = job.frame_offset
+    return {
+        "gaze_start_frame": base + max(0, d),
+        "placement_start_frame": base + max(0, -d),
+        "turn_frames_used": N,
+        "fps": fps,
+    }
 
 
 def job_feasibility(job: AblationJob) -> tuple[bool, str]:
@@ -485,7 +499,10 @@ def build_command(job: AblationJob, args: argparse.Namespace) -> list[str]:
 
     task_out = _task_output_dir(job, args)
     cmd += ["--output-dir", str(task_out)]
-    delay_tag = f"wm{job.window_mode}_d{job.delay_seconds:+.3f}".replace("+", "p").replace("-", "m").replace(".", "")
+    delay_tag = (
+        f"wm{job.window_mode}_fo{job.frame_offset}_d{job.delay_seconds:+.3f}"
+        .replace("+", "p").replace("-", "m").replace(".", "")
+    )
     cmd += ["--tag", f"ablation_{delay_tag}"]
     return cmd
 
@@ -507,7 +524,13 @@ def _env_flags(cmd: list[str], mapping: dict[str, str]) -> None:
 
 def _task_output_dir(job: AblationJob, args: argparse.Namespace) -> Path:
     d_str = f"d{job.delay_seconds:+.3f}".replace("+", "p").replace("-", "m").replace(".", "")
-    return Path(args.batch_output_dir) / "per_task" / job.dataset / job.model / f"{job.method}_wm{job.window_mode}_{d_str}"
+    return (
+        Path(args.batch_output_dir)
+        / "per_task"
+        / job.dataset
+        / job.model
+        / f"{job.method}_wm{job.window_mode}_fo{job.frame_offset}_{d_str}"
+    )
 
 
 # ── job execution ─────────────────────────────────────────────────────────────
@@ -671,7 +694,17 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--methods", nargs="+", default=ALL_METHODS, choices=ALL_METHODS)
     parser.add_argument(
         "--window-modes", nargs="+", default=["cut_tail"], choices=ALL_WINDOW_MODES,
-        help="cut_tail is evaluator-ready; cut_head/center skipped pending evaluator support.",
+        help="Window label used to derive frame offset: cut_tail=0, center=30, cut_head=60.",
+    )
+    parser.add_argument(
+        "--frame-offset-override",
+        type=int,
+        default=None,
+        metavar="FRAMES",
+        help=(
+            "Explicitly replace the offset derived from --window-modes. "
+            "Example: 54 with --delays 0.2 pairs gaze[60:] with placement[54:]."
+        ),
     )
     parser.add_argument("--delays", nargs="+", type=float, default=ALL_DELAYS, metavar="SEC")
     parser.add_argument("--models", nargs="+", default=None)
@@ -728,6 +761,7 @@ def main() -> int:
                 "dataset": job.dataset, "model": job.model,
                 "method": job.method, "window_mode": job.window_mode,
                 "delay_seconds": job.delay_seconds,
+                "frame_offset": job.frame_offset,
                 "status": "rejected",
                 "error_type": "infeasible_window_delay",
                 "error_message": reason,

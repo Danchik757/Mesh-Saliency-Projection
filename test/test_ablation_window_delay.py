@@ -113,6 +113,55 @@ def test_job_key_embeds_release_timing_frame_offset():
     assert job.frame_offset == 60  # SAL3D tail = 720 - 660
 
 
+@pytest.mark.parametrize(
+    ("dataset", "expected_gaze_end", "expected_placement_end"),
+    [
+        ("3dva", 510, 504),
+        ("meshmamba_non_texture", 510, 504),
+        ("meshmamba_rgb_texture", 510, 504),
+        ("sal3d", 720, 714),
+    ],
+)
+def test_explicit_offset_54_delay_point_2_preserves_front_crop_contract(
+    dataset, expected_gaze_end, expected_placement_end
+):
+    job = AblationJob(dataset, "M", "cone", "cut_head", 0.2, 54)
+    offsets = _m.frame_offsets(job)
+    assert job.frame_offset == 54
+    assert offsets["gaze_start_frame"] == 60
+    assert offsets["placement_start_frame"] == 54
+    assert offsets["gaze_start_frame"] + offsets["turn_frames_used"] == expected_gaze_end
+    assert offsets["placement_start_frame"] + offsets["turn_frames_used"] == expected_placement_end
+    assert _m.job_feasibility(job) == (True, "")
+    assert "fo54" in job.key
+
+
+def test_explicit_frame_offset_is_in_command_tag_and_output_path():
+    job = AblationJob("3dva", "A380", "cone", "cut_head", 0.2, 54)
+    cmd = _m.build_command(job, _Args())
+    assert cmd[cmd.index("--frame-offset") + 1] == "54"
+    assert cmd[cmd.index("--delay-seconds") + 1] == "0.2"
+    assert "fo54" in cmd[cmd.index("--tag") + 1]
+    assert "fo54" in str(_m._task_output_dir(job, _Args()))
+    assert "gaze[60:510] → placement[54:504]" in _m.describe_pairing(job)
+
+
+def test_explicit_frame_offset_changes_resume_identity_and_output_path():
+    standard = AblationJob("3dva", "A380", "cone", "cut_head", 0.2)
+    explicit = AblationJob("3dva", "A380", "cone", "cut_head", 0.2, 54)
+    assert standard.frame_offset == 60
+    assert explicit.frame_offset == 54
+    assert standard.key != explicit.key
+    assert _m._task_output_dir(standard, _Args()) != _m._task_output_dir(explicit, _Args())
+
+
+def test_negative_explicit_frame_offset_rejected_before_launch():
+    job = AblationJob("3dva", "A380", "cone", "cut_head", 0.2, -1)
+    feasible, reason = _m.job_feasibility(job)
+    assert not feasible
+    assert "negative window start" in reason
+
+
 # ── strict provenance (missing fields = mismatch) ───────────────────────────────
 
 def test_provenance_missing_fields_flagged():
