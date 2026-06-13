@@ -54,8 +54,8 @@ Current split validation:
 - core suite: 324 passed;
 - tools suite with a core checkout: 415 passed;
 - standalone tools suite: 405 passed, 10 core-dependent tests skipped;
-- detached core worktree with uninitialized submodule: 317 passed before the
-  final audit fixes; a final clean-clone rerun is required after this commit;
+- detached core worktree with uninitialized submodule: 324 passed;
+- clean recursive clone: core 324 passed and tools 415 passed;
 - core search contains no imports or launcher calls into the old auxiliary
   paths;
 - tools submodule pinned to `f709458`.

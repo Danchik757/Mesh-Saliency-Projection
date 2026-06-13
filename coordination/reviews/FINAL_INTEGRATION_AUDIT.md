@@ -22,29 +22,29 @@
 - Data contract: no unexpected errors; known blockers are `3DVA_jessi` and
   missing `SAL3D_gorgoile` CSV/processed data.
 - rc4 builder dry-run: strict preflight passes with explicit external sources.
-- Real `v2.0-data-rc4` build: 13 archives, 1.5 GB compressed, validator
-  `status=ok`.
-- Fresh extract: 4.1 GB; 298 fixation JSON byte-identical to tracked source;
-  Smooth Gaze 53 models; fixed-face GT 55 models.
+- Real `v2.0-data-rc4` build from the final code candidate: 13 archives,
+  validator `status=ok`.
+- Fresh extract: all 13 SHA-256 checks passed; 298 fixation JSON byte-identical
+  to tracked source; Smooth Gaze 53 models; fixed-face GT and repaired meshes
+  55/55.
 - Post-final-audit core suite: 324 passed.
 - `Mesh-Saliency-Tools` suite with core checkout: 415 passed; standalone:
   405 passed and 10 core-dependent tests skipped; submodule pinned to
   `f709458`.
-- Detached clean core worktree with uninitialized submodule: 317 passed before
-  the final audit fixes; the final clean-clone rerun remains required.
+- Detached clean core worktree with uninitialized submodule: 324 passed.
+- Clean recursive clone: core 324 passed; tools 415 passed; compileall and
+  diff-check clean.
 - Independent Windows post-split audit approved the integration for `main` and
   rc4 with no blockers. Its active-documentation/default/dependency findings
   were fixed before the final integration commit.
 
 ## Required before promotion to main
 
-- Re-run all gates after documentation/data commits.
-- Perform a real clean-tree rc4 build and validate manifest, SHA-256, ZIP CRC,
-  fixation counts, Smooth Gaze inventory, and fixed-face GT inventory.
-- Perform a clean extract/fresh-download smoke.
-- Re-run the clean-clone core/tools gates after the final audit-fix commit.
-- Confirm optimized full-run CSVs are either downloaded and indexed or
-  explicitly remain documented as unavailable.
+- Commit this final audit record and rebuild rc4 once more so its manifest
+  points at the exact promotion commit.
+- Promote the reviewed integration branch without adding code changes.
+- Publish rc4, then perform a clean download validation from the published
+  GitHub release before deleting agent branches.
 
 ## Known blockers and limitations
 

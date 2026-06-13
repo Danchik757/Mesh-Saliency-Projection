@@ -57,6 +57,5 @@ reviewed non-core changes were integrated.
 5. Publish `v2.0-data-rc4`.
 6. Remove obsolete remote agent branches only after release acceptance.
 
-Steps 1–2 are complete on the integration branch. Independent post-split tools
-review is complete; final core review, promotion, release publication, and
-branch cleanup remain gated.
+Steps 1–3 are complete on the integration branch. Promotion, release
+publication, published-download validation, and branch cleanup remain gated.
