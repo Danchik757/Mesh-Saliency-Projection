@@ -49,5 +49,11 @@ tools/mesh-saliency-tools
 5. A clean clone with `--recurse-submodules` can run documented tools examples.
 6. Source auxiliary folders are absent from core.
 
-Current split validation: core and tools suites pass independently; tools are
-pinned by the core submodule commit.
+Current split validation:
+
+- core suite: 306 passed;
+- tools suite: 391 passed;
+- detached core worktree with uninitialized submodule: 306 passed;
+- core search contains no imports or launcher calls into the old auxiliary
+  paths;
+- tools submodule pinned to `b2a3be0`.

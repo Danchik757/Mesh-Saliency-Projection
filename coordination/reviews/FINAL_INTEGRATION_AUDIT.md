@@ -29,6 +29,8 @@
 - Post-split core suite: 306 passed.
 - Standalone `Mesh-Saliency-Tools` suite: 391 passed; submodule pinned to
   `b2a3be0`.
+- Detached clean core worktree with uninitialized submodule: 306 passed,
+  compileall/diff-check clean, CSV manifest verified.
 
 ## Required before promotion to main
 
