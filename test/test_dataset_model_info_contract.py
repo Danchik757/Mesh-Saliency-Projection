@@ -126,3 +126,9 @@ def test_legacy_packaging_helper_has_no_machine_specific_root():
     text = (REPO_ROOT / "scripts" / "package_datasets.sh").read_text()
     assert "/Users/admin" not in text
     assert "build_release_candidate.py" in text
+
+
+def test_upload_validates_candidate_without_external_source_defaults():
+    text = (REPO_ROOT / "scripts" / "upload_release_candidate.sh").read_text()
+    assert "validate_release_candidate.py" in text
+    assert 'validate_data_contract.py" --allow-known-blockers' not in text

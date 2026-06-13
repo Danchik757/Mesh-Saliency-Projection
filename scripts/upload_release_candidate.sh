@@ -13,7 +13,10 @@ if [[ "${TAG}" == "v1.0-data" ]]; then
     exit 2
 fi
 
-python3 "${REPO_ROOT}/scripts/validate_data_contract.py" --allow-known-blockers
+# The candidate validator verifies the embedded data_contract_validation.json,
+# archive SHA-256 values, ZIP CRCs, inventories, and release contracts. Do not
+# re-run validate_data_contract.py here against machine-local source defaults:
+# the upload operator may only have the completed release candidate.
 python3 "${REPO_ROOT}/scripts/validate_release_candidate.py" "${ASSETS_DIR}"
 
 if gh release view "${TAG}" --repo "${REPO}" >/dev/null 2>&1; then

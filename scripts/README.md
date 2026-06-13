@@ -51,8 +51,8 @@ bash scripts/package_datasets.sh --with-videos    # +256 MB rendered MP4
 bash scripts/package_datasets.sh --with-smooth-gaze  # +~2 GB SAL3D auxiliary
 ```
 
-Reads from hardcoded local paths in the script body. Edit the `# Source paths` section
-if data lives elsewhere. Output goes to `release_assets/` (gitignored).
+Set `GAZE_DATA`, and optionally `DVA_ROOT` / `VIDEOS_ROOT`, before running.
+Output goes to `release_assets/` (gitignored).
 
 ### upload_release.sh
 
