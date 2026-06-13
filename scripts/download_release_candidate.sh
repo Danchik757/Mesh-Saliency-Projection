@@ -4,12 +4,12 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TAG="${TAG:-v2.0-data-rc1}"
+TAG="${TAG:-v2.0-data-rc4}"
 REPO="${REPO:-Danchik757/Mesh-Saliency-Projection}"
 DATA_ROOT="${1:-}"
 
 if [[ -z "${DATA_ROOT}" ]]; then
-    echo "Usage: TAG=v2.0-data-rc1 bash scripts/download_release_candidate.sh /path/to/release_data" >&2
+    echo "Usage: TAG=v2.0-data-rc4 bash scripts/download_release_candidate.sh /path/to/release_data" >&2
     exit 2
 fi
 

@@ -4,7 +4,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-TAG="${TAG:-v2.0-data-rc1}"
+TAG="${TAG:-v2.0-data-rc4}"
 ASSETS_DIR="${ASSETS_DIR:-${REPO_ROOT}/release_assets/${TAG}}"
 REPO="${REPO:-Danchik757/Mesh-Saliency-Projection}"
 
@@ -25,7 +25,7 @@ gh release create "${TAG}" \
     --repo "${REPO}" \
     --title "Benchmark data release candidate ${TAG}" \
     --prerelease \
-    --notes-file "${REPO_ROOT}/coordination/RELEASE_AUDIT_2026-06-09.md"
+    --notes-file "${REPO_ROOT}/docs/RELEASE_BUILD_AND_VALIDATION.md"
 
 for asset in "${ASSETS_DIR}"/*.zip \
     "${ASSETS_DIR}/release_manifest.json" \

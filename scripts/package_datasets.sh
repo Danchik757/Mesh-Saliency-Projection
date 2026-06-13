@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# package_datasets.sh — zip all local dataset components into release_assets/
+# LEGACY packaging helper for historical dataset bundles.
+# Canonical rc4 releases must use scripts/build_release_candidate.py.
 #
 # Run on the machine that has the data. Creates release_assets/*.zip ready
 # for upload to a GitHub release with upload_release.sh.
@@ -29,14 +30,10 @@ for arg in "$@"; do
     [[ "$arg" == "--with-videos"      ]] && WITH_VIDEOS=1
 done
 
-# ── Source paths on this machine ──────────────────────────────────────────────
-GAZE_DATA="/Users/admin/Documents/LAB/SALIENCY_code/GAZE_DATA"
-if [[ -d "$GAZE_DATA/datasets/3DVA" ]]; then
-    DVA_ROOT="$GAZE_DATA/datasets/3DVA"
-else
-    DVA_ROOT="/Users/admin/Documents/LAB/Dataset/3DVA"
-fi
-VIDEOS_ROOT="/Users/admin/Documents/LAB/SALIENCY_code/videos"
+# ── Source paths ──────────────────────────────────────────────────────────────
+: "${GAZE_DATA:?Set GAZE_DATA to the external gaze/dataset root}"
+DVA_ROOT="${DVA_ROOT:-${GAZE_DATA}/datasets/3DVA}"
+VIDEOS_ROOT="${VIDEOS_ROOT:-${GAZE_DATA}/../videos}"
 
 echo "Output dir: $ASSETS_DIR"
 echo ""

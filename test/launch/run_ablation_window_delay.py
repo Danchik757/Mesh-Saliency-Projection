@@ -13,8 +13,9 @@ datasets (3DVA, MeshMamba) and slow ones (SAL3D cone) compete for the same worke
 rather than running in separate queues.  This prevents the long-tail problem where SAL3D
 runs alone while other dataset slots are idle.
 
-Job identity key (used for sharding and resume):
-  "<dataset>:<model>:<method>:<window_mode>:<delay_seconds:.3f>:<sigma_string>"
+Job identity key (used for sharding and resume) includes release, timing,
+fixation-data tag, explicit frame offset, dataset/model/method, window mode,
+delay, and sigma configuration. See `AblationJob.key` for the exact format.
 
 Sharding: deterministic by MD5 hash of the job key modulo num_shards.  Both servers
 must receive the same sorted job list and use shard-index 0 / 1 respectively.

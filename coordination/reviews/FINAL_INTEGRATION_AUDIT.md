@@ -26,11 +26,15 @@
   `status=ok`.
 - Fresh extract: 4.1 GB; 298 fixation JSON byte-identical to tracked source;
   Smooth Gaze 53 models; fixed-face GT 55 models.
-- Post-split core suite: 306 passed.
-- Standalone `Mesh-Saliency-Tools` suite: 391 passed; submodule pinned to
-  `b2a3be0`.
-- Detached clean core worktree with uninitialized submodule: 306 passed,
-  compileall/diff-check clean, CSV manifest verified.
+- Post-final-audit core suite: 324 passed.
+- `Mesh-Saliency-Tools` suite with core checkout: 415 passed; standalone:
+  405 passed and 10 core-dependent tests skipped; submodule pinned to
+  `f709458`.
+- Detached clean core worktree with uninitialized submodule: 317 passed before
+  the final audit fixes; the final clean-clone rerun remains required.
+- Independent Windows post-split audit approved the integration for `main` and
+  rc4 with no blockers. Its active-documentation/default/dependency findings
+  were fixed before the final integration commit.
 
 ## Required before promotion to main
 
@@ -38,7 +42,7 @@
 - Perform a real clean-tree rc4 build and validate manifest, SHA-256, ZIP CRC,
   fixation counts, Smooth Gaze inventory, and fixed-face GT inventory.
 - Perform a clean extract/fresh-download smoke.
-- Request independent post-integration audits from macOS and Windows reviewers.
+- Re-run the clean-clone core/tools gates after the final audit-fix commit.
 - Confirm optimized full-run CSVs are either downloaded and indexed or
   explicitly remain documented as unavailable.
 
@@ -50,6 +54,6 @@
   pipeline is not currently in the repository.
 - Smooth Gaze stores 2000 neighbours per record while the current evaluator
   consumes only the first 500.
-- Public tools repository created and pinned as
-  `tools/mesh-saliency-tools`; independent post-split review remains required.
+- Public tools repository created, independently reviewed, and pinned as
+  `tools/mesh-saliency-tools`.
 - Agent branches must not be removed until release and submodule acceptance.

@@ -140,9 +140,8 @@ _SIGMA_SS_SCREEN: dict[str, float] = {
 TIMING_CONTRACT   = "one_turn_from_start"
 DELAY_SECONDS     = 0.0
 FRAME_OFFSET      = 0
-# Release tag is environment-driven so an rc4 (or later) run records the right
-# provenance without editing this file; defaults to rc3 for backward compatibility.
-RELEASE_TAG       = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc3")
+# Release tag is environment-driven; the current safe default is rc4.
+RELEASE_TAG       = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc4")
 FIXATION_DATA_TAG = "processed_fixations_offset0_full_cleaned"
 
 # ── model exclusions ──────────────────────────────────────────────────────────

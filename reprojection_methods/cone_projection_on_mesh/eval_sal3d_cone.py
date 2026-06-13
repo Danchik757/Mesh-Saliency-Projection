@@ -97,12 +97,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--timing-contract",
-        default=os.environ.get("REPROJECT_TIMING_CONTRACT", TIMING_CONTRACT_CROPPED_RESET),
+        default=os.environ.get("REPROJECT_TIMING_CONTRACT", TIMING_CONTRACT_ONE_TURN),
         choices=[TIMING_CONTRACT_CROPPED_RESET, TIMING_CONTRACT_ONE_TURN],
         help=(
             "Timing contract for participant data. "
-            "'cropped_reset': skip 1.8s/0.2s (default, offset_2000 data). "
-            "'one_turn_from_start': one full rotation from frame 0 (offset_0 data). "
+            "'cropped_reset': legacy offset_2000 compatibility. "
+            "'one_turn_from_start': default, one full rotation from frame 0 (offset0 data). "
             "Also read from REPROJECT_TIMING_CONTRACT env var."
         ),
     )
@@ -1060,7 +1060,7 @@ def main() -> None:
     report_path = out_dir / f"{args.model}_report.json"
     guard_report_compatible(
         report_path,
-        timing_contract=getattr(args, "timing_contract", TIMING_CONTRACT_CROPPED_RESET),
+        timing_contract=getattr(args, "timing_contract", TIMING_CONTRACT_ONE_TURN),
         fixation_data_tag=track.provenance.get("fixation_data_tag"),
         delay_frames=track.provenance.get("delay_frames"),
         turn_frame_count=track.provenance.get("turn_frame_count"),

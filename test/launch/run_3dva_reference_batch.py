@@ -212,12 +212,12 @@ def parse_args() -> argparse.Namespace:
     )
     parser.add_argument(
         "--timing-contract",
-        default=os.environ.get("REPROJECT_TIMING_CONTRACT", "cropped_reset"),
+        default=os.environ.get("REPROJECT_TIMING_CONTRACT", "one_turn_from_start"),
         choices=["cropped_reset", "one_turn_from_start"],
         help=(
             "Timing contract passed to each eval script. "
-            "'cropped_reset': default, offset_2000 data. "
-            "'one_turn_from_start': offset_0 data, no crop. "
+            "'cropped_reset': legacy offset_2000 compatibility. "
+            "'one_turn_from_start': default, offset0 data, one full turn. "
             "Also read from REPROJECT_TIMING_CONTRACT env var."
         ),
     )
@@ -398,7 +398,7 @@ def _provenance_matches(report_path: Path, args: argparse.Namespace) -> bool:
         current_mode = "csv_compat" if args.csv_compat else "processed_json"
         if prov.get("input_mode") != current_mode:
             return False
-        current_contract = getattr(args, "timing_contract", "cropped_reset")
+        current_contract = getattr(args, "timing_contract", "one_turn_from_start")
         existing_contract = prov.get("timing_contract")
         if existing_contract is not None:
             if existing_contract != current_contract:

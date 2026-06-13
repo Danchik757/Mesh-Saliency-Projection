@@ -1,6 +1,6 @@
 # 3DVA Pipeline In This Repository
 
-Last checked: 2026-06-10
+Last checked: 2026-06-13
 
 This note describes the current 3DVA benchmark path implemented in the repository.
 It is intended as an operational reference for agents and server runs.
@@ -10,23 +10,22 @@ It is intended as an operational reference for agents and server runs.
 3DVA is evaluated against a combined per-vertex GT map. The current default input is
 processed participant fixation JSON, not legacy CSV.
 
-Timing contract:
+Baseline timing contract:
 
-- Participant fixations use the cropped-reset format `cropped_reset_offset_2000`.
-- For 17 second tracks, usable gaze samples are indexed from zero:
-  `processed_gaze[0:450]`.
-- These samples are paired with placement frames after removing the first 1.8 seconds:
-  `placement[54:504]` at 30 FPS.
-- The final 0.2 seconds are also excluded, so the usable window is one complete
-  15 second object turn.
+- Participant fixations use full-length offset0 JSON with
+  `fixation_format=one_turn_from_start_offset_0`.
+- For 17 second tracks, use `gaze[0:450] -> placement[0:450]`.
+- The final 60 frames are excluded, leaving one complete 15 second object turn.
 - Empty processed fixation files are invalid and the model is excluded. This is
   expected for `3DVA_jessi`.
 
 The report provenance must include:
 
 - `participant_input.input_mode == "processed_json"`
-- `participant_input.fixation_format == "cropped_reset_offset_2000"`
-- `participant_input.fixation_start_index == 0`
+- `participant_input.fixation_format == "one_turn_from_start_offset_0"`
+- `participant_input.timing_contract == "one_turn_from_start"`
+- `participant_input.frame_offset == 0`
+- `participant_input.delay_frames == 0`
 
 Legacy CSV mode still exists only behind `--csv-compat`. It must not be used for
 new benchmark runs unless explicitly debugging historical results.
@@ -69,14 +68,14 @@ Required inputs:
 - combined GT directory:
   `THREE_DVA_COMBINED_GT_DIR`
 
-On `vg-iai` smoke run 2026-06-10 these were:
+Current rc4 server configuration uses:
 
 - repo:
   `/mnt/ssd1/29d_kon/acm_2026/agents/coordinator/Mesh-Saliency-Projection`
 - fixations:
-  `/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc2-staging/extracted/participant_fixations_cropped_reset_offset_2000`
+  `${RELEASE_DATA_ROOT}/participant_fixations_offset0_full_cleaned`
 - 3DVA dataset:
-  `/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc1/extracted/datasets/3DVA`
+  `${RELEASE_DATA_ROOT}/datasets/3DVA`
 - placement JSON:
   repository `jsons/object_placement/3dva_jsons`
 
@@ -206,7 +205,7 @@ table.
 
 ## Smoke Status
 
-The rc2 smoke run on `vg-iai` completed successfully:
+Historical rc2 smoke evidence:
 
 - run id: `rc2_smoke_20260610_122103`
 - output:
@@ -214,10 +213,11 @@ The rc2 smoke run on `vg-iai` completed successfully:
 - 3DVA tasks: 4/4 ok
 - tested models: `bunny`, `A380`
 - tested methods: `screen_space`, `cone`
-- all reports used `fixation_format == "cropped_reset_offset_2000"`
+- all reports used the superseded `fixation_format == "cropped_reset_offset_2000"`
 
 This smoke validates the current 3DVA path sufficiently to start a larger run,
-provided the same rc2 fixation root and current repository revision are used.
+provided the same historical rc2 fixation root and matching repository revision
+are used. These reports must not be resumed as rc4 baseline runs.
 
 ## Operational Notes
 
@@ -227,5 +227,4 @@ provided the same rc2 fixation root and current repository revision are used.
 - Cone/raycast are CPU-bound and much slower than screen-space sampling.
 - GPU is not required for these metric evaluators; rendering tasks are separate.
 - Keep result folders tagged by date/run id to avoid mixing old CSV-compat runs
-  with rc2 processed JSON runs.
-
+  with historical rc2 processed JSON runs.

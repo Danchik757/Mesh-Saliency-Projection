@@ -162,7 +162,7 @@ DELAY_SECONDS     = 0.0
 FRAME_OFFSET      = 0
 # Environment-driven so an rc4 (or later) sweep records the right provenance
 # without editing this file; defaults to rc3 for backward compatibility.
-RELEASE_TAG       = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc3")
+RELEASE_TAG       = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc4")
 FIXATION_DATA_TAG = "processed_fixations_offset0_full_cleaned"
 
 

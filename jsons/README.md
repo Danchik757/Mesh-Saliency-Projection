@@ -75,7 +75,7 @@ The participant gaze observations are not stored here as JSON. They are stored
 under `participant_data/`:
 
 - `collected_gaze_csv_by_model/` contains the old participant CSV format;
-- `processed_fixations_offset_2000/` contains the new frame-wise gaze JSON
-  format used by future benchmark evaluators.
+- `processed_fixations_offset0_full_cleaned/` contains the canonical full-length
+  frame-wise gaze JSON used by current benchmark evaluators.
 
 See `coordination/DATA_CONTRACT.md` before changing input or timing logic.

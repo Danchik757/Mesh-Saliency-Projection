@@ -20,6 +20,28 @@ ACTIVE_ENV_FILES = (
     REPO_ROOT / "test" / "env" / "local_paths.example.sh",
 )
 
+CURRENT_RELEASE_SCRIPTS = (
+    REPO_ROOT / "scripts" / "upload_release_candidate.sh",
+    REPO_ROOT / "scripts" / "download_release_candidate.sh",
+    REPO_ROOT / "test" / "launch" / "run_full_metrics_optimized_sigma.py",
+    REPO_ROOT / "test" / "launch" / "run_sigma_sweep_rc3.py",
+)
+
+CURRENT_EVALUATORS = (
+    REPO_ROOT / "reprojection_methods" / "cone_projection_on_mesh" / "eval_3dva_cone_combined.py",
+    REPO_ROOT / "reprojection_methods" / "cone_projection_on_mesh" / "eval_meshmamba_cone.py",
+    REPO_ROOT / "reprojection_methods" / "cone_projection_on_mesh" / "eval_sal3d_cone.py",
+    REPO_ROOT / "reprojection_methods" / "screen_space_gaussian" / "eval_3dva_screen_space_combined.py",
+    REPO_ROOT / "reprojection_methods" / "screen_space_gaussian" / "eval_meshmamba_screen_space.py",
+    REPO_ROOT / "reprojection_methods" / "screen_space_gaussian" / "eval_sal3d_screen_space.py",
+)
+
+CURRENT_REFERENCE_RUNNERS = (
+    REPO_ROOT / "test" / "launch" / "run_3dva_reference_batch.py",
+    REPO_ROOT / "test" / "launch" / "run_meshmamba_reference_batch.py",
+    REPO_ROOT / "test" / "launch" / "run_sal3d_reference_batch.py",
+)
+
 
 def _load(filename: str) -> dict:
     return json.loads((MODEL_INFO_ROOT / filename).read_text())
@@ -75,3 +97,32 @@ def test_active_environment_templates_use_offset0_baseline():
         assert "processed_fixations_offset_2000" not in text
         assert "participant_fixations_processed_offset_2000" not in text
         assert 'REPROJECT_TIMING_CONTRACT="one_turn_from_start"' in text
+
+
+def test_current_release_scripts_default_to_rc4():
+    for path in CURRENT_RELEASE_SCRIPTS:
+        text = path.read_text()
+        assert "v2.0-data-rc4" in text
+        assert 'TAG="${TAG:-v2.0-data-rc1}"' not in text
+        assert 'RELEASE_TAG       = os.environ.get("REPROJECT_RELEASE_TAG", "v2.0-data-rc3")' not in text
+
+
+def test_current_evaluators_default_to_one_turn():
+    for path in CURRENT_EVALUATORS:
+        text = path.read_text()
+        assert 'default=os.environ.get("REPROJECT_TIMING_CONTRACT", TIMING_CONTRACT_ONE_TURN)' in text
+        assert 'getattr(args, "timing_contract", TIMING_CONTRACT_ONE_TURN)' in text
+        assert "default, offset_2000 data" not in text
+
+
+def test_current_reference_runners_default_to_one_turn():
+    for path in CURRENT_REFERENCE_RUNNERS:
+        text = path.read_text()
+        assert 'default=os.environ.get("REPROJECT_TIMING_CONTRACT", "one_turn_from_start")' in text
+        assert "default, offset_2000 data" not in text
+
+
+def test_legacy_packaging_helper_has_no_machine_specific_root():
+    text = (REPO_ROOT / "scripts" / "package_datasets.sh").read_text()
+    assert "/Users/admin" not in text
+    assert "build_release_candidate.py" in text

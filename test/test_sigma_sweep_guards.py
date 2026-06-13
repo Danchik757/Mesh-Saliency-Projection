@@ -92,7 +92,7 @@ def _job():
 def test_key_and_path_change_with_release_tag(monkeypatch):
     job = _job()
     k1, p1 = job.key, str(_m._task_output_dir(job, _Args()))
-    monkeypatch.setattr(_m, "RELEASE_TAG", "v2.0-data-rc4")
+    monkeypatch.setattr(_m, "RELEASE_TAG", "v2.0-data-rc5")
     assert job.key != k1
     assert str(_m._task_output_dir(job, _Args())) != p1
 

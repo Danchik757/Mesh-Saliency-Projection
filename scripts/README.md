@@ -17,7 +17,7 @@ by the macOS Claude workstream.
 | `validate_release_candidate.py` | Before upload and after download | Validates manifest, checksums, ZIP CRC, and participant data separation |
 | `upload_release_candidate.sh` | After coordinator approval | Creates a new prerelease and uploads a validated candidate |
 | `download_release_candidate.sh` | On each agent/server clone | Downloads, validates, and extracts a candidate into an isolated data root |
-| `package_datasets.sh` | Once on the data machine | Zips all local datasets into `release_assets/*.zip` |
+| `package_datasets.sh` | Legacy only | Zips historical local dataset bundles; do not use for rc4 |
 | `upload_release.sh` | Once after packaging | Creates GitHub Release `v1.0-data` and uploads all ZIPs |
 | `download_datasets.sh` | On every new machine | Downloads ZIPs from the release and extracts them |
 

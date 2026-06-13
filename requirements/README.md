@@ -56,14 +56,15 @@ This is enough for:
 
 ### Visualizations and overlays
 
-Use:
+Auxiliary visualization and overlay tools moved to the public
+`tools/mesh-saliency-tools` submodule. Install its Python dependencies with:
 
-- [visualization.txt](./visualization.txt)
+```bash
+python3 -m pip install -r tools/mesh-saliency-tools/requirements.txt
+```
 
-This is enough for:
-
-- [video_creation/transfer_visualizations/make_transfer_visualizations.py](../video_creation/transfer_visualizations/make_transfer_visualizations.py)
-- overlay and heatmap rendering scripts in `video_creation/`
+The core `visualization.txt` file remains only for compatibility with historical
+core environments.
 
 ### Local development and tests
 
