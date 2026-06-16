@@ -68,7 +68,13 @@ def _parse_env_pairs(pairs: list[str]) -> dict[str, str]:
 
 def _load_models(dataset: str) -> list[str]:
     path = MODEL_INDEX[dataset]
-    rows = json.loads(path.read_text())
+    payload = json.loads(path.read_text())
+    if isinstance(payload, dict):
+        rows = payload.get("models")
+    else:
+        rows = payload
+    if not isinstance(rows, list):
+        raise RequestBuildError(f"{path} has no top-level models list")
     models = [str(row["model"]) for row in rows]
     if len(set(models)) != len(models):
         raise RequestBuildError(f"duplicate model names in {path}")

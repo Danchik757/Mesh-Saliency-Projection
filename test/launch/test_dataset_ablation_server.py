@@ -72,6 +72,33 @@ def test_emit_manifest_uses_explicit_checkout_root():
     )
 
 
+def test_emit_cli_can_embed_distinct_server_request_path(tmp_path):
+    req_path = tmp_path / "local_req.json"
+    req_path.write_text(json.dumps(_request()))
+    out = tmp_path / "manifest.json"
+    args = type("Args", (), {
+        "request": req_path,
+        "request_path_on_server": "/srv/repo/coordination/requests/req.json",
+        "host": "vg-iai",
+        "results_root": Path("/srv/results"),
+        "checkout_root": "/srv/repo/Mesh-Saliency-Projection",
+        "repo_url": None,
+        "python": None,
+        "nice": srv.DEFAULT_NICE,
+        "ionice_class": srv.DEFAULT_IONICE_CLASS,
+        "ionice_level": srv.DEFAULT_IONICE_LEVEL,
+        "out": out,
+    })()
+    rc = srv._cmd_emit(args)
+    assert rc == 0
+    manifest = json.loads(out.read_text())
+    assert manifest["request_path"] == "/srv/repo/coordination/requests/req.json"
+    assert manifest["command"][10:14] == [
+        "--request", "/srv/repo/coordination/requests/req.json",
+        "--results-root", "/srv/results",
+    ]
+
+
 def test_emit_rejects_unapproved_host():
     with pytest.raises(srv.ServerError, match="not approved"):
         srv.build_server_manifest(_request(), host="laptop",

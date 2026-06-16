@@ -253,7 +253,7 @@ def _cmd_emit(args) -> int:
     try:
         manifest = build_server_manifest(
             request, host=args.host, results_root=str(args.results_root),
-            request_path=str(args.request), repo_url=args.repo_url,
+            request_path=str(args.request_path_on_server or args.request), repo_url=args.repo_url,
             checkout_root=args.checkout_root,
             nice=args.nice, ionice_class=args.ionice_class, ionice_level=args.ionice_level,
             python=args.python)
@@ -287,6 +287,8 @@ def main() -> int:
 
     pe = sub.add_parser("emit", help="emit a server-run manifest (does not launch)")
     pe.add_argument("--request", type=Path, required=True)
+    pe.add_argument("--request-path-on-server", default=None,
+                    help="server-side absolute path to the same request JSON; defaults to --request")
     pe.add_argument("--host", required=True, choices=APPROVED_HOSTS)
     pe.add_argument("--results-root", type=Path, default=Path("results"))
     pe.add_argument("--out", type=Path, default=None, help="write the manifest JSON here")

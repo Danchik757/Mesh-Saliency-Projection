@@ -30,6 +30,12 @@ def _index(tmp_path: Path, filename: str, models: list[str]) -> Path:
     return path
 
 
+def _wrapped_index(tmp_path: Path, filename: str, models: list[str]) -> Path:
+    path = tmp_path / filename
+    path.write_text(json.dumps({"dataset": "x", "models": [{"model": m} for m in models]}, indent=2))
+    return path
+
+
 def _args(**kwargs):
     base = dict(
         dataset="sal3d",
@@ -71,7 +77,7 @@ def test_build_sigma_request_uses_all_models(monkeypatch, tmp_path):
 def test_build_timing_request_derives_fixed_sigma(monkeypatch, tmp_path):
     monkeypatch.setitem(
         builder.MODEL_INDEX, "3dva",
-        _index(tmp_path, "3dva.json", ["A380", "blade-200K"]),
+        _wrapped_index(tmp_path, "3dva.json", ["A380", "blade-200K"]),
     )
     req = builder.build_request(_args(
         dataset="3dva",
