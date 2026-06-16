@@ -203,25 +203,33 @@ def test_derive_center_cone(tmp_path):
 def test_axis_grids_are_3x3x3_interior(tmp_path):
     m = _screen_manifest(tmp_path)
     center = jr.derive_center("screen_space", jr._load_consumed_markers(m))
-    sigma_axis, delay_axis, fo_axis = jr.axis_grids("sal3d", "screen_space", center)
+    sigma_axis, delay_axis, fo_axes = jr.axis_grids("sal3d", "screen_space", center)
     assert sigma_axis == [0.95, 1.0, 1.05]
     assert delay_axis == [0.0, 0.1, 0.2]
-    assert fo_axis == [15, 30, 45]
+    assert fo_axes[0.0] == [15, 30, 45]
+    assert fo_axes[0.1] == [15, 30, 45]
+    assert fo_axes[0.2] == [15, 30, 45]
     assert jr.expected_point_count("sal3d", "screen_space", center) == 27
 
 
 def test_axis_grids_collapse_near_zero_frame_offset():
     center = {"sigma_deg": 2.0, "radius_sigma_mult": 3.0, "delay_seconds": 0.2, "frame_offset": 0}
-    _, _, fo_axis = jr.axis_grids("sal3d", "cone", center)
-    assert fo_axis == [0, 15]  # max(0, -15)=0 collapses with centre 0
-    assert jr.expected_point_count("sal3d", "cone", center) == 3 * 3 * 2
+    _, delay_axis, fo_axes = jr.axis_grids("sal3d", "cone", center)
+    assert delay_axis == [0.1, 0.2, 0.3]
+    assert fo_axes[0.1] == [0, 15]
+    assert fo_axes[0.2] == [0, 15]
+    assert fo_axes[0.3] == [0, 15]
+    assert jr.expected_point_count("sal3d", "cone", center) == 3 * (2 + 2 + 2)
 
 
 def test_axis_grids_clip_upper_frame_offset_by_dataset_limit():
     center = {"sigma_deg": 2.0, "radius_sigma_mult": 3.0, "delay_seconds": 0.2, "frame_offset": 54}
-    _, _, fo_axis = jr.axis_grids("sal3d", "cone", center)
-    assert fo_axis == [39, 54]
-    assert jr.expected_point_count("sal3d", "cone", center) == 3 * 3 * 2
+    _, delay_axis, fo_axes = jr.axis_grids("sal3d", "cone", center)
+    assert delay_axis == [0.1, 0.2, 0.3]
+    assert fo_axes[0.1] == [39, 54, 57]
+    assert fo_axes[0.2] == [39, 54]
+    assert fo_axes[0.3] == [39, 51]
+    assert jr.expected_point_count("sal3d", "cone", center) == 3 * (3 + 2 + 2)
 
 
 # ── identity / anchor / task tag ─────────────────────────────────────────────
@@ -304,16 +312,15 @@ def test_run_joint_refine_records_model_set_signature(tmp_path):
 
 
 def test_run_joint_refine_writes_27_aggregate_points(tmp_path):
-    m = _cone_manifest(tmp_path)
+    m = _screen_manifest(tmp_path)
     jr.run_joint_refine_branch(
         m, results_root=tmp_path, invoke=ev.make_mock_invoke(),
         check_smoke=False, check_runtime=False)
-    jsonl = (tmp_path / "ablation" / "cone_joint_refine" / "sal3d" / "cone"
+    jsonl = (tmp_path / "ablation" / "screen_space_joint_refine" / "sal3d" / "screen_space"
              / "aggregate" / "ablation_runs.jsonl")
     rows = [json.loads(l) for l in jsonl.read_text().splitlines()
             if json.loads(l).get("status") != "superseded"]
-    # Upper frame_offset point is clipped by dataset feasibility, so 18 remain.
-    assert len({r["run_id"] for r in rows}) == 18
+    assert len({r["run_id"] for r in rows}) == 27
 
 
 def test_screen_space_joint_refine_runs_end_to_end(tmp_path):

@@ -280,8 +280,31 @@ def derive_center(method: str, markers: dict[str, dict]) -> dict:
     }
 
 
-def axis_grids(dataset: str, method: str, center: dict) -> tuple[list[float], list[float], list[int]]:
-    """3x3x3 local grid axes around the centre (deduped at the edges)."""
+def _frame_offset_axis_for_delay(dataset: str, center: dict, delay: float) -> list[int]:
+    """Feasible local frame_offset axis for one candidate delay.
+
+    The delay axis in joint_refine varies around the anchor. A frame_offset value
+    that is feasible at the centre delay may become impossible at ±0.1 s, so
+    the frame_offset axis must be clipped per-delay, not once globally.
+    """
+    f = int(center["frame_offset"])
+    max_fo = rawd.one_turn_frame_offset_bounds(
+        dataset, frame_offset=f, delay_seconds=delay
+    )["max_frame_offset"]
+    lower = max(0, f - FRAME_OFFSET_HALF_WIDTH)
+    centre = min(f, max_fo)
+    upper = min(max_fo, f + FRAME_OFFSET_HALF_WIDTH)
+    return _dedupe_ints([lower, centre, upper])
+
+
+def axis_grids(
+    dataset: str, method: str, center: dict
+) -> tuple[list[float], list[float], dict[float, list[int]]]:
+    """Local refine axes around the centre.
+
+    Sigma and delay stay regular 3-point axes; frame_offset is clipped
+    per-delay so the cartesian product contains only physically valid windows.
+    """
     h = SIGMA_HALF_WIDTH_FRAC
     if method == "cone":
         s = center["sigma_deg"]
@@ -291,18 +314,14 @@ def axis_grids(dataset: str, method: str, center: dict) -> tuple[list[float], li
     d = center["delay_seconds"]
     delay_axis = _dedupe_floats(
         [round(d - DELAY_HALF_WIDTH_S, 6), float(d), round(d + DELAY_HALF_WIDTH_S, 6)])
-    f = int(center["frame_offset"])
-    max_fo = rawd.one_turn_frame_offset_bounds(
-        dataset, frame_offset=f, delay_seconds=d
-    )["max_frame_offset"]
-    fo_axis = _dedupe_ints(
-        [max(0, f - FRAME_OFFSET_HALF_WIDTH), f, min(max_fo, f + FRAME_OFFSET_HALF_WIDTH)])
-    return sigma_axis, delay_axis, fo_axis
+    fo_axes = {float(delay): _frame_offset_axis_for_delay(dataset, center, float(delay))
+               for delay in delay_axis}
+    return sigma_axis, delay_axis, fo_axes
 
 
 def expected_point_count(dataset: str, method: str, center: dict) -> int:
-    sigma_axis, delay_axis, fo_axis = axis_grids(dataset, method, center)
-    return len(sigma_axis) * len(delay_axis) * len(fo_axis)
+    sigma_axis, delay_axis, fo_axes = axis_grids(dataset, method, center)
+    return len(sigma_axis) * sum(len(fo_axes[float(delay)]) for delay in delay_axis)
 
 
 def validate_manifest(manifest: dict, *, check_smoke: bool = True) -> dict:
@@ -645,11 +664,11 @@ def _write_held(branch_dir: Path, *, family: str, branch: str,
 def _stage_points(manifest: dict, center: dict, anchor_sig: str) -> list[dict]:
     sub = manifest["submission"]
     method = sub["method"]
-    sigma_axis, delay_axis, fo_axis = axis_grids(sub["dataset"], method, center)
+    sigma_axis, delay_axis, fo_axes = axis_grids(sub["dataset"], method, center)
     points = []
     for sigma in sigma_axis:
         for delay in delay_axis:
-            for fo in fo_axis:
+            for fo in fo_axes[float(delay)]:
                 point = {
                     "dataset": sub["dataset"], "method": method,
                     "axis": "joint_refine",
