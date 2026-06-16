@@ -1,6 +1,6 @@
 {
   "dataset": "meshmamba_non_texture",
-  "method": "screen_space",
+  "method": "cone",
   "stage": "sigma",
   "models": [
     "Apple_Red_v1_L3",

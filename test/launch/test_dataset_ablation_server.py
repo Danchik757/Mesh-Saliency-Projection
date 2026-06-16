@@ -188,3 +188,37 @@ def test_write_server_manifest_roundtrip(tmp_path):
     out = srv.write_server_manifest(m, tmp_path / "sub" / "manifest.json")
     assert out.exists()
     assert json.loads(out.read_text())["comparability_signature"] == m["comparability_signature"]
+
+
+# ── committed request contracts validate cleanly ─────────────────────────────
+
+_CONTRACTS_DIR = _DIR.parents[1] / "coordination" / "requests" / "dmlab" / "vg_iai"
+
+_CONTRACT_FILES = sorted(
+    p.name for p in _CONTRACTS_DIR.glob("*.json")
+    if not p.name.endswith(".server_manifest.json")
+)
+
+
+@pytest.mark.parametrize("filename", _CONTRACT_FILES)
+def test_committed_request_validates(filename):
+    req = json.loads((_CONTRACTS_DIR / filename).read_text())
+    core.validate_request(req)
+    assert len(req["models"]) > 0
+    assert req["repo_commit"] and len(req["repo_commit"]) == 40, "repo_commit must be a full sha1"
+
+
+@pytest.mark.parametrize("filename", _CONTRACT_FILES)
+def test_committed_request_manifest_roundtrip(filename):
+    stem = filename[: -len(".json")]
+    req = json.loads((_CONTRACTS_DIR / f"{stem}.json").read_text())
+    manifest_path = _CONTRACTS_DIR / f"{stem}.server_manifest.json"
+    assert manifest_path.exists(), f"missing server manifest for {filename}"
+    stored = json.loads(manifest_path.read_text())
+    assert stored["schema_version"] == srv.SCHEMA_VERSION
+    assert stored["dataset"] == req["dataset"]
+    assert stored["method"] == req["method"]
+    assert stored["stage"] == req["stage"]
+    assert stored["repo"]["commit"] == req["repo_commit"]
+    assert "--mock" not in stored["command"]
+    assert stored["host"] in srv.APPROVED_HOSTS

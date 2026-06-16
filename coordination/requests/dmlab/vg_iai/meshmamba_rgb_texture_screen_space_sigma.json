@@ -1,5 +1,5 @@
 {
-  "dataset": "meshmamba_non_texture",
+  "dataset": "meshmamba_rgb_texture",
   "method": "screen_space",
   "stage": "sigma",
   "models": [
@@ -109,7 +109,7 @@
     "Wicker_Basket_v1_L3",
     "WWII_Plane-Germany_Focke-Wulf_Fw_190_v1"
   ],
-  "subset_name": "meshmamba_non_texture_all_models_rc4",
+  "subset_name": "meshmamba_rgb_texture_all_models_rc4",
   "repo_commit": "d6c0ada8e7528ee899e671e675df7ae824b987ce",
   "release_tag": "v2.0-data-rc4",
   "fixation_data_tag": "processed_fixations_offset0_full_cleaned",

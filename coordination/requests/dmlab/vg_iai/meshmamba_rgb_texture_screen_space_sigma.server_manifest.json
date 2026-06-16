@@ -18,18 +18,18 @@
     "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection"
   },
   "cwd": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection",
-  "dataset": "meshmamba_non_texture",
+  "dataset": "meshmamba_rgb_texture",
   "method": "screen_space",
   "stage": "sigma",
   "branch_family": "screen_space_sigma_dmlab",
   "comparability_signature": "31b91f20bdfb6ff3",
-  "subset_name": "meshmamba_non_texture_all_models_rc4",
+  "subset_name": "meshmamba_rgb_texture_all_models_rc4",
   "subset_size": 105,
   "results_root": "/mnt/ssd1/29d_kon/summer_2026/results",
-  "branch_dir": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_non_texture/screen_space/31b91f20bdfb6ff3",
-  "request_path": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_non_texture_screen_space_sigma.json",
+  "branch_dir": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/31b91f20bdfb6ff3",
+  "request_path": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_rgb_texture_screen_space_sigma.json",
   "request": {
-    "dataset": "meshmamba_non_texture",
+    "dataset": "meshmamba_rgb_texture",
     "method": "screen_space",
     "stage": "sigma",
     "models": [
@@ -139,7 +139,7 @@
       "Wicker_Basket_v1_L3",
       "WWII_Plane-Germany_Focke-Wulf_Fw_190_v1"
     ],
-    "subset_name": "meshmamba_non_texture_all_models_rc4",
+    "subset_name": "meshmamba_rgb_texture_all_models_rc4",
     "repo_commit": "d6c0ada8e7528ee899e671e675df7ae824b987ce",
     "release_tag": "v2.0-data-rc4",
     "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
@@ -167,11 +167,11 @@
     "python3",
     "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/screen_space_dataset_ablation.py",
     "--request",
-    "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_non_texture_screen_space_sigma.json",
+    "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_rgb_texture_screen_space_sigma.json",
     "--results-root",
     "/mnt/ssd1/29d_kon/summer_2026/results"
   ],
-  "command_str": "nice -n 19 ionice -c 2 -n 7 python3 /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/screen_space_dataset_ablation.py --request /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_non_texture_screen_space_sigma.json --results-root /mnt/ssd1/29d_kon/summer_2026/results",
+  "command_str": "nice -n 19 ionice -c 2 -n 7 python3 /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/screen_space_dataset_ablation.py --request /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_rgb_texture_screen_space_sigma.json --results-root /mnt/ssd1/29d_kon/summer_2026/results",
   "expected_candidate_run_ids": {
     "s0.5": "wone_turn_from_start_off0_d0p0_ssc0p025_smul0p5_mset33d4188f_d4a21a59_cmp31b91f20bdfb6ff3",
     "s0.7": "wone_turn_from_start_off0_d0p0_ssc0p035_smul0p7_mset33d4188f_9a527f6a_cmp31b91f20bdfb6ff3",
@@ -183,10 +183,10 @@
   "refined_substage_dynamic": true,
   "resume": {
     "policy": "rerun the same command; finished candidates supersede/skip",
-    "aggregate_jsonl": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_non_texture/screen_space/31b91f20bdfb6ff3/aggregate/ablation_runs.jsonl",
-    "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_non_texture/screen_space/31b91f20bdfb6ff3/branch_best.json",
-    "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_non_texture/screen_space/31b91f20bdfb6ff3/_held.json"
+    "aggregate_jsonl": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/31b91f20bdfb6ff3/aggregate/ablation_runs.jsonl",
+    "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/31b91f20bdfb6ff3/branch_best.json",
+    "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/31b91f20bdfb6ff3/_held.json"
   },
-  "generated_at_utc": "2026-06-16T21:40:44Z",
+  "generated_at_utc": "2026-06-16T21:39:54Z",
   "notes": "low-priority real run; emitted not launched; submit on an approved host only"
 }

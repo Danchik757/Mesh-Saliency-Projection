@@ -1,0 +1,121 @@
+{
+  "schema_version": "dataset-ablation-server/1",
+  "kind": "dataset_ablation_server_run",
+  "host": "vg-iai",
+  "approved_hosts": [
+    "vg-iai",
+    "vg-gml01",
+    "vg-gml02"
+  ],
+  "priority": {
+    "nice": 19,
+    "ionice_class": 2,
+    "ionice_level": 7
+  },
+  "repo": {
+    "commit": "d6c0ada8e7528ee899e671e675df7ae824b987ce",
+    "url": "",
+    "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection"
+  },
+  "cwd": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection",
+  "dataset": "3dva",
+  "method": "cone",
+  "stage": "sigma",
+  "branch_family": "cone_sigma_dmlab",
+  "comparability_signature": "9ebf58955b3879a1",
+  "subset_name": "3dva_all_models_rc4",
+  "subset_size": 32,
+  "results_root": "/mnt/ssd1/29d_kon/summer_2026/results",
+  "branch_dir": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/3dva/cone/9ebf58955b3879a1",
+  "request_path": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/3dva_cone_sigma.json",
+  "request": {
+    "dataset": "3dva",
+    "method": "cone",
+    "stage": "sigma",
+    "models": [
+      "A380",
+      "bimba",
+      "blade-200K",
+      "bunny",
+      "camel",
+      "car-vasa",
+      "carter",
+      "casting",
+      "chair107",
+      "cow",
+      "dinosaur-40K",
+      "dragon",
+      "fandisk",
+      "flowerpot",
+      "gorgoile",
+      "hand-35K",
+      "Harley",
+      "horse-110k",
+      "house",
+      "igea-100K",
+      "james",
+      "jessi",
+      "Max-Planck",
+      "meca-15k",
+      "michael3",
+      "michael8",
+      "octopus",
+      "prot",
+      "rockerarm",
+      "torso",
+      "turbine",
+      "vase-15k"
+    ],
+    "subset_name": "3dva_all_models_rc4",
+    "repo_commit": "d6c0ada8e7528ee899e671e675df7ae824b987ce",
+    "release_tag": "v2.0-data-rc4",
+    "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
+    "timing_contract": "one_turn_from_start",
+    "window_mode": "one_turn_from_start",
+    "fixed": {
+      "delay_seconds": 0.0,
+      "frame_offset": 0
+    },
+    "frame_offset_policy": "fixed:0",
+    "delay_policy": "fixed:0.0",
+    "sigma": {
+      "refined": true
+    }
+  },
+  "command": [
+    "nice",
+    "-n",
+    "19",
+    "ionice",
+    "-c",
+    "2",
+    "-n",
+    "7",
+    "python3",
+    "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/cone_dataset_ablation.py",
+    "--request",
+    "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/3dva_cone_sigma.json",
+    "--results-root",
+    "/mnt/ssd1/29d_kon/summer_2026/results"
+  ],
+  "command_str": "nice -n 19 ionice -c 2 -n 7 python3 /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/cone_dataset_ablation.py --request /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/3dva_cone_sigma.json --results-root /mnt/ssd1/29d_kon/summer_2026/results",
+  "expected_candidate_run_ids": {
+    "s0.5": "wone_turn_from_start_off0_d0p0_sdeg0p5_rsm3p0_msetb45b21bcef_53e51fa7_cmp9ebf58955b3879a1",
+    "s0.65": "wone_turn_from_start_off0_d0p0_sdeg0p65_rsm3p0_msetb45b21bce_6e3e2584_cmp9ebf58955b3879a1",
+    "s0.8": "wone_turn_from_start_off0_d0p0_sdeg0p8_rsm3p0_msetb45b21bcef_748b13cc_cmp9ebf58955b3879a1",
+    "s1": "wone_turn_from_start_off0_d0p0_sdeg1p0_rsm3p0_msetb45b21bcef_04b4f170_cmp9ebf58955b3879a1",
+    "s1.25": "wone_turn_from_start_off0_d0p0_sdeg1p25_rsm3p0_msetb45b21bce_768560fb_cmp9ebf58955b3879a1",
+    "s1.6": "wone_turn_from_start_off0_d0p0_sdeg1p6_rsm3p0_msetb45b21bcef_5b865a89_cmp9ebf58955b3879a1",
+    "s2": "wone_turn_from_start_off0_d0p0_sdeg2p0_rsm3p0_msetb45b21bcef_9f1ca8fc_cmp9ebf58955b3879a1"
+  },
+  "n_static_candidates": 7,
+  "refined_substage_dynamic": true,
+  "resume": {
+    "policy": "rerun the same command; finished candidates supersede/skip",
+    "aggregate_jsonl": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/3dva/cone/9ebf58955b3879a1/aggregate/ablation_runs.jsonl",
+    "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/3dva/cone/9ebf58955b3879a1/branch_best.json",
+    "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/3dva/cone/9ebf58955b3879a1/_held.json"
+  },
+  "generated_at_utc": "2026-06-16T21:39:54Z",
+  "notes": "low-priority real run; emitted not launched; submit on an approved host only"
+}
