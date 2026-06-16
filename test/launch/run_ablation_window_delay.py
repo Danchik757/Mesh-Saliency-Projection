@@ -65,7 +65,9 @@ Explicit frame-offset override
   offset is recorded in the job key, output path, CSV, and evaluator report
   provenance, so it cannot collide with the standard cut_head offset=60 run.
 
-Delay grid (seconds):  -0.3  -0.2  -0.1  0.0  +0.1  +0.2  +0.3
+Legacy delay grid (seconds):  -0.3  -0.2  -0.1  0.0  +0.1  +0.2  +0.3
+Large-ablation preset:        -3.0  -2.5  -1.5  -0.5  -0.2  -0.1  0.0
+                              +0.1  +0.2  +0.5  +1.5  +2.5  +3.0
   delay=+0.2 @ 30fps → d=+6 frames, so gaze[6:6+N] → placement[0:N]
 
 Output layout
@@ -88,6 +90,11 @@ Usage
   python3 test/launch/run_ablation_window_delay.py --dry-run \\
       --datasets 3dva --models A380 --window-modes cut_head \\
       --frame-offset-override 54 --delays 0.2
+
+  # Large timing ablation preset (keeps explicit front-crop controls available):
+  python3 test/launch/run_ablation_window_delay.py --dry-run \\
+      --datasets 3dva --models A380 --window-modes cut_head \\
+      --frame-offset-override 54 --delay-preset large
 
   # Real run — shard 0 on vg-gml01 (requires authorization):
   source configs/server_vg_gml01.env
@@ -156,7 +163,13 @@ _DATASET_FRAMES: dict[str, dict[str, int]] = {
 ALL_DATASETS = list(_DATASET_FRAMES)
 ALL_METHODS = ["screen_space", "cone"]
 ALL_WINDOW_MODES = ["cut_tail", "cut_head", "center"]
-ALL_DELAYS = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3]
+LEGACY_DELAYS = [-0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3]
+LARGE_ABLATION_DELAYS = [-3.0, -2.5, -1.5, -0.5, -0.2, -0.1, 0.0, 0.1, 0.2, 0.5, 1.5, 2.5, 3.0]
+ALL_DELAYS = LEGACY_DELAYS
+DELAY_PRESETS = {
+    "legacy": LEGACY_DELAYS,
+    "large": LARGE_ABLATION_DELAYS,
+}
 
 _WINDOW_MODE_EVALUATOR_READY: frozenset[str] = frozenset({"cut_tail", "cut_head", "center"})
 
@@ -707,7 +720,17 @@ def parse_args() -> argparse.Namespace:
             "Example: 54 with --delays 0.2 pairs gaze[60:] with placement[54:]."
         ),
     )
-    parser.add_argument("--delays", nargs="+", type=float, default=ALL_DELAYS, metavar="SEC")
+    parser.add_argument(
+        "--delay-preset",
+        choices=sorted(DELAY_PRESETS),
+        default="legacy",
+        help="Named delay grid when --delays is omitted. "
+             "`legacy` preserves the old short grid; `large` enables the full timing ablation grid.",
+    )
+    parser.add_argument(
+        "--delays", nargs="+", type=float, default=None, metavar="SEC",
+        help="Explicit delay values in seconds. Overrides --delay-preset.",
+    )
     parser.add_argument("--models", nargs="+", default=None)
     parser.add_argument("--model-list-file", type=Path, default=None, metavar="FILE")
     parser.add_argument("--fixation-root", type=Path, default=None)
@@ -727,7 +750,12 @@ def parse_args() -> argparse.Namespace:
                         help="Log commands without executing evaluators. JSONL status=ok with error_type=dry_run.")
     parser.add_argument("--aggregate-only", action="store_true",
                         help="Read existing ablation_rows.jsonl and write ablation_summary.csv, then exit.")
-    return parser.parse_args()
+    args = parser.parse_args()
+    if args.delays is None:
+        args.delays = list(DELAY_PRESETS[args.delay_preset])
+    else:
+        args.delays = list(args.delays)
+    return args
 
 
 # ── main ──────────────────────────────────────────────────────────────────────

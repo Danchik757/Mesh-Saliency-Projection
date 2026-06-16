@@ -20,6 +20,10 @@ results/**/per_task/
 # Preserve locally, but do not present them as current benchmark results.
 results/benchmark_runs/3dva/2026-06-07_*/
 
+# Ablation aggregation layer runtime outputs (per-run dirs + aggregate tables).
+# Treated as runtime outputs, not tracked git content (orchestra storage policy).
+results/ablation/
+
 # Local preview outputs (generated artifacts, may contain local absolute paths)
 test/output_local/
 test/output_local_*/

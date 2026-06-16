@@ -67,6 +67,29 @@ def test_center_default_grid_feasible():
         assert feasible, reason
 
 
+def test_large_delay_preset_contains_requested_values():
+    assert _m.DELAY_PRESETS["legacy"] == _m.LEGACY_DELAYS
+    assert _m.DELAY_PRESETS["large"] == _m.LARGE_ABLATION_DELAYS
+    assert _m.LARGE_ABLATION_DELAYS == [-3.0, -2.5, -1.5, -0.5, -0.2, -0.1, 0.0, 0.1, 0.2, 0.5, 1.5, 2.5, 3.0]
+    assert 0.2 in _m.LARGE_ABLATION_DELAYS
+
+
+def test_parse_args_uses_large_delay_preset(monkeypatch):
+    monkeypatch.setattr(sys, "argv", [
+        "run_ablation_window_delay.py", "--delay-preset", "large",
+    ])
+    args = _m.parse_args()
+    assert args.delays == _m.LARGE_ABLATION_DELAYS
+
+
+def test_parse_args_explicit_delays_override_preset(monkeypatch):
+    monkeypatch.setattr(sys, "argv", [
+        "run_ablation_window_delay.py", "--delay-preset", "large", "--delays", "0.2", "1.5",
+    ])
+    args = _m.parse_args()
+    assert args.delays == [0.2, 1.5]
+
+
 # ── valid evaluator flags for every dataset/method ──────────────────────────────
 
 def _valid_option_strings(eval_path: Path) -> set[str]:
