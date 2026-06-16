@@ -90,11 +90,16 @@ def _low_priority_prefix(nice: int, ionice_class: int, ionice_level: int) -> lis
     return ["nice", "-n", str(nice), "ionice", "-c", str(ionice_class), "-n", str(ionice_level)]
 
 
+def _default_checkout_root() -> Path:
+    return _DIR.parents[1]
+
+
 # ── server-run manifest ──────────────────────────────────────────────────────
 
 
 def build_server_manifest(request: dict, *, host: str, results_root: str,
                           request_path: str, repo_url: str | None = None,
+                          checkout_root: str | None = None,
                           nice: int = DEFAULT_NICE, ionice_class: int = DEFAULT_IONICE_CLASS,
                           ionice_level: int = DEFAULT_IONICE_LEVEL,
                           python: str | None = None) -> dict:
@@ -116,6 +121,7 @@ def build_server_manifest(request: dict, *, host: str, results_root: str,
     spec = _spec_for(method)
     launcher = LAUNCHER_BY_METHOD[method]
     py = python or request.get("python") or "python3"
+    checkout = str(Path(checkout_root or request.get("checkout_root") or _default_checkout_root()).resolve())
 
     signature = core.comparability_signature(core.comparability_context(request))
     branch_family = core._branch_family(method, request["stage"])
@@ -124,7 +130,7 @@ def build_server_manifest(request: dict, *, host: str, results_root: str,
 
     command = [
         *_low_priority_prefix(nice, ionice_class, ionice_level),
-        py, f"test/launch/{launcher}",
+        py, str(Path(checkout) / "test" / "launch" / launcher),
         "--request", request_path,
         "--results-root", results_root,
     ]
@@ -135,7 +141,8 @@ def build_server_manifest(request: dict, *, host: str, results_root: str,
         "host": host,
         "approved_hosts": list(APPROVED_HOSTS),
         "priority": {"nice": nice, "ionice_class": ionice_class, "ionice_level": ionice_level},
-        "repo": {"commit": request["repo_commit"], "url": repo_url or ""},
+        "repo": {"commit": request["repo_commit"], "url": repo_url or "", "checkout_root": checkout},
+        "cwd": checkout,
         "dataset": request["dataset"],
         "method": method,
         "stage": request["stage"],
@@ -247,6 +254,7 @@ def _cmd_emit(args) -> int:
         manifest = build_server_manifest(
             request, host=args.host, results_root=str(args.results_root),
             request_path=str(args.request), repo_url=args.repo_url,
+            checkout_root=args.checkout_root,
             nice=args.nice, ionice_class=args.ionice_class, ionice_level=args.ionice_level,
             python=args.python)
     except (core.BranchError, ServerError) as exc:
@@ -283,6 +291,8 @@ def main() -> int:
     pe.add_argument("--results-root", type=Path, default=Path("results"))
     pe.add_argument("--out", type=Path, default=None, help="write the manifest JSON here")
     pe.add_argument("--repo-url", default=None)
+    pe.add_argument("--checkout-root", default=None,
+                    help="server-side repo checkout root; defaults to request.checkout_root or current repo root")
     pe.add_argument("--python", default=None)
     pe.add_argument("--nice", type=int, default=DEFAULT_NICE)
     pe.add_argument("--ionice-class", type=int, default=DEFAULT_IONICE_CLASS)

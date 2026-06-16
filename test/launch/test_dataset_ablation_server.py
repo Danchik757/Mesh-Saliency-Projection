@@ -53,11 +53,23 @@ def test_emit_manifest_has_low_priority_and_real_launcher():
     # low priority is mandatory and baked into the command
     assert m["command"][:7] == ["nice", "-n", "19", "ionice", "-c", "2", "-n"]
     assert m["command"][7] == "7"
-    assert "test/launch/screen_space_dataset_ablation.py" in m["command"]
+    assert m["command"][9].endswith("/test/launch/screen_space_dataset_ablation.py")
     # NOT a mock run
     assert "--mock" not in m["command"]
     assert "--request" in m["command"] and "--results-root" in m["command"]
     assert m["repo"]["commit"] == "a" * 40
+    assert m["repo"]["checkout_root"] == m["cwd"]
+
+
+def test_emit_manifest_uses_explicit_checkout_root():
+    m = srv.build_server_manifest(
+        _request(), host="vg-iai", results_root="/srv/results",
+        request_path="/srv/req.json", checkout_root="/srv/repo/Mesh-Saliency-Projection")
+    assert m["cwd"] == "/srv/repo/Mesh-Saliency-Projection"
+    assert m["repo"]["checkout_root"] == "/srv/repo/Mesh-Saliency-Projection"
+    assert m["command"][9] == (
+        "/srv/repo/Mesh-Saliency-Projection/test/launch/screen_space_dataset_ablation.py"
+    )
 
 
 def test_emit_rejects_unapproved_host():
