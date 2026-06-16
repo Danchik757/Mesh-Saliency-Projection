@@ -307,7 +307,17 @@ def refined_candidates(request: dict, spec: MethodSpec, coarse_best_sigma: float
 # ── execution ────────────────────────────────────────────────────────────────
 
 
-def _make_params(request: dict, spec: MethodSpec, cand: Candidate, branch_family: str) -> dict:
+def _candidate_run_id(params: dict, signature: str) -> str:
+    """Comparability-aware aggregate run_id. `agg.run_signature` only hashes the
+    swept numeric params + model_set_signature, so two runs that differ ONLY in
+    release_tag/fixation_data_tag/timing/frame_offset/delay policy would collide
+    and supersede each other. Suffixing the comparability signature keeps them
+    distinct in the aggregate jsonl/csv (P1-2)."""
+    return f"{agg.run_signature(params)}_cmp{signature}"
+
+
+def _make_params(request: dict, spec: MethodSpec, cand: Candidate, branch_family: str,
+                 signature: str) -> dict:
     models = list(request["models"])
     params = {
         "stage_name": branch_family,
@@ -326,8 +336,10 @@ def _make_params(request: dict, spec: MethodSpec, cand: Candidate, branch_family
         "release_tag": request.get("release_tag", ""),
         "branch": request.get("branch", ""),
         "command": f"dataset_ablation_core.run_branch  # {cand.axis}={cand.axis_value}",
-        "notes": f"family={branch_family} sub_stage={cand.sub_stage}",
-        "storage_parts": [branch_family, request["dataset"], spec.method],
+        "notes": f"family={branch_family} sub_stage={cand.sub_stage} cmp={signature}",
+        # Branch artifacts AND the aggregate live under a signature-scoped path so an
+        # incompatible run can never overwrite a prior one's markers/aggregate (P1-1).
+        "storage_parts": [branch_family, request["dataset"], spec.method, signature],
     }
     for k in ("sigma_deg", "sigma_px", "sigma_screen", "sigma_multiplier", "radius_sigma_mult"):
         if cand.table_sigma.get(k) is not None:
@@ -336,15 +348,16 @@ def _make_params(request: dict, spec: MethodSpec, cand: Candidate, branch_family
 
 
 def _run_candidate(request: dict, spec: MethodSpec, cand: Candidate, *,
-                   results_root: Path, invoke, branch_family: str,
+                   results_root: Path, invoke, branch_family: str, signature: str,
                    existing_run_ids: set[str]) -> tuple[dict, list[dict]]:
     """Run all models for one candidate, record the run, return (params, normalized rows)."""
     models = list(request["models"])
-    params = _make_params(request, spec, cand, branch_family)
-    run_id = agg.run_signature(params)
+    params = _make_params(request, spec, cand, branch_family, signature)
+    run_id = _candidate_run_id(params, signature)
+    params["run_id"] = run_id
     raw_rows = [invoke(cand.point, model) for model in models]
     agg.record_run(
-        Path(results_root), params, raw_rows,
+        Path(results_root), params, raw_rows, run_id=run_id,
         command=str(params.get("command", "")),
         on_duplicate="supersede" if run_id in existing_run_ids else "error",
     )
@@ -678,7 +691,10 @@ def run_branch(request: dict, spec: MethodSpec, *, results_root: Path, invoke,
     context = comparability_context(request)
     signature = comparability_signature(context)
     branch_family = _branch_family(spec.method, request["stage"])
-    branch_dir = Path(results_root) / "ablation" / branch_family / request["dataset"] / spec.method
+    # Signature-scoped branch dir: incompatible runs get distinct artifact roots and
+    # can never overwrite each other's manifest/README/summary/branch_best (P1-1).
+    branch_dir = (Path(results_root) / "ablation" / branch_family
+                  / request["dataset"] / spec.method / signature)
     existing_run_ids: set[str] = _existing_branch_run_ids(branch_dir)
 
     candidates = plan_candidates(request, spec)
@@ -687,8 +703,8 @@ def run_branch(request: dict, spec: MethodSpec, *, results_root: Path, invoke,
     for cand in candidates:
         params, rows = _run_candidate(
             request, spec, cand, results_root=results_root, invoke=invoke,
-            branch_family=branch_family, existing_run_ids=existing_run_ids)
-        params["run_id"] = agg.run_signature(params)
+            branch_family=branch_family, signature=signature,
+            existing_run_ids=existing_run_ids)
         cand_rows[cand.candidate_id] = rows
         cand_params[cand.candidate_id] = params
 
@@ -701,8 +717,8 @@ def run_branch(request: dict, spec: MethodSpec, *, results_root: Path, invoke,
             for cand in refined:
                 params, rows = _run_candidate(
                     request, spec, cand, results_root=results_root, invoke=invoke,
-                    branch_family=branch_family, existing_run_ids=existing_run_ids)
-                params["run_id"] = agg.run_signature(params)
+                    branch_family=branch_family, signature=signature,
+                    existing_run_ids=existing_run_ids)
                 cand_rows[cand.candidate_id] = rows
                 cand_params[cand.candidate_id] = params
                 candidates.append(cand)

@@ -53,9 +53,14 @@ rows** in the shared table and are never averaged or ranked together.
 - Launchers: `test/launch/screen_space_dataset_ablation.py`,
   `test/launch/cone_dataset_ablation.py` (thin), over
   `test/launch/dataset_ablation_core.py` (engine).
-- Per-branch artifacts: `results/ablation/<method>_<stage>_dmlab/<dataset>/<method>/`
+- Per-branch artifacts:
+  `results/ablation/<method>_<stage>_dmlab/<dataset>/<method>/<comparability_signature>/`
   → `manifest.json`, `README.md`, `aggregate/ablation_runs.{jsonl,csv}`,
   `aggregate/common_model_summary.json`, and `branch_best.json` (or `_held.json`).
+  The branch path is **signature-scoped**: an incompatible run (different
+  release/fixation/timing/offset/delay/subset) lands in its own directory and
+  never overwrites another's markers. Aggregate `run_id`s are likewise suffixed
+  with the comparability signature so they cannot collide across configs.
 - Shared table (one row per completed branch):
   `results/ablation/_tables/dataset_method_ablation.csv`.
 

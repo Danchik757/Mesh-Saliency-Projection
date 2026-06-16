@@ -253,3 +253,55 @@ def test_timing_stage_runs_and_records_chosen_delay(tmp_path):
     bb = json.loads(result["branch_best_path"].read_text())
     assert bb["best_params"]["delay_seconds"] == 0.2
     assert bb["best_params"]["sigma_multiplier"] == 1.0
+
+
+# ── 12. P1-1: incompatible runs must not overwrite branch-level markers ───────
+
+def test_incompatible_runs_get_separate_branch_dirs(tmp_path):
+    inv = _invoke()
+    r_a = ssl.run(_request(release_tag="rc4"), results_root=tmp_path, invoke=inv)
+    r_b = ssl.run(_request(release_tag="rc5"), results_root=tmp_path, invoke=inv)
+    # different comparability signature -> different signature-scoped branch dir
+    assert r_a["comparability_signature"] != r_b["comparability_signature"]
+    assert r_a["branch_dir"] != r_b["branch_dir"]
+    # both branch_best markers survive (neither overwrote the other)
+    assert r_a["branch_best_path"].exists() and r_b["branch_best_path"].exists()
+    bb_a = json.loads(r_a["branch_best_path"].read_text())
+    bb_b = json.loads(r_b["branch_best_path"].read_text())
+    assert bb_a["comparability_signature"] == r_a["comparability_signature"]
+    assert bb_b["comparability_signature"] == r_b["comparability_signature"]
+    # the signature dir is a path component of the branch dir
+    assert r_a["comparability_signature"] in r_a["branch_dir"].parts
+    assert r_b["comparability_signature"] in r_b["branch_dir"].parts
+
+
+# ── 13. P1-2: aggregate run_ids must be comparability-aware ───────────────────
+
+def test_aggregate_run_ids_differ_across_signatures(tmp_path):
+    inv = _invoke()
+    r_a = ssl.run(_request(release_tag="rc4"), results_root=tmp_path, invoke=inv)
+    r_b = ssl.run(_request(release_tag="rc5"), results_root=tmp_path, invoke=inv)
+
+    def _run_ids(branch_dir):
+        p = branch_dir / "aggregate" / "ablation_runs.jsonl"
+        rows = [json.loads(l) for l in p.read_text().splitlines() if l.strip()]
+        # no candidate was superseded within its own (now signature-scoped) aggregate
+        assert all(r.get("status") != "superseded" for r in rows)
+        return {r["run_id"] for r in rows}
+
+    ids_a = _run_ids(r_a["branch_dir"])
+    ids_b = _run_ids(r_b["branch_dir"])
+    # run_ids are comparability-suffixed -> disjoint across the two configs
+    assert ids_a and ids_b
+    assert ids_a.isdisjoint(ids_b)
+    assert all(r_a["comparability_signature"] in rid for rid in ids_a)
+    assert all(r_b["comparability_signature"] in rid for rid in ids_b)
+
+
+def test_candidate_run_id_changes_with_signature():
+    params = {"window_mode": "w", "sigma_multiplier": 1.0, "delay_seconds": 0.0,
+              "frame_offset": 0, "model_set_signature": "abc"}
+    a = core._candidate_run_id(params, "sig_aaaaaaaa")
+    b = core._candidate_run_id(params, "sig_bbbbbbbb")
+    assert a != b
+    assert a.endswith("sig_aaaaaaaa") and b.endswith("sig_bbbbbbbb")
