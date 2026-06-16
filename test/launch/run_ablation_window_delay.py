@@ -421,6 +421,69 @@ def frame_offsets(job: AblationJob) -> dict[str, int]:
     }
 
 
+def one_turn_frame_offset_bounds(
+    dataset: str,
+    *,
+    frame_offset: int,
+    delay_seconds: float,
+) -> dict[str, int]:
+    """Canonical bounds for one_turn_from_start timing experiments.
+
+    The Stage-2 family launchers sweep `frame_offset` directly under the same
+    one-turn contract used by the evaluators. They need the same feasibility
+    math as the baseline ablation runner, but without going through a window-mode
+    abstraction.
+    """
+    info = _DATASET_FRAMES[dataset]
+    total = info["total_frames"]
+    N = info["turn_frames"]
+    fps = info["fps"]
+    d = round(delay_seconds * fps)
+    frame_offset = int(frame_offset)
+    max_frame_offset = total - N - abs(d)
+    return {
+        "total_frames": total,
+        "turn_frames": N,
+        "fps": fps,
+        "delay_frames": d,
+        "gaze_start_frame": frame_offset + max(0, d),
+        "placement_start_frame": frame_offset + max(0, -d),
+        "max_frame_offset": max_frame_offset,
+    }
+
+
+def one_turn_frame_offset_feasible(
+    dataset: str,
+    *,
+    frame_offset: int,
+    delay_seconds: float,
+) -> tuple[bool, str]:
+    """Return (feasible, reason) for an explicit one-turn frame offset."""
+    b = one_turn_frame_offset_bounds(
+        dataset, frame_offset=frame_offset, delay_seconds=delay_seconds
+    )
+    total = b["total_frames"]
+    N = b["turn_frames"]
+    gs = b["gaze_start_frame"]
+    ps = b["placement_start_frame"]
+    if gs < 0 or ps < 0:
+        return False, (
+            f"negative window start (gaze_start={gs}, placement_start={ps}) "
+            f"for frame_offset={frame_offset} d={delay_seconds:+.3f}"
+        )
+    if gs + N > total:
+        return False, (
+            f"gaze window [{gs}:{gs + N}] exceeds total_frames={total} "
+            f"(dataset={dataset} frame_offset={frame_offset} d={delay_seconds:+.3f})"
+        )
+    if ps + N > total:
+        return False, (
+            f"placement window [{ps}:{ps + N}] exceeds total_frames={total} "
+            f"(dataset={dataset} frame_offset={frame_offset} d={delay_seconds:+.3f})"
+        )
+    return True, ""
+
+
 def job_feasibility(job: AblationJob) -> tuple[bool, str]:
     """Return (feasible, reason). A job is infeasible when its window+delay would
     require frames outside [0, total_frames) for gaze or placement.

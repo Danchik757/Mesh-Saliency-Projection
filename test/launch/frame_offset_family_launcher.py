@@ -181,6 +181,21 @@ def validate_manifest(manifest: dict, *, check_smoke: bool = True) -> dict:
         raise ManifestError("sweep.frame_offset_values must contain unique values")
 
     source = _load_consumed_branch_best(manifest)
+    best = _frame_offset_best_params_from_source(source)
+    delay = float(best["delay_seconds"])
+    invalid = []
+    for fo in grid:
+        ok, reason = rawd.one_turn_frame_offset_feasible(
+            sub["dataset"], frame_offset=int(fo), delay_seconds=delay
+        )
+        if not ok:
+            invalid.append((int(fo), reason))
+    if invalid:
+        joined = "; ".join(f"{fo}: {reason}" for fo, reason in invalid)
+        raise ManifestError(
+            "sweep.frame_offset_values contains infeasible points for the fixed delay "
+            f"{delay:+.3f}s: {joined}"
+        )
     if source.get("common_model_set") != models.get("subset_name"):
         raise ManifestError(
             f"models.subset_name must equal upstream common_model_set {source.get('common_model_set')!r}")

@@ -201,20 +201,27 @@ def test_derive_center_cone(tmp_path):
 
 
 def test_axis_grids_are_3x3x3_interior(tmp_path):
-    m = _cone_manifest(tmp_path)
-    center = jr.derive_center("cone", jr._load_consumed_markers(m))
-    sigma_axis, delay_axis, fo_axis = jr.axis_grids("cone", center)
-    assert sigma_axis == [1.9, 2.0, 2.1]
-    assert delay_axis == [0.1, 0.2, 0.3]
-    assert fo_axis == [39, 54, 69]
-    assert jr.expected_point_count("cone", center) == 27
+    m = _screen_manifest(tmp_path)
+    center = jr.derive_center("screen_space", jr._load_consumed_markers(m))
+    sigma_axis, delay_axis, fo_axis = jr.axis_grids("sal3d", "screen_space", center)
+    assert sigma_axis == [0.95, 1.0, 1.05]
+    assert delay_axis == [0.0, 0.1, 0.2]
+    assert fo_axis == [15, 30, 45]
+    assert jr.expected_point_count("sal3d", "screen_space", center) == 27
 
 
 def test_axis_grids_collapse_near_zero_frame_offset():
     center = {"sigma_deg": 2.0, "radius_sigma_mult": 3.0, "delay_seconds": 0.2, "frame_offset": 0}
-    _, _, fo_axis = jr.axis_grids("cone", center)
+    _, _, fo_axis = jr.axis_grids("sal3d", "cone", center)
     assert fo_axis == [0, 15]  # max(0, -15)=0 collapses with centre 0
-    assert jr.expected_point_count("cone", center) == 3 * 3 * 2
+    assert jr.expected_point_count("sal3d", "cone", center) == 3 * 3 * 2
+
+
+def test_axis_grids_clip_upper_frame_offset_by_dataset_limit():
+    center = {"sigma_deg": 2.0, "radius_sigma_mult": 3.0, "delay_seconds": 0.2, "frame_offset": 54}
+    _, _, fo_axis = jr.axis_grids("sal3d", "cone", center)
+    assert fo_axis == [39, 54]
+    assert jr.expected_point_count("sal3d", "cone", center) == 3 * 3 * 2
 
 
 # ── identity / anchor / task tag ─────────────────────────────────────────────
@@ -268,8 +275,8 @@ def _mock_best_at(method, sigma_target, delay_target, fo_target):
 
 def test_run_joint_refine_promotes_and_writes_refined_optimum(tmp_path):
     m = _cone_manifest(tmp_path)
-    # best at an off-centre interior point to prove the refine actually moved.
-    invoke = _mock_best_at("cone", 2.1, 0.1, 69)
+    # best at a feasible off-centre point to prove the refine actually moved.
+    invoke = _mock_best_at("cone", 2.1, 0.1, 39)
     result = jr.run_joint_refine_branch(
         m, results_root=tmp_path, invoke=invoke,
         check_smoke=False, check_runtime=False)
@@ -278,7 +285,7 @@ def test_run_joint_refine_promotes_and_writes_refined_optimum(tmp_path):
     assert bb["best_params"]["sigma_deg"] == 2.1
     assert bb["best_params"]["radius_sigma_mult"] == 3.0
     assert bb["best_params"]["delay_seconds"] == 0.1
-    assert bb["best_params"]["frame_offset"] == 69
+    assert bb["best_params"]["frame_offset"] == 39
 
 
 def test_run_joint_refine_records_model_set_signature(tmp_path):
@@ -305,8 +312,8 @@ def test_run_joint_refine_writes_27_aggregate_points(tmp_path):
              / "aggregate" / "ablation_runs.jsonl")
     rows = [json.loads(l) for l in jsonl.read_text().splitlines()
             if json.loads(l).get("status") != "superseded"]
-    # 27 distinct grid points (each a distinct run_id)
-    assert len({r["run_id"] for r in rows}) == 27
+    # Upper frame_offset point is clipped by dataset feasibility, so 18 remain.
+    assert len({r["run_id"] for r in rows}) == 18
 
 
 def test_screen_space_joint_refine_runs_end_to_end(tmp_path):

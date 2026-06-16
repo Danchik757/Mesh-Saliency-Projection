@@ -81,7 +81,7 @@ def _cone_manifest(tmp_path):
             "resolved_env": {"FIXATION_ROOT": "/x"}, "python": "python3",
             "timeout_seconds_per_invocation": 60, "max_workers": 1,
         },
-        "sweep": {"frame_offset_values": list(fo.DEFAULT_FRAME_OFFSET_GRID)},
+        "sweep": {"frame_offset_values": [0, 15, 30, 54]},
         "models": {"subset_name": "rc3_reference_ok", "list": ["dog"]},
         "consumes": {"timing_branch_best": str(upstream)},
     }
@@ -102,7 +102,7 @@ def _screen_manifest(tmp_path):
             "resolved_env": {"FIXATION_ROOT": "/x"}, "python": "python3",
             "timeout_seconds_per_invocation": 60, "max_workers": 1,
         },
-        "sweep": {"frame_offset_values": list(fo.DEFAULT_FRAME_OFFSET_GRID)},
+        "sweep": {"frame_offset_values": [0, 15, 30, 54]},
         "models": {"subset_name": "rc3_reference_ok", "list": ["dog"]},
         "consumes": {"timing_branch_best": str(upstream)},
     }
@@ -144,6 +144,43 @@ def test_manifest_rejects_duplicate_frame_offsets(tmp_path):
     m["sweep"]["frame_offset_values"] = [0, 30, 30, 54]
     with pytest.raises(fo.ManifestError, match="unique"):
         fo.validate_manifest(m)
+
+
+def test_manifest_rejects_infeasible_frame_offsets_for_fixed_delay(tmp_path):
+    upstream = _write_upstream_timing_branch_best(
+        tmp_path,
+        family="screen_space_timing",
+        dataset="meshmamba_non_texture",
+        method="screen_space",
+        best_params={
+            "sigma_multiplier": 0.38,
+            "sigma_screen": 0.019,
+            "base_sigma": 0.05,
+            "delay_seconds": 0.0,
+        },
+    )
+    smoke = _write_smoke(tmp_path, "meshmamba_non_texture", "screen_space")
+    manifest = {
+        "submission": {
+            "family": "screen_space_frame_offset",
+            "dataset": "meshmamba_non_texture",
+            "method": "screen_space",
+            "texture_type": "non_texture",
+            "repo_commit": "a" * 40,
+            "smoke_artifact": str(smoke),
+            "fixation_data_tag": "tag",
+            "window_mode": "one_turn_from_start",
+            "resolved_env": {"FIXATION_ROOT": "/x"},
+            "python": "python3",
+            "timeout_seconds_per_invocation": 60,
+            "max_workers": 1,
+        },
+        "sweep": {"frame_offset_values": [0, 54, 90]},
+        "models": {"subset_name": "rc3_reference_ok", "list": ["Watermelon_V1_L3"]},
+        "consumes": {"timing_branch_best": str(upstream)},
+    }
+    with pytest.raises(fo.ManifestError, match="infeasible points"):
+        fo.validate_manifest(manifest)
 
 
 def test_manifest_rejects_subset_name_drift(tmp_path):

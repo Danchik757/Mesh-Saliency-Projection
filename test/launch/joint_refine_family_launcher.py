@@ -280,7 +280,7 @@ def derive_center(method: str, markers: dict[str, dict]) -> dict:
     }
 
 
-def axis_grids(method: str, center: dict) -> tuple[list[float], list[float], list[int]]:
+def axis_grids(dataset: str, method: str, center: dict) -> tuple[list[float], list[float], list[int]]:
     """3x3x3 local grid axes around the centre (deduped at the edges)."""
     h = SIGMA_HALF_WIDTH_FRAC
     if method == "cone":
@@ -292,13 +292,16 @@ def axis_grids(method: str, center: dict) -> tuple[list[float], list[float], lis
     delay_axis = _dedupe_floats(
         [round(d - DELAY_HALF_WIDTH_S, 6), float(d), round(d + DELAY_HALF_WIDTH_S, 6)])
     f = int(center["frame_offset"])
+    max_fo = rawd.one_turn_frame_offset_bounds(
+        dataset, frame_offset=f, delay_seconds=d
+    )["max_frame_offset"]
     fo_axis = _dedupe_ints(
-        [max(0, f - FRAME_OFFSET_HALF_WIDTH), f, f + FRAME_OFFSET_HALF_WIDTH])
+        [max(0, f - FRAME_OFFSET_HALF_WIDTH), f, min(max_fo, f + FRAME_OFFSET_HALF_WIDTH)])
     return sigma_axis, delay_axis, fo_axis
 
 
-def expected_point_count(method: str, center: dict) -> int:
-    sigma_axis, delay_axis, fo_axis = axis_grids(method, center)
+def expected_point_count(dataset: str, method: str, center: dict) -> int:
+    sigma_axis, delay_axis, fo_axis = axis_grids(dataset, method, center)
     return len(sigma_axis) * len(delay_axis) * len(fo_axis)
 
 
@@ -642,7 +645,7 @@ def _write_held(branch_dir: Path, *, family: str, branch: str,
 def _stage_points(manifest: dict, center: dict, anchor_sig: str) -> list[dict]:
     sub = manifest["submission"]
     method = sub["method"]
-    sigma_axis, delay_axis, fo_axis = axis_grids(method, center)
+    sigma_axis, delay_axis, fo_axis = axis_grids(sub["dataset"], method, center)
     points = []
     for sigma in sigma_axis:
         for delay in delay_axis:
@@ -781,7 +784,11 @@ def run_joint_refine_branch(manifest: dict, *, results_root: Path, invoke,
     )
 
     rows = _aggregate_rows(branch_dir)
-    gate = evaluate_stage(rows, expected_points=expected_point_count(method, center), method=method)
+    gate = evaluate_stage(
+        rows,
+        expected_points=expected_point_count(sub["dataset"], method, center),
+        method=method,
+    )
     out = {"promoted": gate["promoted"], "branch_best_path": None, "held_path": None,
            "gate": gate, "center": center, "anchor_signature": anchor_sig}
     if not gate["promoted"]:
