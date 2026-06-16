@@ -465,6 +465,15 @@ def _branch_family(method: str, stage: str) -> str:
     return f"{method}_{stage}_dmlab"
 
 
+def branch_dir_for(results_root: Path, request: dict, spec: MethodSpec) -> Path:
+    """The signature-scoped branch directory for a request. Single source of truth
+    for the layout, shared by run_branch and the server monitor/resume layer."""
+    signature = comparability_signature(comparability_context(request))
+    branch_family = _branch_family(spec.method, request["stage"])
+    return (Path(results_root) / "ablation" / branch_family
+            / request["dataset"] / spec.method / signature)
+
+
 def _existing_branch_run_ids(branch_dir: Path) -> set[str]:
     """Seed the supersede set from any prior aggregate so a re-run of the same
     branch supersedes its earlier rows instead of erroring on duplicate run_id."""
@@ -771,8 +780,7 @@ def run_branch(request: dict, spec: MethodSpec, *, results_root: Path, invoke,
     branch_family = _branch_family(spec.method, request["stage"])
     # Signature-scoped branch dir: incompatible runs get distinct artifact roots and
     # can never overwrite each other's manifest/README/summary/branch_best (P1-1).
-    branch_dir = (Path(results_root) / "ablation" / branch_family
-                  / request["dataset"] / spec.method / signature)
+    branch_dir = branch_dir_for(results_root, request, spec)
     existing_run_ids: set[str] = _existing_branch_run_ids(branch_dir)
 
     candidates = plan_candidates(request, spec)

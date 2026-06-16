@@ -83,3 +83,26 @@ python3 test/launch/screen_space_dataset_ablation.py \
 `cone_dataset_ablation.py` takes the same flags. Real evaluator runs require the
 dataset/gaze assets and explicit approval; the launcher refuses a non-mock run
 without them and never submits server jobs.
+
+## Server runs (contract + monitor, never auto-launched)
+
+`test/launch/dataset_ablation_server.py` is the server-entry layer. It **emits**
+a portable run manifest and **reports** branch status; it never launches a job.
+
+```bash
+# emit a low-priority real-run command for one branch (approved host only)
+python3 test/launch/dataset_ablation_server.py emit \
+    --request <request.json> --host vg-iai --results-root /srv/results --out run.json
+
+# monitor / resume decision: expected vs completed candidates, promoted/held
+python3 test/launch/dataset_ablation_server.py status \
+    --request <request.json> --results-root /srv/results
+```
+
+- Approved hosts only: `vg-iai`, `vg-gml01`, `vg-gml02`; the emitted command is
+  always `nice -n 19 ionice -c2 -n7 …` and is the **real** (non-mock) launcher.
+- Resume is "rerun the same command": finished candidates supersede/skip, so
+  re-submission continues a partial branch. `status` shows static-candidate
+  progress and the terminal state (`pending` / `promoted` / `held`).
+- A human runs the emitted command on the server; this module only prepares and
+  observes it.
