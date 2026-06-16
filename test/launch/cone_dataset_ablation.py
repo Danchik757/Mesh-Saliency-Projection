@@ -62,8 +62,12 @@ def main() -> int:
     ap.add_argument("--request", type=Path, required=True, help="path to a branch request JSON")
     ap.add_argument("--results-root", type=Path, default=Path("results"))
     ap.add_argument("--mock", action="store_true", help="use the deterministic mock invoke")
+    ap.add_argument("--validate-only", action="store_true",
+                    help="validate the request only; do not execute")
     ap.add_argument("--dry-run", action="store_true",
                     help="validate + plan candidates and print, run nothing")
+    ap.add_argument("--skip-runtime-check", action="store_true",
+                    help="skip repo/runtime gate in non-mock mode (review/dev only)")
     args = ap.parse_args()
 
     request = json.loads(args.request.read_text())
@@ -73,6 +77,10 @@ def main() -> int:
     except core.BranchError as exc:
         print(f"[cone-dmlab] REQUEST INVALID: {exc}", file=sys.stderr)
         return 2
+
+    if args.validate_only:
+        print("[cone-dmlab] request OK")
+        return 0
 
     if args.dry_run:
         cands = core.plan_candidates(request, spec)
@@ -84,12 +92,19 @@ def main() -> int:
         print(f"[cone-dmlab] subset={request['subset_name']} size={len(request['models'])}")
         return 0
 
-    if not args.mock:
-        print("[cone-dmlab] real evaluator runs need assets + explicit approval; "
-              "use --mock for a local dry execution", file=sys.stderr)
-        return 2
+    if args.mock:
+        invoke = ev.make_mock_invoke()
+    else:
+        try:
+            if not args.skip_runtime_check:
+                core._require_current_checkout_commit(request)
+                core._require_request_runtime(request, spec)
+        except (core.RuntimeGateError, core.pf.PreflightError, core.BranchError) as exc:
+            print(f"[cone-dmlab] RUNTIME GATE FAILED: {exc}", file=sys.stderr)
+            return 2
+        invoke = core._real_invoke_for_request(request, spec, results_root=args.results_root)
 
-    result = run(request, results_root=args.results_root, invoke=ev.make_mock_invoke())
+    result = run(request, results_root=args.results_root, invoke=invoke)
     verdict = "PROMOTED" if result["promoted"] else "HELD"
     print(f"[cone-dmlab] {verdict} branch_dir={result['branch_dir']}")
     print(f"[cone-dmlab] dataset_method_table={result['dataset_method_table_path']}")

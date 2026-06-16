@@ -26,6 +26,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import subprocess
 import sys
 import tempfile
 from dataclasses import dataclass, field
@@ -47,6 +48,7 @@ def _load(name: str):
 
 ev = _load("run_evaluator_sweep")
 agg = _load("ablation_aggregation")
+pf = _load("evaluator_preflight")
 
 # Compact metric names we mean-aggregate (same set the aggregate tables use).
 METRIC_KEYS: tuple[str, ...] = tuple(agg.METRIC_COLUMNS)
@@ -84,6 +86,10 @@ DATASET_METHOD_TABLE_REL = ("ablation", "_tables", "dataset_method_ablation.csv"
 
 class BranchError(ValueError):
     """Raised when a dataset-method ablation request is malformed or incomparable."""
+
+
+class RuntimeGateError(RuntimeError):
+    """Raised when the local checkout/runtime is incompatible with a request."""
 
 
 # ── method abstraction ───────────────────────────────────────────────────────
@@ -281,6 +287,78 @@ def validate_request(request: dict) -> None:
             raise BranchError(f"stage {stage!r} requires non-empty request.axis_values")
         if len(set(request["axis_values"])) != len(request["axis_values"]):
             raise BranchError("request.axis_values must be unique")
+
+
+def _git(*args: str) -> str:
+    repo_root = _DIR.parents[1]
+    try:
+        return subprocess.check_output(
+            ["git", *args], cwd=repo_root, stderr=subprocess.DEVNULL
+        ).decode().strip()
+    except Exception:
+        return ""
+
+
+def _request_env(request: dict) -> dict[str, str]:
+    env = request.get("resolved_env") or {}
+    if not isinstance(env, dict):
+        raise BranchError("request.resolved_env must be a dict when provided")
+    return {
+        str(k): str(v) for k, v in env.items()
+        if str(k).strip() and str(v).strip()
+    }
+
+
+def _request_fixation_root(request: dict) -> str | None:
+    env = _request_env(request)
+    return env.get("FIXATION_ROOT") or env.get("REPROJECT_PROCESSED_FIXATIONS_ROOT")
+
+
+def _require_current_checkout_commit(request: dict) -> None:
+    expected = request["repo_commit"]
+    actual = _git("rev-parse", "HEAD")
+    if not actual:
+        raise RuntimeGateError("unable to resolve current git HEAD for repo-commit gate")
+    if actual != expected:
+        raise RuntimeGateError(
+            f"current checkout HEAD {actual!r} does not match request.repo_commit {expected!r}"
+        )
+
+
+def _require_request_runtime(request: dict, spec: MethodSpec) -> None:
+    python = request.get("python") or os.environ.get("REPROJECT_PYTHON") or sys.executable
+    pf.require(
+        request["dataset"], spec.method,
+        fixation_root=_request_fixation_root(request),
+        env=dict(os.environ, **_request_env(request)),
+    )
+    pf.require_runtime_dependencies(spec.method, python=python)
+
+
+def _real_invoke_for_request(request: dict, spec: MethodSpec, *, results_root: Path):
+    branch_family = _branch_family(spec.method, request["stage"])
+    signature = comparability_signature(comparability_context(request))
+    work_dir = (
+        Path(results_root) / "ablation" / "_work" / branch_family
+        / request["dataset"] / spec.method / signature
+    )
+    runtime_env = _request_env(request)
+    fixation_root = _request_fixation_root(request)
+    timeout = int(request.get("timeout_seconds_per_invocation") or 1800)
+    python = request.get("python") or os.environ.get("REPROJECT_PYTHON") or sys.executable
+
+    def invoke(point: dict, model: str) -> dict:
+        return ev.subprocess_evaluator_invoke(
+            point, model,
+            work_dir=work_dir,
+            fixation_root=fixation_root,
+            timeout=timeout,
+            preflight=False,
+            env=runtime_env,
+            python=python,
+        )
+
+    return invoke
 
 
 # ── candidate planning ───────────────────────────────────────────────────────

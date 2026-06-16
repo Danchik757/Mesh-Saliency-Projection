@@ -65,6 +65,9 @@ def _request(stage="sigma", method="screen_space", models=None, **kw):
         "frame_offset_policy": "fixed:0", "delay_policy": "fixed:0.0",
         "window_mode": "one_turn_from_start",
         "fixed": {"delay_seconds": 0.0, "frame_offset": 0},
+        "python": "/usr/bin/python3",
+        "resolved_env": {"FIXATION_ROOT": "/tmp/fix"},
+        "timeout_seconds_per_invocation": 1800,
     }
     req.update(kw)
     return req
@@ -305,3 +308,127 @@ def test_candidate_run_id_changes_with_signature():
     b = core._candidate_run_id(params, "sig_bbbbbbbb")
     assert a != b
     assert a.endswith("sig_aaaaaaaa") and b.endswith("sig_bbbbbbbb")
+
+
+# ── 14. real invoke wiring / non-mock CLI path ───────────────────────────────
+
+def test_real_invoke_for_request_uses_request_runtime_contract(tmp_path, monkeypatch):
+    request = _request()
+    spec = ssl.build_spec()
+    captured = {}
+
+    def fake_subprocess_invoke(point, model, **kwargs):
+        captured["point"] = point
+        captured["model"] = model
+        captured["kwargs"] = kwargs
+        return {"model": model, "status": "ok", "CC": 0.5}
+
+    monkeypatch.setattr(core.ev, "subprocess_evaluator_invoke", fake_subprocess_invoke)
+    invoke = core._real_invoke_for_request(request, spec, results_root=tmp_path)
+    invoke({"dataset": "sal3d", "method": "screen_space", "sigma_multiplier": 1.0, "sigma_px": 26.3}, "dog")
+
+    expected_sig = core.comparability_signature(core.comparability_context(request))
+    assert captured["model"] == "dog"
+    assert captured["kwargs"]["work_dir"] == (
+        tmp_path / "ablation" / "_work" / "screen_space_sigma_dmlab" / "sal3d" / "screen_space" / expected_sig
+    )
+    assert captured["kwargs"]["timeout"] == 1800
+    assert captured["kwargs"]["preflight"] is False
+    assert captured["kwargs"]["python"] == "/usr/bin/python3"
+    assert captured["kwargs"]["env"] == {"FIXATION_ROOT": "/tmp/fix"}
+    assert captured["kwargs"]["fixation_root"] == "/tmp/fix"
+
+
+def test_screen_space_main_non_mock_rejects_repo_commit_drift(tmp_path, monkeypatch, capsys):
+    request = _request()
+    request_path = tmp_path / "request.json"
+    request_path.write_text(json.dumps(request))
+
+    monkeypatch.setattr(core, "_require_current_checkout_commit", lambda request: (_ for _ in ()).throw(
+        core.RuntimeGateError("HEAD drift")
+    ))
+    monkeypatch.setattr(core, "_require_request_runtime", lambda request, spec: None)
+    monkeypatch.setattr(ssl, "run", lambda *args, **kwargs: (_ for _ in ()).throw(
+        AssertionError("run must not be called")
+    ))
+    monkeypatch.setattr(sys, "argv", [
+        "screen_space_dataset_ablation.py", "--request", str(request_path), "--results-root", str(tmp_path),
+    ])
+
+    rc = ssl.main()
+    err = capsys.readouterr().err
+    assert rc == 2
+    assert "RUNTIME GATE FAILED" in err
+    assert "HEAD drift" in err
+
+
+def test_screen_space_main_non_mock_runs_with_runtime_gate_and_real_invoke(tmp_path, monkeypatch):
+    request = _request()
+    request_path = tmp_path / "request.json"
+    request_path.write_text(json.dumps(request))
+    called = {"commit": 0, "runtime": 0, "invoke": None}
+
+    monkeypatch.setattr(core, "_require_current_checkout_commit",
+                        lambda request: called.__setitem__("commit", called["commit"] + 1))
+    monkeypatch.setattr(core, "_require_request_runtime",
+                        lambda request, spec: called.__setitem__("runtime", called["runtime"] + 1))
+
+    def fake_run(request, *, results_root, invoke, update_table=True):
+        called["invoke"] = invoke
+        return {"promoted": True, "branch_dir": tmp_path / "b", "dataset_method_table_path": tmp_path / "t.csv"}
+
+    monkeypatch.setattr(ssl, "run", fake_run)
+    monkeypatch.setattr(sys, "argv", [
+        "screen_space_dataset_ablation.py", "--request", str(request_path), "--results-root", str(tmp_path),
+    ])
+
+    rc = ssl.main()
+    assert rc == 0
+    assert called["commit"] == 1
+    assert called["runtime"] == 1
+
+    captured = {}
+    def fake_subprocess_invoke(point, model, **kwargs):
+        captured["kwargs"] = kwargs
+        return {"model": model, "status": "ok", "CC": 0.5}
+    monkeypatch.setattr(core.ev, "subprocess_evaluator_invoke", fake_subprocess_invoke)
+    called["invoke"]({"dataset": "sal3d", "method": "screen_space", "sigma_multiplier": 1.0, "sigma_px": 26.3}, "dog")
+    assert captured["kwargs"]["preflight"] is False
+    assert captured["kwargs"]["timeout"] == 1800
+    assert captured["kwargs"]["python"] == "/usr/bin/python3"
+
+
+def test_cone_main_non_mock_runs_with_runtime_gate_and_real_invoke(tmp_path, monkeypatch):
+    request = _request(method="cone")
+    request_path = tmp_path / "request_cone.json"
+    request_path.write_text(json.dumps(request))
+    called = {"commit": 0, "runtime": 0, "invoke": None}
+
+    monkeypatch.setattr(core, "_require_current_checkout_commit",
+                        lambda request: called.__setitem__("commit", called["commit"] + 1))
+    monkeypatch.setattr(core, "_require_request_runtime",
+                        lambda request, spec: called.__setitem__("runtime", called["runtime"] + 1))
+
+    def fake_run(request, *, results_root, invoke, update_table=True):
+        called["invoke"] = invoke
+        return {"promoted": True, "branch_dir": tmp_path / "b", "dataset_method_table_path": tmp_path / "t.csv"}
+
+    monkeypatch.setattr(conel, "run", fake_run)
+    monkeypatch.setattr(sys, "argv", [
+        "cone_dataset_ablation.py", "--request", str(request_path), "--results-root", str(tmp_path),
+    ])
+
+    rc = conel.main()
+    assert rc == 0
+    assert called["commit"] == 1
+    assert called["runtime"] == 1
+
+    captured = {}
+    def fake_subprocess_invoke(point, model, **kwargs):
+        captured["kwargs"] = kwargs
+        return {"model": model, "status": "ok", "CC": 0.5}
+    monkeypatch.setattr(core.ev, "subprocess_evaluator_invoke", fake_subprocess_invoke)
+    called["invoke"]({"dataset": "sal3d", "method": "cone", "sigma_deg": 2.0}, "dog")
+    assert captured["kwargs"]["preflight"] is False
+    assert captured["kwargs"]["timeout"] == 1800
+    assert captured["kwargs"]["python"] == "/usr/bin/python3"
