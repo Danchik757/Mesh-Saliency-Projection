@@ -1,0 +1,16 @@
+{
+  "dataset": "sal3d",
+  "method": "cone",
+  "stage": "sigma",
+  "models": ["dog", "cat", "Pear_L3", "bunny", "armadillo"],
+  "subset_name": "rc3_reference_ok",
+  "repo_commit": "0000000000000000000000000000000000000000",
+  "release_tag": "rc4",
+  "fixation_data_tag": "tag",
+  "timing_contract": "one_turn_from_start",
+  "frame_offset_policy": "fixed:0",
+  "delay_policy": "fixed:0.0",
+  "window_mode": "one_turn_from_start",
+  "fixed": {"delay_seconds": 0.0, "frame_offset": 0},
+  "sigma": {"refined": true}
+}
