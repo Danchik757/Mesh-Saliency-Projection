@@ -28,7 +28,8 @@ class Args:
     request_root_on_server = "/srv/repo/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai"
     results_root = "/srv/results"
     repo_url = None
-    python = "python3"
+    python = "/srv/env/bin/python3"
+    timeout_seconds_per_invocation = 3600
     repo_commit = "a" * 40
     release_tag = "v2.0-data-rc4"
     fixation_data_tag = "processed_fixations_offset0_full_cleaned"
@@ -37,6 +38,17 @@ class Args:
     fixed_delay_seconds = 0.0
     fixed_frame_offset = 0
     no_refined = False
+    fixation_root = "/srv/release/participant_fixations_offset0_full_cleaned"
+    three_dva_json_root = "/srv/repo/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons"
+    three_dva_combined_gt_dir = "/srv/release/datasets/3DVA/CombinedGT"
+    meshmamba_json_root = "/srv/repo/Mesh-Saliency-Projection/jsons/object_placement/mamba_non_jsons"
+    meshmamba_rgb_json_root = "/srv/repo/Mesh-Saliency-Projection/jsons/object_placement/mamba_rgb_jsons"
+    meshmamba_non_texture_root = "/srv/release/datasets/MeshMamba"
+    meshmamba_rgb_texture_root = "/srv/release/datasets/MeshMamba"
+    sal3d_json_root = "/srv/repo/Mesh-Saliency-Projection/jsons/object_placement/sal3d_jsons"
+    sal3d_dataset_root = "/srv/shared_inputs/sal3d_benchmark_pkg"
+    sal3d_fixed_gt_dir = "/srv/shared_inputs/sal3d_benchmark_pkg/sal3d_fixed_face_gt"
+    sal3d_manifest = "/srv/shared_inputs/sal3d_benchmark_pkg/sal3d_manifest.csv"
 
 
 def test_build_request_and_manifest_roundtrip(tmp_path):
@@ -51,11 +63,19 @@ def test_build_request_and_manifest_roundtrip(tmp_path):
     assert manifest_path.name == "3dva_screen_space_sigma.server_manifest.json"
     assert request["subset_name"] == "3dva_all_models_rc4"
     assert request["sigma"] == {"refined": True}
+    assert request["python"] == "/srv/env/bin/python3"
+    assert request["timeout_seconds_per_invocation"] == 3600
+    assert request["resolved_env"] == {
+        "FIXATION_ROOT": "/srv/release/participant_fixations_offset0_full_cleaned",
+        "THREE_DVA_JSON_ROOT": "/srv/repo/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons",
+        "THREE_DVA_COMBINED_GT_DIR": "/srv/release/datasets/3DVA/CombinedGT",
+    }
     assert manifest["request_path"] == (
         "/srv/repo/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/3dva_screen_space_sigma.json"
     )
     assert manifest["repo"]["checkout_root"] == "/srv/repo/Mesh-Saliency-Projection"
     assert manifest["results_root"] == "/srv/results"
+    assert manifest["command"][8] == "/srv/env/bin/python3"
 
 
 def test_request_and_manifest_names_are_stable():

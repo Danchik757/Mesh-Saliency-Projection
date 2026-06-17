@@ -50,6 +50,37 @@ def _subset_name(dataset: str) -> str:
     return f"{dataset}_all_models_rc4"
 
 
+def _resolved_env_pairs(args, dataset: str) -> list[str]:
+    base = [f"FIXATION_ROOT={args.fixation_root}"]
+    if dataset == "3dva":
+        return [
+            *base,
+            f"THREE_DVA_JSON_ROOT={args.three_dva_json_root}",
+            f"THREE_DVA_COMBINED_GT_DIR={args.three_dva_combined_gt_dir}",
+        ]
+    if dataset == "meshmamba_non_texture":
+        return [
+            *base,
+            f"MESHMAMBA_JSON_ROOT={args.meshmamba_json_root}",
+            f"MESHMAMBA_NON_TEXTURE_ROOT={args.meshmamba_non_texture_root}",
+        ]
+    if dataset == "meshmamba_rgb_texture":
+        return [
+            *base,
+            f"MESHMAMBA_RGB_TEXTURE_JSON_ROOT={args.meshmamba_rgb_json_root}",
+            f"MESHMAMBA_RGB_TEXTURE_ROOT={args.meshmamba_rgb_texture_root}",
+        ]
+    if dataset == "sal3d":
+        return [
+            *base,
+            f"SAL3D_JSON_ROOT={args.sal3d_json_root}",
+            f"SAL3D_DATASET_ROOT={args.sal3d_dataset_root}",
+            f"SAL3D_FIXED_GT_DIR={args.sal3d_fixed_gt_dir}",
+            f"SAL3D_MANIFEST={args.sal3d_manifest}",
+        ]
+    raise ValueError(f"unsupported dataset {dataset!r}")
+
+
 def _request_args(args, *, dataset: str, method: str, out: Path):
     return argparse.Namespace(
         dataset=dataset,
@@ -69,10 +100,10 @@ def _request_args(args, *, dataset: str, method: str, out: Path):
         fixed_sigma_value=None,
         axis_values=None,
         no_refined=args.no_refined,
-        resolved_env=[],
-        python=None,
-        timeout_seconds_per_invocation=None,
-        checkout_root=None,
+        resolved_env=_resolved_env_pairs(args, dataset),
+        python=args.python,
+        timeout_seconds_per_invocation=args.timeout_seconds_per_invocation,
+        checkout_root=args.checkout_root,
     )
 
 
@@ -108,6 +139,7 @@ def main() -> int:
     ap.add_argument("--results-root", required=True)
     ap.add_argument("--repo-url", default=None)
     ap.add_argument("--python", default="python3")
+    ap.add_argument("--timeout-seconds-per-invocation", type=int, default=3600)
     ap.add_argument("--repo-commit", default=None)
     ap.add_argument("--release-tag", default="v2.0-data-rc4")
     ap.add_argument("--fixation-data-tag", default="processed_fixations_offset0_full_cleaned")
@@ -115,6 +147,17 @@ def main() -> int:
     ap.add_argument("--window-mode", default="one_turn_from_start")
     ap.add_argument("--fixed-delay-seconds", type=float, default=0.0)
     ap.add_argument("--fixed-frame-offset", type=int, default=0)
+    ap.add_argument("--fixation-root", required=True)
+    ap.add_argument("--three-dva-json-root", required=True)
+    ap.add_argument("--three-dva-combined-gt-dir", required=True)
+    ap.add_argument("--meshmamba-json-root", required=True)
+    ap.add_argument("--meshmamba-rgb-json-root", required=True)
+    ap.add_argument("--meshmamba-non-texture-root", required=True)
+    ap.add_argument("--meshmamba-rgb-texture-root", required=True)
+    ap.add_argument("--sal3d-json-root", required=True)
+    ap.add_argument("--sal3d-dataset-root", required=True)
+    ap.add_argument("--sal3d-fixed-gt-dir", required=True)
+    ap.add_argument("--sal3d-manifest", required=True)
     ap.add_argument("--no-refined", action="store_true")
     ap.add_argument("--datasets", nargs="*", choices=ALL_DATASETS, default=list(ALL_DATASETS))
     ap.add_argument("--methods", nargs="*", choices=ALL_METHODS, default=list(ALL_METHODS))

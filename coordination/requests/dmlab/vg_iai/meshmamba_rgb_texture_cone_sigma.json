@@ -110,7 +110,7 @@
     "WWII_Plane-Germany_Focke-Wulf_Fw_190_v1"
   ],
   "subset_name": "meshmamba_rgb_texture_all_models_rc4",
-  "repo_commit": "de1e391077bed9c0d7ce2cf18f55dacd83d67b01",
+  "repo_commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
   "release_tag": "v2.0-data-rc4",
   "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
   "timing_contract": "one_turn_from_start",
@@ -119,11 +119,17 @@
     "delay_seconds": 0.0,
     "frame_offset": 0
   },
+  "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection",
+  "python": "/mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3",
+  "timeout_seconds_per_invocation": 3600,
+  "resolved_env": {
+    "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/participant_fixations_offset0_full_cleaned",
+    "MESHMAMBA_RGB_TEXTURE_JSON_ROOT": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/mamba_rgb_jsons",
+    "MESHMAMBA_RGB_TEXTURE_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/datasets/MeshMamba"
+  },
   "frame_offset_policy": "fixed:0",
   "delay_policy": "fixed:0.0",
   "sigma": {
     "refined": true
-  },
-  "server_nice": true,
-  "max_workers": 8
+  }
 }

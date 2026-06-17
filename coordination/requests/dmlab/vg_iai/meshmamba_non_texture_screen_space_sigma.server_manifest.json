@@ -13,7 +13,7 @@
     "ionice_level": 7
   },
   "repo": {
-    "commit": "de1e391077bed9c0d7ce2cf18f55dacd83d67b01",
+    "commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
     "url": "",
     "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection"
   },
@@ -140,7 +140,7 @@
       "WWII_Plane-Germany_Focke-Wulf_Fw_190_v1"
     ],
     "subset_name": "meshmamba_non_texture_all_models_rc4",
-    "repo_commit": "de1e391077bed9c0d7ce2cf18f55dacd83d67b01",
+    "repo_commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
     "release_tag": "v2.0-data-rc4",
     "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
     "timing_contract": "one_turn_from_start",
@@ -148,6 +148,14 @@
     "fixed": {
       "delay_seconds": 0.0,
       "frame_offset": 0
+    },
+    "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection",
+    "python": "/mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3",
+    "timeout_seconds_per_invocation": 3600,
+    "resolved_env": {
+      "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/participant_fixations_offset0_full_cleaned",
+      "MESHMAMBA_JSON_ROOT": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/mamba_non_jsons",
+      "MESHMAMBA_NON_TEXTURE_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/datasets/MeshMamba"
     },
     "frame_offset_policy": "fixed:0",
     "delay_policy": "fixed:0.0",
@@ -187,6 +195,6 @@
     "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_non_texture/screen_space/31b91f20bdfb6ff3/branch_best.json",
     "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_non_texture/screen_space/31b91f20bdfb6ff3/_held.json"
   },
-  "generated_at_utc": "2026-06-17T18:41:06Z",
+  "generated_at_utc": "2026-06-17T22:20:38Z",
   "notes": "low-priority real run; emitted not launched; submit on an approved host only"
 }
