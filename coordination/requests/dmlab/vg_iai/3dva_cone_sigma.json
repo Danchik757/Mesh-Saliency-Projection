@@ -37,7 +37,7 @@
     "vase-15k"
   ],
   "subset_name": "3dva_all_models_rc4",
-  "repo_commit": "326b0de07b1eb0820ac51fbf57dd508fced0d39a",
+  "repo_commit": "de1e391077bed9c0d7ce2cf18f55dacd83d67b01",
   "release_tag": "v2.0-data-rc4",
   "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
   "timing_contract": "one_turn_from_start",
