@@ -62,8 +62,8 @@
     "wolf"
   ],
   "subset_name": "sal3d_all_models_rc4",
-  "repo_commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
-  "release_tag": "v2.0-data-rc4",
+  "repo_commit": "df51f077c3701e1816b5495b4453dbb727091a64",
+  "release_tag": "v2.0-data-rc3",
   "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
   "timing_contract": "one_turn_from_start",
   "window_mode": "one_turn_from_start",
@@ -75,7 +75,7 @@
   "python": "/mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3",
   "timeout_seconds_per_invocation": 3600,
   "resolved_env": {
-    "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/participant_fixations_offset0_full_cleaned",
+    "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/participant_fixations_offset0_full_cleaned",
     "SAL3D_JSON_ROOT": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/sal3d_jsons",
     "SAL3D_DATASET_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_inputs/sal3d_benchmark_pkg",
     "SAL3D_FIXED_GT_DIR": "/mnt/ssd1/29d_kon/acm_2026/shared_inputs/sal3d_benchmark_pkg/sal3d_fixed_face_gt",

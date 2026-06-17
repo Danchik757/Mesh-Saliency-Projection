@@ -13,7 +13,7 @@
     "ionice_level": 7
   },
   "repo": {
-    "commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
+    "commit": "df51f077c3701e1816b5495b4453dbb727091a64",
     "url": "",
     "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection"
   },
@@ -22,11 +22,11 @@
   "method": "screen_space",
   "stage": "sigma",
   "branch_family": "screen_space_sigma_dmlab",
-  "comparability_signature": "9ebf58955b3879a1",
+  "comparability_signature": "4642f9bf1bf9236f",
   "subset_name": "3dva_all_models_rc4",
   "subset_size": 32,
   "results_root": "/mnt/ssd1/29d_kon/summer_2026/results",
-  "branch_dir": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/3dva/screen_space/9ebf58955b3879a1",
+  "branch_dir": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/3dva/screen_space/4642f9bf1bf9236f",
   "request_path": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/3dva_screen_space_sigma.json",
   "request": {
     "dataset": "3dva",
@@ -67,8 +67,8 @@
       "vase-15k"
     ],
     "subset_name": "3dva_all_models_rc4",
-    "repo_commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
-    "release_tag": "v2.0-data-rc4",
+    "repo_commit": "df51f077c3701e1816b5495b4453dbb727091a64",
+    "release_tag": "v2.0-data-rc3",
     "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
     "timing_contract": "one_turn_from_start",
     "window_mode": "one_turn_from_start",
@@ -80,9 +80,9 @@
     "python": "/mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3",
     "timeout_seconds_per_invocation": 3600,
     "resolved_env": {
-      "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/participant_fixations_offset0_full_cleaned",
+      "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/participant_fixations_offset0_full_cleaned",
       "THREE_DVA_JSON_ROOT": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons",
-      "THREE_DVA_COMBINED_GT_DIR": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/datasets/3DVA/CombinedGT"
+      "THREE_DVA_COMBINED_GT_DIR": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA/CombinedGT"
     },
     "frame_offset_policy": "fixed:0",
     "delay_policy": "fixed:0.0",
@@ -108,20 +108,20 @@
   ],
   "command_str": "nice -n 19 ionice -c 2 -n 7 /mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3 /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/screen_space_dataset_ablation.py --request /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/3dva_screen_space_sigma.json --results-root /mnt/ssd1/29d_kon/summer_2026/results",
   "expected_candidate_run_ids": {
-    "s0.5": "wone_turn_from_start_off0_d0p0_spx24p5_smul0p5_msetb45b21bce_c3823b27_cmp9ebf58955b3879a1",
-    "s0.7": "wone_turn_from_start_off0_d0p0_spx34p3_smul0p7_msetb45b21bce_c142a183_cmp9ebf58955b3879a1",
-    "s1": "wone_turn_from_start_off0_d0p0_spx49p0_smul1p0_msetb45b21bce_15a4198b_cmp9ebf58955b3879a1",
-    "s1.3": "wone_turn_from_start_off0_d0p0_spx63p7_smul1p3_msetb45b21bce_ec876001_cmp9ebf58955b3879a1",
-    "s1.5": "wone_turn_from_start_off0_d0p0_spx73p5_smul1p5_msetb45b21bce_f838d3b4_cmp9ebf58955b3879a1"
+    "s0.5": "wone_turn_from_start_off0_d0p0_spx24p5_smul0p5_msetb45b21bce_c3823b27_cmp4642f9bf1bf9236f",
+    "s0.7": "wone_turn_from_start_off0_d0p0_spx34p3_smul0p7_msetb45b21bce_c142a183_cmp4642f9bf1bf9236f",
+    "s1": "wone_turn_from_start_off0_d0p0_spx49p0_smul1p0_msetb45b21bce_15a4198b_cmp4642f9bf1bf9236f",
+    "s1.3": "wone_turn_from_start_off0_d0p0_spx63p7_smul1p3_msetb45b21bce_ec876001_cmp4642f9bf1bf9236f",
+    "s1.5": "wone_turn_from_start_off0_d0p0_spx73p5_smul1p5_msetb45b21bce_f838d3b4_cmp4642f9bf1bf9236f"
   },
   "n_static_candidates": 5,
   "refined_substage_dynamic": true,
   "resume": {
     "policy": "rerun the same command; finished candidates supersede/skip",
-    "aggregate_jsonl": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/3dva/screen_space/9ebf58955b3879a1/aggregate/ablation_runs.jsonl",
-    "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/3dva/screen_space/9ebf58955b3879a1/branch_best.json",
-    "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/3dva/screen_space/9ebf58955b3879a1/_held.json"
+    "aggregate_jsonl": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/3dva/screen_space/4642f9bf1bf9236f/aggregate/ablation_runs.jsonl",
+    "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/3dva/screen_space/4642f9bf1bf9236f/branch_best.json",
+    "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/3dva/screen_space/4642f9bf1bf9236f/_held.json"
   },
-  "generated_at_utc": "2026-06-17T22:20:38Z",
+  "generated_at_utc": "2026-06-17T22:25:07Z",
   "notes": "low-priority real run; emitted not launched; submit on an approved host only"
 }

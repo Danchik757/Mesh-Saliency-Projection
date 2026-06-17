@@ -37,8 +37,8 @@
     "vase-15k"
   ],
   "subset_name": "3dva_all_models_rc4",
-  "repo_commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
-  "release_tag": "v2.0-data-rc4",
+  "repo_commit": "df51f077c3701e1816b5495b4453dbb727091a64",
+  "release_tag": "v2.0-data-rc3",
   "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
   "timing_contract": "one_turn_from_start",
   "window_mode": "one_turn_from_start",
@@ -50,9 +50,9 @@
   "python": "/mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3",
   "timeout_seconds_per_invocation": 3600,
   "resolved_env": {
-    "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/participant_fixations_offset0_full_cleaned",
+    "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/participant_fixations_offset0_full_cleaned",
     "THREE_DVA_JSON_ROOT": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons",
-    "THREE_DVA_COMBINED_GT_DIR": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/datasets/3DVA/CombinedGT"
+    "THREE_DVA_COMBINED_GT_DIR": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA/CombinedGT"
   },
   "frame_offset_policy": "fixed:0",
   "delay_policy": "fixed:0.0",

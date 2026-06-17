@@ -13,7 +13,7 @@
     "ionice_level": 7
   },
   "repo": {
-    "commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
+    "commit": "df51f077c3701e1816b5495b4453dbb727091a64",
     "url": "",
     "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection"
   },
@@ -22,11 +22,11 @@
   "method": "screen_space",
   "stage": "sigma",
   "branch_family": "screen_space_sigma_dmlab",
-  "comparability_signature": "31b91f20bdfb6ff3",
+  "comparability_signature": "b5fcfd5008926ebe",
   "subset_name": "meshmamba_rgb_texture_all_models_rc4",
   "subset_size": 105,
   "results_root": "/mnt/ssd1/29d_kon/summer_2026/results",
-  "branch_dir": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/31b91f20bdfb6ff3",
+  "branch_dir": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/b5fcfd5008926ebe",
   "request_path": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_rgb_texture_screen_space_sigma.json",
   "request": {
     "dataset": "meshmamba_rgb_texture",
@@ -140,8 +140,8 @@
       "WWII_Plane-Germany_Focke-Wulf_Fw_190_v1"
     ],
     "subset_name": "meshmamba_rgb_texture_all_models_rc4",
-    "repo_commit": "3cad2c73ff20487f73395aa227c1bf66023365ab",
-    "release_tag": "v2.0-data-rc4",
+    "repo_commit": "df51f077c3701e1816b5495b4453dbb727091a64",
+    "release_tag": "v2.0-data-rc3",
     "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
     "timing_contract": "one_turn_from_start",
     "window_mode": "one_turn_from_start",
@@ -153,9 +153,9 @@
     "python": "/mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3",
     "timeout_seconds_per_invocation": 3600,
     "resolved_env": {
-      "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/participant_fixations_offset0_full_cleaned",
+      "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/participant_fixations_offset0_full_cleaned",
       "MESHMAMBA_RGB_TEXTURE_JSON_ROOT": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/mamba_rgb_jsons",
-      "MESHMAMBA_RGB_TEXTURE_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc4/extracted/datasets/MeshMamba"
+      "MESHMAMBA_RGB_TEXTURE_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/MeshMamba"
     },
     "frame_offset_policy": "fixed:0",
     "delay_policy": "fixed:0.0",
@@ -181,20 +181,20 @@
   ],
   "command_str": "nice -n 19 ionice -c 2 -n 7 /mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3 /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/screen_space_dataset_ablation.py --request /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_rgb_texture_screen_space_sigma.json --results-root /mnt/ssd1/29d_kon/summer_2026/results",
   "expected_candidate_run_ids": {
-    "s0.5": "wone_turn_from_start_off0_d0p0_ssc0p025_smul0p5_mset33d4188f_d4a21a59_cmp31b91f20bdfb6ff3",
-    "s0.7": "wone_turn_from_start_off0_d0p0_ssc0p035_smul0p7_mset33d4188f_9a527f6a_cmp31b91f20bdfb6ff3",
-    "s1": "wone_turn_from_start_off0_d0p0_ssc0p05_smul1p0_mset33d4188fe_860c8b58_cmp31b91f20bdfb6ff3",
-    "s1.3": "wone_turn_from_start_off0_d0p0_ssc0p065_smul1p3_mset33d4188f_afd6857c_cmp31b91f20bdfb6ff3",
-    "s1.5": "wone_turn_from_start_off0_d0p0_ssc0p075_smul1p5_mset33d4188f_8281b19a_cmp31b91f20bdfb6ff3"
+    "s0.5": "wone_turn_from_start_off0_d0p0_ssc0p025_smul0p5_mset33d4188f_d4a21a59_cmpb5fcfd5008926ebe",
+    "s0.7": "wone_turn_from_start_off0_d0p0_ssc0p035_smul0p7_mset33d4188f_9a527f6a_cmpb5fcfd5008926ebe",
+    "s1": "wone_turn_from_start_off0_d0p0_ssc0p05_smul1p0_mset33d4188fe_860c8b58_cmpb5fcfd5008926ebe",
+    "s1.3": "wone_turn_from_start_off0_d0p0_ssc0p065_smul1p3_mset33d4188f_afd6857c_cmpb5fcfd5008926ebe",
+    "s1.5": "wone_turn_from_start_off0_d0p0_ssc0p075_smul1p5_mset33d4188f_8281b19a_cmpb5fcfd5008926ebe"
   },
   "n_static_candidates": 5,
   "refined_substage_dynamic": true,
   "resume": {
     "policy": "rerun the same command; finished candidates supersede/skip",
-    "aggregate_jsonl": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/31b91f20bdfb6ff3/aggregate/ablation_runs.jsonl",
-    "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/31b91f20bdfb6ff3/branch_best.json",
-    "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/31b91f20bdfb6ff3/_held.json"
+    "aggregate_jsonl": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/b5fcfd5008926ebe/aggregate/ablation_runs.jsonl",
+    "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/b5fcfd5008926ebe/branch_best.json",
+    "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/screen_space_sigma_dmlab/meshmamba_rgb_texture/screen_space/b5fcfd5008926ebe/_held.json"
   },
-  "generated_at_utc": "2026-06-17T22:20:38Z",
+  "generated_at_utc": "2026-06-17T22:25:07Z",
   "notes": "low-priority real run; emitted not launched; submit on an approved host only"
 }
