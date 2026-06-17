@@ -13,7 +13,7 @@
     "ionice_level": 7
   },
   "repo": {
-    "commit": "326b0de07b1eb0820ac51fbf57dd508fced0d39a",
+    "commit": "336ed12bb0dac7aff3386107db4d3f9d0c541b30",
     "url": "",
     "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection"
   },
@@ -140,7 +140,7 @@
       "WWII_Plane-Germany_Focke-Wulf_Fw_190_v1"
     ],
     "subset_name": "meshmamba_rgb_texture_all_models_rc4",
-    "repo_commit": "326b0de07b1eb0820ac51fbf57dd508fced0d39a",
+    "repo_commit": "336ed12bb0dac7aff3386107db4d3f9d0c541b30",
     "release_tag": "v2.0-data-rc4",
     "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
     "timing_contract": "one_turn_from_start",
@@ -164,14 +164,14 @@
     "2",
     "-n",
     "7",
-    "python3",
+    "/mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3",
     "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/cone_dataset_ablation.py",
     "--request",
     "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_rgb_texture_cone_sigma.json",
     "--results-root",
     "/mnt/ssd1/29d_kon/summer_2026/results"
   ],
-  "command_str": "nice -n 19 ionice -c 2 -n 7 python3 /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/cone_dataset_ablation.py --request /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_rgb_texture_cone_sigma.json --results-root /mnt/ssd1/29d_kon/summer_2026/results",
+  "command_str": "nice -n 19 ionice -c 2 -n 7 /mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3 /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/test/launch/cone_dataset_ablation.py --request /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/coordination/requests/dmlab/vg_iai/meshmamba_rgb_texture_cone_sigma.json --results-root /mnt/ssd1/29d_kon/summer_2026/results",
   "expected_candidate_run_ids": {
     "s0.5": "wone_turn_from_start_off0_d0p0_sdeg0p5_rsm3p0_mset33d4188fe9_85ba994a_cmp31b91f20bdfb6ff3",
     "s0.65": "wone_turn_from_start_off0_d0p0_sdeg0p65_rsm3p0_mset33d4188fe_9ecead62_cmp31b91f20bdfb6ff3",
@@ -189,6 +189,6 @@
     "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/meshmamba_rgb_texture/cone/31b91f20bdfb6ff3/branch_best.json",
     "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/meshmamba_rgb_texture/cone/31b91f20bdfb6ff3/_held.json"
   },
-  "generated_at_utc": "2026-06-17T16:32:57Z",
+  "generated_at_utc": "2026-06-17T18:39:37Z",
   "notes": "low-priority real run; emitted not launched; submit on an approved host only"
 }
