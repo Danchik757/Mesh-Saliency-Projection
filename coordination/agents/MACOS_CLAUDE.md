@@ -1852,3 +1852,32 @@ All 26 tests pass (26/26).
 
 **Status:** ready for ChatGPT review before relaunching remaining sigma candidates
 (σ×0.7, σ×1.0, σ×1.3, σ×1.5) on vg-iai.
+
+---
+
+### [2026-06-18] server_nice: nice -n 19 ionice -c2 -n7 on all subprocess invocations — commit 0bf9b9f
+
+Each per-model subprocess now runs at the lowest OS scheduler priority when
+`request["server_nice"] = true`. Applied automatically on Linux; silently
+skipped on macOS (ionice not available).
+
+**Implementation:**
+- `run_evaluator_sweep.subprocess_evaluator_invoke` — new `nice_prefix: list[str] | None` kwarg,
+  prepended to cmd before `subprocess.run`
+- `dataset_ablation_core._server_nice_prefix(request)` — returns
+  `["nice", "-n", "19", "ionice", "-c2", "-n7"]` on Linux when `server_nice=true`, else `[]`
+- `_real_invoke_for_request` — computes prefix once per request, passes it into every `invoke` call
+
+**All 8 vg-iai request JSONs updated:**
+- `"server_nice": true` — enables the prefix on vg-iai (Linux)
+- `"max_workers": 8` — parallel workers per candidate
+
+**Tests added** (section 19, 4 tests):
+- `test_server_nice_prefix_empty_on_macos`
+- `test_server_nice_prefix_populated_on_linux`
+- `test_server_nice_prefix_absent_when_not_set`
+- `test_nice_prefix_forwarded_to_subprocess_evaluator`
+
+Total: **30/30 tests pass**.
+
+**Status:** both fixes (parallel + nice) ready for ChatGPT review.
