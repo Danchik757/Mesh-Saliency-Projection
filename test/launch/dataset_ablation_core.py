@@ -29,11 +29,18 @@ import os
 import subprocess
 import sys
 import tempfile
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Callable, Sequence
 
 _DIR = Path(__file__).resolve().parent
+
+# Default parallelism for model invocations within one candidate.
+# subprocess_evaluator_invoke spawns one subprocess per model, so threads
+# are fine — the GIL is not held while waiting for subprocesses.
+# Override per-request with request["max_workers"].
+_DEFAULT_MAX_WORKERS = min(16, os.cpu_count() or 4)
 
 
 def _load(name: str):
@@ -444,7 +451,10 @@ def _run_candidate(request: dict, spec: MethodSpec, cand: Candidate, *,
     params = _make_params(request, spec, cand, branch_family, signature)
     run_id = _candidate_run_id(params, signature)
     params["run_id"] = run_id
-    raw_rows = [invoke(cand.point, model) for model in models]
+    max_workers = int(request.get("max_workers") or _DEFAULT_MAX_WORKERS)
+    with ThreadPoolExecutor(max_workers=max_workers) as pool:
+        futures = [pool.submit(invoke, cand.point, m) for m in models]
+        raw_rows = [f.result() for f in futures]
     agg.record_run(
         Path(results_root), params, raw_rows, run_id=run_id,
         command=str(params.get("command", "")),

@@ -456,3 +456,71 @@ def test_checkout_gate_rejects_nonancestor_commit(tmp_path):
     req = {"repo_commit": fake_commit}
     with pytest.raises(core.RuntimeGateError, match="does not contain"):
         core._require_current_checkout_commit(req)
+
+
+# ── 18. parallel model invocation ────────────────────────────────────────────
+
+def test_parallel_all_models_evaluated(tmp_path):
+    """ThreadPool must invoke every model exactly once per candidate."""
+    import threading
+
+    invoked: set = set()
+    lock = threading.Lock()
+    models = [f"model_{i}" for i in range(10)]
+
+    def tracking_invoke(point, model):
+        with lock:
+            invoked.add(model)
+        return _ok_row(model, 0.5)
+
+    ssl.run(_request(models=models), results_root=tmp_path, invoke=tracking_invoke)
+    assert invoked == set(models)
+
+
+def test_parallel_model_cc_not_swapped_across_threads(tmp_path):
+    """Each model's result must come from its own invoke call, not another thread's."""
+    model_cc = {f"m{i}": round(0.1 + 0.05 * i, 6) for i in range(5)}
+    models = list(model_cc)
+
+    def invoke(point, model):
+        return _ok_row(model, model_cc[model])
+
+    result = ssl.run(_request(models=models), results_root=tmp_path, invoke=invoke)
+    assert result["promoted"] is True
+    expected_mean = sum(model_cc.values()) / len(model_cc)
+    assert abs(result["summary"]["best"]["mean_common"]["CC"] - expected_mean) < 1e-6
+
+
+def test_parallel_max_workers_1_serializes(tmp_path):
+    """max_workers=1 in request must keep concurrency at 1 inside a candidate."""
+    import threading
+    import time
+
+    active = {"count": 0, "max": 0}
+    lock = threading.Lock()
+
+    def invoke(point, model):
+        with lock:
+            active["count"] += 1
+            active["max"] = max(active["max"], active["count"])
+        time.sleep(0.01)
+        with lock:
+            active["count"] -= 1
+        return _ok_row(model, 0.5)
+
+    ssl.run(_request(models=[f"m{i}" for i in range(6)], max_workers=1),
+            results_root=tmp_path, invoke=invoke)
+    assert active["max"] == 1
+
+
+def test_parallel_failed_rows_not_raised(tmp_path):
+    """A status='failed' row from one thread must not crash other threads."""
+
+    def invoke(point, model):
+        if model == "bad":
+            return {"model": model, "status": "failed", "error_type": "synthetic"}
+        return _ok_row(model, 0.5)
+
+    models = ["good1", "bad", "good2", "good3", "good4"]
+    result = ssl.run(_request(models=models), results_root=tmp_path, invoke=invoke)
+    assert "promoted" in result
