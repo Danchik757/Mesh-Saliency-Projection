@@ -319,9 +319,20 @@ def _require_current_checkout_commit(request: dict) -> None:
     actual = _git("rev-parse", "HEAD")
     if not actual:
         raise RuntimeGateError("unable to resolve current git HEAD for repo-commit gate")
-    if actual != expected:
+    # Allow HEAD to be a descendant of the pinned commit (newer checkout is safe;
+    # older checkout — where expected is not an ancestor of HEAD — is rejected).
+    if actual == expected:
+        return
+    repo_root = _DIR.parents[1]
+    try:
+        subprocess.check_call(
+            ["git", "merge-base", "--is-ancestor", expected, "HEAD"],
+            cwd=repo_root, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL
+        )
+    except subprocess.CalledProcessError:
         raise RuntimeGateError(
-            f"current checkout HEAD {actual!r} does not match request.repo_commit {expected!r}"
+            f"checkout HEAD {actual!r} does not contain request.repo_commit {expected!r} "
+            f"— the repo may be on an older or divergent branch"
         )
 
 

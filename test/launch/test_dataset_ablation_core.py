@@ -432,3 +432,27 @@ def test_cone_main_non_mock_runs_with_runtime_gate_and_real_invoke(tmp_path, mon
     assert captured["kwargs"]["preflight"] is False
     assert captured["kwargs"]["timeout"] == 1800
     assert captured["kwargs"]["python"] == "/usr/bin/python3"
+
+
+# ── 17. checkout-commit gate: ancestor is accepted ───────────────────────────
+
+def test_checkout_gate_accepts_ancestor_commit(tmp_path, monkeypatch):
+    # Simulate: request pins an older commit that IS an ancestor of HEAD.
+    HEAD = core._git("rev-parse", "HEAD")
+    if not HEAD:
+        pytest.skip("not in a git repo")
+    # An ancestor: HEAD itself is its own ancestor (trivial) and any parent is too.
+    # Use HEAD~1 if it exists, else HEAD itself.
+    ancestor = core._git("rev-parse", "HEAD~1") or HEAD
+
+    req = {"repo_commit": ancestor}
+    # Should not raise: ancestor commit is an allowed checkpoint.
+    core._require_current_checkout_commit(req)
+
+
+def test_checkout_gate_rejects_nonancestor_commit(tmp_path):
+    # A SHA that is syntactically valid but not in the repo ancestry.
+    fake_commit = "a" * 40
+    req = {"repo_commit": fake_commit}
+    with pytest.raises(core.RuntimeGateError, match="does not contain"):
+        core._require_current_checkout_commit(req)
