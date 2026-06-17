@@ -13,7 +13,7 @@
     "ionice_level": 7
   },
   "repo": {
-    "commit": "d6c0ada8e7528ee899e671e675df7ae824b987ce",
+    "commit": "326b0de07b1eb0820ac51fbf57dd508fced0d39a",
     "url": "",
     "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection"
   },
@@ -67,7 +67,7 @@
       "vase-15k"
     ],
     "subset_name": "3dva_all_models_rc4",
-    "repo_commit": "d6c0ada8e7528ee899e671e675df7ae824b987ce",
+    "repo_commit": "326b0de07b1eb0820ac51fbf57dd508fced0d39a",
     "release_tag": "v2.0-data-rc4",
     "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
     "timing_contract": "one_turn_from_start",
@@ -116,6 +116,6 @@
     "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/3dva/cone/9ebf58955b3879a1/branch_best.json",
     "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/3dva/cone/9ebf58955b3879a1/_held.json"
   },
-  "generated_at_utc": "2026-06-16T21:39:54Z",
+  "generated_at_utc": "2026-06-17T16:32:57Z",
   "notes": "low-priority real run; emitted not launched; submit on an approved host only"
 }
