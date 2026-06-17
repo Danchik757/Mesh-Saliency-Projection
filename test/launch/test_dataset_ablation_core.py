@@ -524,3 +524,47 @@ def test_parallel_failed_rows_not_raised(tmp_path):
     models = ["good1", "bad", "good2", "good3", "good4"]
     result = ssl.run(_request(models=models), results_root=tmp_path, invoke=invoke)
     assert "promoted" in result
+
+
+# ── 19. server_nice prefix ───────────────────────────────────────────────────
+
+def test_server_nice_prefix_empty_on_macos(monkeypatch):
+    monkeypatch.setattr(core.sys, "platform", "darwin")
+    assert core._server_nice_prefix({"server_nice": True}) == []
+
+
+def test_server_nice_prefix_populated_on_linux(monkeypatch):
+    monkeypatch.setattr(core.sys, "platform", "linux")
+    prefix = core._server_nice_prefix({"server_nice": True})
+    assert prefix[:4] == ["nice", "-n", "19", "ionice"]
+    assert "-c2" in prefix
+    assert "-n7" in prefix
+
+
+def test_server_nice_prefix_absent_when_not_set(monkeypatch):
+    monkeypatch.setattr(core.sys, "platform", "linux")
+    assert core._server_nice_prefix({}) == []
+    assert core._server_nice_prefix({"server_nice": False}) == []
+
+
+def test_nice_prefix_forwarded_to_subprocess_evaluator(tmp_path, monkeypatch):
+    """_real_invoke_for_request must forward nice_prefix when server_nice=True on Linux."""
+    monkeypatch.setattr(core.sys, "platform", "linux")
+
+    captured = {}
+    def fake_subprocess_invoke(point, model, **kwargs):
+        captured["nice_prefix"] = kwargs.get("nice_prefix")
+        return {"model": model, "status": "ok", "CC": 0.5}
+
+    monkeypatch.setattr(core.ev, "subprocess_evaluator_invoke", fake_subprocess_invoke)
+
+    spec = ssl.build_spec()
+    req = _request(server_nice=True)
+    invoke_fn = core._real_invoke_for_request(req, spec, results_root=tmp_path)
+    invoke_fn({"dataset": "sal3d", "method": "screen_space",
+               "axis": "sigma_multiplier", "value": 1.0,
+               "sigma_multiplier": 1.0, "delay_seconds": 0.0,
+               "window_mode": "one_turn_from_start"}, "m1")
+
+    assert captured["nice_prefix"] is not None
+    assert "nice" in captured["nice_prefix"]

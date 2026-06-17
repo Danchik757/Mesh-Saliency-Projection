@@ -131,7 +131,8 @@ def _task_dir_leaf(point: dict) -> str:
 def subprocess_evaluator_invoke(point: dict, model: str, *, work_dir: Path,
                                 fixation_root: str | None = None, timeout: int | None = None,
                                 preflight: bool = True, env: dict | None = None,
-                                python: str | None = None) -> dict:
+                                python: str | None = None,
+                                nice_prefix: list[str] | None = None) -> dict:
     """Default REAL invoke: run the evaluator CLI for (point, model), parse its
     report, and return a per-model 14-metric row. Requires the external dataset
     assets to actually run; on any subprocess failure returns a status='failed'
@@ -154,6 +155,8 @@ def subprocess_evaluator_invoke(point: dict, model: str, *, work_dir: Path,
     cmd = build_evaluator_command(
         point, model, output_dir=out_dir, fixation_root=fixation_root, python=python,
     )
+    if nice_prefix:
+        cmd = list(nice_prefix) + cmd
     try:
         proc = subprocess.run(
             cmd, capture_output=True, text=True, timeout=timeout,

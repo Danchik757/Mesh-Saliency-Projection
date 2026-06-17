@@ -42,6 +42,19 @@ _DIR = Path(__file__).resolve().parent
 # Override per-request with request["max_workers"].
 _DEFAULT_MAX_WORKERS = min(16, os.cpu_count() or 4)
 
+# Approved server nice/ionice prefix (Linux only; silent no-op on macOS).
+_NICE_PREFIX: list[str] = ["nice", "-n", "19", "ionice", "-c2", "-n7"]
+
+
+def _server_nice_prefix(request: dict) -> list[str]:
+    """Return the nice/ionice prefix when request["server_nice"] is truthy
+    and the OS is Linux. Empty on macOS (ionice is not available there)."""
+    if not request.get("server_nice"):
+        return []
+    if sys.platform == "darwin":
+        return []
+    return _NICE_PREFIX
+
 
 def _load(name: str):
     if name in sys.modules:
@@ -364,6 +377,7 @@ def _real_invoke_for_request(request: dict, spec: MethodSpec, *, results_root: P
     fixation_root = _request_fixation_root(request)
     timeout = int(request.get("timeout_seconds_per_invocation") or 1800)
     python = request.get("python") or os.environ.get("REPROJECT_PYTHON") or sys.executable
+    nice_prefix = _server_nice_prefix(request)
 
     def invoke(point: dict, model: str) -> dict:
         return ev.subprocess_evaluator_invoke(
@@ -374,6 +388,7 @@ def _real_invoke_for_request(request: dict, spec: MethodSpec, *, results_root: P
             preflight=False,
             env=runtime_env,
             python=python,
+            nice_prefix=nice_prefix or None,
         )
 
     return invoke

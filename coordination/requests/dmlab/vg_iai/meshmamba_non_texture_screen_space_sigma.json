@@ -123,5 +123,7 @@
   "delay_policy": "fixed:0.0",
   "sigma": {
     "refined": true
-  }
+  },
+  "server_nice": true,
+  "max_workers": 8
 }
