@@ -1796,3 +1796,59 @@ Prior version used a global sigma_screen grid (5040 jobs). New design:
 comments and exact job counts to reflect stage-1.
 
 **Status:** ready for server preflight + reviewer/controller start signal.
+
+---
+
+### [2026-06-18] Parallel model invocation in dataset ablation core — commit 32da965
+
+**Problem:** `_run_candidate` in `test/launch/dataset_ablation_core.py` evaluated
+all 57 models sequentially (line 447):
+```python
+raw_rows = [invoke(cand.point, model) for model in models]
+```
+Each invocation spawns a subprocess (`subprocess_evaluator_invoke`). With 57 models
+× ~3 min each = ~3 hours per candidate × 5 sigma candidates = ~15 hours total.
+σ×0.5 confirmed: 54/57 ok, CC=0.3484, elapsed ~3 hours.
+
+**Fix:** replaced sequential list comprehension with `ThreadPoolExecutor`.
+Threads are appropriate because `subprocess_evaluator_invoke` is I/O-bound
+(waiting for subprocess completion) — the GIL is not held during subprocess I/O.
+Result order is preserved by collecting futures in submission order.
+
+```python
+from concurrent.futures import ThreadPoolExecutor
+
+_DEFAULT_MAX_WORKERS = min(16, os.cpu_count() or 4)  # module constant
+
+# in _run_candidate:
+max_workers = int(request.get("max_workers") or _DEFAULT_MAX_WORKERS)
+with ThreadPoolExecutor(max_workers=max_workers) as pool:
+    futures = [pool.submit(invoke, cand.point, m) for m in models]
+    raw_rows = [f.result() for f in futures]
+```
+
+`request["max_workers"]` overrides the default — set it in the request JSON
+to tune per-server. Default: `min(16, cpu_count)`.
+
+**Correctness guarantees preserved:**
+- Common-model-set fairness: all models still evaluated for every candidate;
+  cross-candidate comparison is unchanged (candidates still run sequentially).
+- Result order: `futures[i]` is submitted for `models[i]`; collecting
+  `f.result()` in the same list order preserves model↔row association.
+- Failure handling: `subprocess_evaluator_invoke` never raises — returns
+  `{"status": "failed"}` dict — so `f.result()` is always a valid row.
+
+**Tests added** (`test/launch/test_dataset_ablation_core.py`, section 18):
+- `test_parallel_all_models_evaluated` — all models invoked exactly once
+- `test_parallel_model_cc_not_swapped_across_threads` — each model gets its own CC
+- `test_parallel_max_workers_1_serializes` — `max_workers=1` enforces concurrency=1
+- `test_parallel_failed_rows_not_raised` — failed rows collected without crashing pool
+
+All 26 tests pass (26/26).
+
+**Files changed:**
+- `test/launch/dataset_ablation_core.py` — import + constant + `_run_candidate` body
+- `test/launch/test_dataset_ablation_core.py` — 4 new tests (section 18)
+
+**Status:** ready for ChatGPT review before relaunching remaining sigma candidates
+(σ×0.7, σ×1.0, σ×1.3, σ×1.5) on vg-iai.
