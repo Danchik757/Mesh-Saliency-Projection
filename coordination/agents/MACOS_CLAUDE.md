@@ -1881,3 +1881,48 @@ skipped on macOS (ionice not available).
 Total: **30/30 tests pass**.
 
 **Status:** both fixes (parallel + nice) ready for ChatGPT review.
+
+---
+
+### [2026-06-18] 3dva and mamba_rgb resolved_env debug — commits e861eed, c66fb9b
+
+**Context:** all 4 branches (3dva/screen_space, 3dva/cone, mamba_rgb/screen_space, mamba_rgb/cone) were HELD with `empty_common_set` — all models failing with `FileNotFoundError`.
+
+#### Root causes found (two separate bugs)
+
+**Bug 1 — 3dva:** commit `e861eed` set `THREE_DVA_CSV_ROOT` to `datasets/3DVA` (wrong path AND wrong var for OBJ lookup). The `--dataset-root` arg in `eval_3dva_screen_space_combined.py` reads `VISUAL_ATTENTION_3D_SHAPES_ROOT`, not `THREE_DVA_CSV_ROOT`. `THREE_DVA_CSV_ROOT` is for per-model CSV gaze files (a separate arg `--csv-root`).
+
+**Fix — commit `c66fb9b`:**
+```json
+"VISUAL_ATTENTION_3D_SHAPES_ROOT": ".../datasets/3DVA",
+"THREE_DVA_CSV_ROOT": ".../participant_gaze_csv_original/3DVA"
+```
+
+**Bug 2 — mamba_rgb:** commit `e861eed` added `MESHMAMBA_NON_TEXTURE_ROOT` to the mamba_rgb JSONs. This appears correct per the evaluator source (line 108 of `eval_meshmamba_screen_space.py`), but runs still HELD. **Root cause not fully confirmed** — mamba_rgb reruns died with 105 rows (5 candidates × 21 models) all failing. Status of mamba_rgb env var fix uncertain.
+
+#### Current server state (vg-iai, 2026-06-18 ~09:20 UTC)
+
+| Branch | Status | Notes |
+|---|---|---|
+| sal3d/screen_space | PROMOTED | σ_multiplier=1.88, CC=0.399 |
+| mamba_non/screen_space | PROMOTED | σ_multiplier=0.38 refined |
+| sal3d/cone | running | 4 runs so far |
+| mamba_non/cone | running | 6 runs so far |
+| 3dva/screen_space | HELD (again) | c66fb9b fix on server, rerun launched but STILL failing |
+| 3dva/cone | HELD (again) | same |
+| mamba_rgb/screen_space | HELD | 105 rows all failed |
+| mamba_rgb/cone | HELD | all failed |
+
+#### Open questions for GPT review
+
+1. **3dva rerun still fails after c66fb9b** — `VISUAL_ATTENTION_3D_SHAPES_ROOT` IS in the request JSON, IS pulled on server. But evaluator still falls back to `/srv/datasets/3DVA`. Need to confirm the env var is actually reaching the subprocess (possibly a path issue in `subprocess_evaluator_invoke` env merging, or a `build_evaluator_command` issue that doesn't pass `--dataset-root` explicitly).
+
+2. **mamba_rgb fix validity** — need to confirm `MESHMAMBA_NON_TEXTURE_ROOT` is what `eval_meshmamba_screen_space.py` uses for `--dataset-root` for both texture types (non_texture AND rgb_texture). If the path itself is wrong or the var name differs, the same failure repeats.
+
+3. **Alternative fix approach** — `build_evaluator_command` in `run_evaluator_sweep.py` does NOT pass `--dataset-root` explicitly. It could be modified to read the env var from the `env` dict and pass it as a CLI flag, bypassing the env inheritance issue. This would make the path explicit and debuggable.
+
+#### Files changed this session
+- `coordination/requests/dmlab/vg_iai/3dva_screen_space_sigma.json` — c66fb9b
+- `coordination/requests/dmlab/vg_iai/3dva_cone_sigma.json` — c66fb9b
+
+**Status: handing to GPT for review + root cause confirmation on 3dva/mamba_rgb failures.**
