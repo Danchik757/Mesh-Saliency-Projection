@@ -52,7 +52,8 @@
   "resolved_env": {
     "FIXATION_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/participant_fixations_offset0_full_cleaned",
     "THREE_DVA_JSON_ROOT": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons",
-    "THREE_DVA_COMBINED_GT_DIR": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA/CombinedGT"
+    "THREE_DVA_COMBINED_GT_DIR": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA/CombinedGT",
+    "THREE_DVA_CSV_ROOT": "/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA"
   },
   "frame_offset_policy": "fixed:0",
   "delay_policy": "fixed:0.0",
