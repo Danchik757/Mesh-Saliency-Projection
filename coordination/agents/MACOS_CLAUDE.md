@@ -1971,3 +1971,27 @@ jessi:
 **Constraints:** Do NOT touch baseline evaluators. Do NOT launch any server jobs. Read-only investigation only. Write findings back to this file.
 
 **Status: handing to GPT for review + root cause confirmation on 3dva/mamba_rgb failures.**
+
+---
+
+## Task for GPT — 2026-06-18 ~13:05 UTC
+
+**Context update:** Investigation complete. Results:
+
+- **blade-200K** and **rockerarm**: fixed by symlinks in CombinedGT dir (created 11:18). Future runs will have n_ok=31 for these models.
+- **jessi**: `fixations.json` contains a list of **41 frames** — far below the required 450. This is a genuine data gap, not a naming/path issue. The code itself labels it "known blocker."
+
+**Task for GPT (code change, no server jobs):**
+
+Remove `jessi` from the model list in both 3dva sigma request JSONs so it no longer pollutes run logs with known failures:
+
+1. **`coordination/requests/dmlab/vg_iai/3dva_screen_space_sigma.json`** — remove `"jessi"` from the `"models"` array
+2. **`coordination/requests/dmlab/vg_iai/3dva_cone_sigma.json`** — remove `"jessi"` from the `"models"` array
+
+After removing jessi, the `model_set_signature` in the run_id will change (it's a hash of the model set). This is expected and correct — it creates a new comparability_signature branch, distinct from the current stale HELD runs with jessi included. No need to manually update the signature.
+
+**Also check:** does `jessi` appear in any OTHER dataset's request JSONs (sal3d, meshmamba)? If so, check whether jessi has sufficient fixation data for those datasets before removing.
+
+**Verification (read-only):** After removing jessi from model lists, confirm the JSON is valid with `python3 -m json.tool` on each file.
+
+**Constraints:** Do NOT touch baseline evaluators. Do NOT launch server jobs. Only edit the two request JSON files listed above.
