@@ -44,13 +44,21 @@ def _agg_rows(tmp_path, dataset, method, stage):
 def test_build_evaluator_command_cone():
     point = ev.make_sigma_grid("meshmamba_non_texture", "cone", sigma_param="sigma_deg",
                                sigma_values=[0.8], radius_sigma_mult=3.0)[0]
-    cmd = ev.build_evaluator_command(point, "Pear_L3", output_dir=Path("/tmp/x"))
+    cmd = ev.build_evaluator_command(
+        point, "Pear_L3", output_dir=Path("/tmp/x"),
+        resolved_env={
+            "MESHMAMBA_NON_TEXTURE_ROOT": "/srv/mm",
+            "MESHMAMBA_JSON_ROOT": "/srv/mm_json",
+        },
+    )
     assert cmd[1].endswith("reprojection_methods/cone_projection_on_mesh/eval_meshmamba_cone.py")
     assert cmd[2:4] == ["--model", "Pear_L3"]
     assert "--sigma-deg" in cmd and cmd[cmd.index("--sigma-deg") + 1] == "0.8"
     assert "--radius-sigma-mult" in cmd and cmd[cmd.index("--radius-sigma-mult") + 1] == "3.0"
     assert cmd[cmd.index("--frame-offset") + 1] == "0"
     assert cmd[cmd.index("--timing-contract") + 1] == "one_turn_from_start"
+    assert cmd[cmd.index("--dataset-root") + 1] == "/srv/mm"
+    assert cmd[cmd.index("--json-root") + 1] == "/srv/mm_json"
     assert cmd[cmd.index("--texture-type") + 1] == "non_texture"
     assert "--output-dir" in cmd and "--tag" in cmd
     assert "--sigma-px" not in cmd
@@ -59,10 +67,54 @@ def test_build_evaluator_command_cone():
 def test_build_evaluator_command_screen_space():
     point = ev.make_sigma_grid("sal3d", "screen_space", sigma_param="sigma_px",
                                sigma_values=[26.3])[0]
-    cmd = ev.build_evaluator_command(point, "dog", output_dir=Path("/tmp/y"))
+    cmd = ev.build_evaluator_command(
+        point, "dog", output_dir=Path("/tmp/y"),
+        resolved_env={
+            "SAL3D_DATASET_ROOT": "/srv/sal3d",
+            "SAL3D_JSON_ROOT": "/srv/sal3d_json",
+            "SAL3D_FIXED_GT_DIR": "/srv/sal3d_gt",
+            "SAL3D_MANIFEST": "/srv/sal3d_manifest.csv",
+        },
+    )
     assert cmd[1].endswith("reprojection_methods/screen_space_gaussian/eval_sal3d_screen_space.py")
+    assert cmd[cmd.index("--dataset-root") + 1] == "/srv/sal3d"
+    assert cmd[cmd.index("--json-root") + 1] == "/srv/sal3d_json"
+    assert cmd[cmd.index("--fixed-gt-dir") + 1] == "/srv/sal3d_gt"
+    assert cmd[cmd.index("--sal3d-manifest") + 1] == "/srv/sal3d_manifest.csv"
     assert "--sigma-px" in cmd and cmd[cmd.index("--sigma-px") + 1] == "26.3"
     assert "--sigma-deg" not in cmd and "--texture-type" not in cmd
+
+
+def test_build_evaluator_command_3dva_explicit_dataset_root():
+    point = ev.make_sigma_grid("3dva", "screen_space", sigma_param="sigma_px",
+                               sigma_values=[49.0])[0]
+    cmd = ev.build_evaluator_command(
+        point, "A380", output_dir=Path("/tmp/z"),
+        resolved_env={
+            "VISUAL_ATTENTION_3D_SHAPES_ROOT": "/srv/3dva",
+            "THREE_DVA_JSON_ROOT": "/srv/3dva_json",
+            "THREE_DVA_COMBINED_GT_DIR": "/srv/3dva_gt",
+        },
+    )
+    assert cmd[cmd.index("--dataset-root") + 1] == "/srv/3dva"
+    assert cmd[cmd.index("--json-root") + 1] == "/srv/3dva_json"
+    assert cmd[cmd.index("--combined-gt-dir") + 1] == "/srv/3dva_gt"
+    assert "--texture-type" not in cmd
+
+
+def test_build_evaluator_command_meshmamba_rgb_uses_rgb_specific_roots():
+    point = ev.make_sigma_grid("meshmamba_rgb_texture", "screen_space", sigma_param="sigma_screen",
+                               sigma_values=[0.05])[0]
+    cmd = ev.build_evaluator_command(
+        point, "Kangaroo_v1_L3", output_dir=Path("/tmp/rgb"),
+        resolved_env={
+            "MESHMAMBA_RGB_TEXTURE_ROOT": "/srv/mm_rgb",
+            "MESHMAMBA_RGB_TEXTURE_JSON_ROOT": "/srv/mm_rgb_json",
+        },
+    )
+    assert cmd[cmd.index("--dataset-root") + 1] == "/srv/mm_rgb"
+    assert cmd[cmd.index("--json-root") + 1] == "/srv/mm_rgb_json"
+    assert cmd[cmd.index("--texture-type") + 1] == "rgb_texture"
 
 
 # ── orchestration via mock invoke ──────────────────────────────────────────────

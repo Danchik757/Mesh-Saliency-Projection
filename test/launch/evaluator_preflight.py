@@ -50,6 +50,12 @@ FIXATION_REQ = _req(
 # Per-dataset roots — mirrors run_ablation_window_delay.build_command.
 ASSET_SPEC: dict[str, list[dict]] = {
     "3dva": [
+        _req(
+            "dataset_root",
+            ["VISUAL_ATTENTION_3D_SHAPES_ROOT", "THREE_DVA_DATASET_ROOT"],
+            "--dataset-root",
+            "mesh",
+        ),
         _req("json_root", ["THREE_DVA_JSON_ROOT"], "--json-root", "placement_json"),
         _req("combined_gt_dir", ["THREE_DVA_COMBINED_GT_DIR"], "--combined-gt-dir", "ground_truth"),
     ],

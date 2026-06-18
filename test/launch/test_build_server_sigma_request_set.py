@@ -39,6 +39,7 @@ class Args:
     fixed_frame_offset = 0
     no_refined = False
     fixation_root = "/srv/release/participant_fixations_offset0_full_cleaned"
+    three_dva_dataset_root = "/srv/release/datasets/3DVA"
     three_dva_json_root = "/srv/repo/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons"
     three_dva_combined_gt_dir = "/srv/release/datasets/3DVA/CombinedGT"
     meshmamba_json_root = "/srv/repo/Mesh-Saliency-Projection/jsons/object_placement/mamba_non_jsons"
@@ -67,6 +68,7 @@ def test_build_request_and_manifest_roundtrip(tmp_path):
     assert request["timeout_seconds_per_invocation"] == 3600
     assert request["resolved_env"] == {
         "FIXATION_ROOT": "/srv/release/participant_fixations_offset0_full_cleaned",
+        "VISUAL_ATTENTION_3D_SHAPES_ROOT": "/srv/release/datasets/3DVA",
         "THREE_DVA_JSON_ROOT": "/srv/repo/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons",
         "THREE_DVA_COMBINED_GT_DIR": "/srv/release/datasets/3DVA/CombinedGT",
     }

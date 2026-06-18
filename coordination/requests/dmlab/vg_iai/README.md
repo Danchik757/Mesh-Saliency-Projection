@@ -41,6 +41,7 @@ python3 test/launch/build_server_sigma_request_set.py \
   --python /mnt/ssd1/29d_kon/acm_2026/environments/reproject-benchmark/bin/python3 \
   --release-tag v2.0-data-rc3 \
   --fixation-root /mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/participant_fixations_offset0_full_cleaned \
+  --three-dva-dataset-root /mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA \
   --three-dva-json-root /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/3dva_jsons \
   --three-dva-combined-gt-dir /mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA/CombinedGT \
   --meshmamba-json-root /mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection/jsons/object_placement/mamba_non_jsons \

@@ -74,8 +74,69 @@ def make_sigma_grid(dataset: str, method: str, *, sigma_param: str, sigma_values
     return points
 
 
+def _env_get(env: dict[str, str], *keys: str) -> str | None:
+    for key in keys:
+        value = str(env.get(key, "")).strip()
+        if value:
+            return value
+    return None
+
+
+def _dataset_specific_cli_args(point: dict, env: dict[str, str]) -> list[str]:
+    dataset = point["dataset"]
+    args: list[str] = []
+    if dataset == "3dva":
+        dataset_root = _env_get(env, "VISUAL_ATTENTION_3D_SHAPES_ROOT", "THREE_DVA_DATASET_ROOT")
+        json_root = _env_get(env, "THREE_DVA_JSON_ROOT")
+        combined_gt = _env_get(env, "THREE_DVA_COMBINED_GT_DIR")
+        if dataset_root:
+            args += ["--dataset-root", dataset_root]
+        if json_root:
+            args += ["--json-root", json_root]
+        if combined_gt:
+            args += ["--combined-gt-dir", combined_gt]
+        return args
+    if dataset == "meshmamba_non_texture":
+        dataset_root = _env_get(env, "MESHMAMBA_NON_TEXTURE_ROOT")
+        json_root = _env_get(env, "MESHMAMBA_JSON_ROOT")
+        if dataset_root:
+            args += ["--dataset-root", dataset_root]
+        if json_root:
+            args += ["--json-root", json_root]
+        args += ["--texture-type", "non_texture"]
+        return args
+    if dataset == "meshmamba_rgb_texture":
+        dataset_root = _env_get(env, "MESHMAMBA_RGB_TEXTURE_ROOT", "MESHMAMBA_NON_TEXTURE_ROOT")
+        json_root = _env_get(env, "MESHMAMBA_RGB_TEXTURE_JSON_ROOT", "MESHMAMBA_JSON_ROOT")
+        if dataset_root:
+            args += ["--dataset-root", dataset_root]
+        if json_root:
+            args += ["--json-root", json_root]
+        args += ["--texture-type", "rgb_texture"]
+        return args
+    if dataset == "sal3d":
+        dataset_root = _env_get(env, "SAL3D_DATASET_ROOT")
+        json_root = _env_get(env, "SAL3D_JSON_ROOT")
+        fixed_gt = _env_get(env, "SAL3D_FIXED_GT_DIR")
+        smooth_gaze = _env_get(env, "SAL3D_SMOOTH_GAZE_DIR")
+        manifest = _env_get(env, "SAL3D_MANIFEST")
+        if dataset_root:
+            args += ["--dataset-root", dataset_root]
+        if json_root:
+            args += ["--json-root", json_root]
+        if fixed_gt:
+            args += ["--fixed-gt-dir", fixed_gt]
+        if smooth_gaze:
+            args += ["--smooth-gaze-dir", smooth_gaze]
+        if manifest:
+            args += ["--sal3d-manifest", manifest]
+        return args
+    return args
+
+
 def build_evaluator_command(point: dict, model: str, *, output_dir: Path,
-                            fixation_root: str | None = None, python: str | None = None) -> list[str]:
+                            fixation_root: str | None = None, python: str | None = None,
+                            resolved_env: dict[str, str] | None = None) -> list[str]:
     """Real, sigma-aware argv for the evaluator entrypoint. Mirrors
     `run_ablation_window_delay.build_command` flag-for-flag but takes the swept
     sigma from the point (the launcher uses fixed default sigma)."""
@@ -91,8 +152,7 @@ def build_evaluator_command(point: dict, model: str, *, output_dir: Path,
     if fixation_root:
         cmd += ["--fixation-root", str(fixation_root)]
     cmd += ["--fixation-data-tag", rawd.FIXATION_DATA_TAG]
-    if dataset.startswith("meshmamba"):
-        cmd += ["--texture-type", "non_texture" if dataset.endswith("non_texture") else "rgb_texture"]
+    cmd += _dataset_specific_cli_args(point, resolved_env or {})
     if method == "cone":
         cmd += ["--sigma-deg", str(point["sigma_deg"])]
         if point.get("radius_sigma_mult") is not None:
@@ -154,6 +214,7 @@ def subprocess_evaluator_invoke(point: dict, model: str, *, work_dir: Path,
     out_dir.mkdir(parents=True, exist_ok=True)
     cmd = build_evaluator_command(
         point, model, output_dir=out_dir, fixation_root=fixation_root, python=python,
+        resolved_env=resolved_env,
     )
     if nice_prefix:
         cmd = list(nice_prefix) + cmd

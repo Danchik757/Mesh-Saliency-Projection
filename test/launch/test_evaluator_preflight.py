@@ -27,6 +27,8 @@ pf = _load("evaluator_preflight")
 def test_asset_spec_covers_all_datasets():
     assert set(pf.ASSET_SPEC) == {"3dva", "meshmamba_non_texture",
                                   "meshmamba_rgb_texture", "sal3d"}
+    three = {r["name"]: r for r in pf.ASSET_SPEC["3dva"]}
+    assert three["dataset_root"]["envs"] == ["VISUAL_ATTENTION_3D_SHAPES_ROOT", "THREE_DVA_DATASET_ROOT"]
     names = {r["name"]: r for r in pf.ASSET_SPEC["meshmamba_non_texture"]}
     assert names["json_root"]["envs"] == ["MESHMAMBA_JSON_ROOT"]
     assert names["dataset_root"]["envs"] == ["MESHMAMBA_NON_TEXTURE_ROOT"]

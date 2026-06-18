@@ -13,7 +13,7 @@
     "ionice_level": 7
   },
   "repo": {
-    "commit": "df51f077c3701e1816b5495b4453dbb727091a64",
+    "commit": "d7253914baed381148936fa3a3e7ba6fe0013abd",
     "url": "",
     "checkout_root": "/mnt/ssd1/29d_kon/summer_2026/Mesh-Saliency-Projection"
   },
@@ -92,7 +92,7 @@
       "wolf"
     ],
     "subset_name": "sal3d_all_models_rc4",
-    "repo_commit": "df51f077c3701e1816b5495b4453dbb727091a64",
+    "repo_commit": "d7253914baed381148936fa3a3e7ba6fe0013abd",
     "release_tag": "v2.0-data-rc3",
     "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
     "timing_contract": "one_turn_from_start",
@@ -151,6 +151,6 @@
     "branch_best": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/sal3d/cone/586304fe068efbdd/branch_best.json",
     "held": "/mnt/ssd1/29d_kon/summer_2026/results/ablation/cone_sigma_dmlab/sal3d/cone/586304fe068efbdd/_held.json"
   },
-  "generated_at_utc": "2026-06-17T22:25:07Z",
+  "generated_at_utc": "2026-06-18T09:31:54Z",
   "notes": "low-priority real run; emitted not launched; submit on an approved host only"
 }

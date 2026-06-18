@@ -55,6 +55,7 @@ def _resolved_env_pairs(args, dataset: str) -> list[str]:
     if dataset == "3dva":
         return [
             *base,
+            f"VISUAL_ATTENTION_3D_SHAPES_ROOT={args.three_dva_dataset_root}",
             f"THREE_DVA_JSON_ROOT={args.three_dva_json_root}",
             f"THREE_DVA_COMBINED_GT_DIR={args.three_dva_combined_gt_dir}",
         ]
@@ -148,6 +149,7 @@ def main() -> int:
     ap.add_argument("--fixed-delay-seconds", type=float, default=0.0)
     ap.add_argument("--fixed-frame-offset", type=int, default=0)
     ap.add_argument("--fixation-root", required=True)
+    ap.add_argument("--three-dva-dataset-root", required=True)
     ap.add_argument("--three-dva-json-root", required=True)
     ap.add_argument("--three-dva-combined-gt-dir", required=True)
     ap.add_argument("--meshmamba-json-root", required=True)

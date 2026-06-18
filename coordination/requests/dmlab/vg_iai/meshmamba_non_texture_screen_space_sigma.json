@@ -110,7 +110,7 @@
     "WWII_Plane-Germany_Focke-Wulf_Fw_190_v1"
   ],
   "subset_name": "meshmamba_non_texture_all_models_rc4",
-  "repo_commit": "df51f077c3701e1816b5495b4453dbb727091a64",
+  "repo_commit": "d7253914baed381148936fa3a3e7ba6fe0013abd",
   "release_tag": "v2.0-data-rc3",
   "fixation_data_tag": "processed_fixations_offset0_full_cleaned",
   "timing_contract": "one_turn_from_start",
