@@ -1925,4 +1925,49 @@ Total: **30/30 tests pass**.
 - `coordination/requests/dmlab/vg_iai/3dva_screen_space_sigma.json` — c66fb9b
 - `coordination/requests/dmlab/vg_iai/3dva_cone_sigma.json` — c66fb9b
 
+---
+
+## Task for GPT — 2026-06-18 ~11:10 UTC
+
+**Context:** Sigma ablation for 3dva (screen_space and cone) is now running correctly after GPT's fix (commit 972db10, `_dataset_specific_cli_args`). But 3 models consistently fail across ALL sigma candidates (every rev4 run has n_ok=29, n_failed=3).
+
+**Failing models and exact errors (from `metrics_long.jsonl`, `__rev4` runs):**
+
+```
+blade-200K:
+  FileNotFoundError: Combined GT not found for model 'blade-200K'
+  in /mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA/CombinedGT
+  Run scripts/build_3dva_combined_gt.py first.
+
+rockerarm:
+  FileNotFoundError: Combined GT not found for model 'rockerarm'
+  in /mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/datasets/3DVA/CombinedGT
+  Run scripts/build_3dva_combined_gt.py first.
+
+jessi:
+  utils.participant_loader.InvalidFixationError:
+  Invalid processed fixation for '3DVA_jessi': fixation frames 41 < required 450
+  (turn_frames=450, gaze_start=0, delay_frames=0, frame_offset=0)
+  This model is a known blocker. Do not fall back to CSV.
+```
+
+**Questions for GPT to investigate (read-only, no server jobs, no baseline evaluator changes):**
+
+1. **blade-200K / rockerarm — CombinedGT missing:**
+   - What files currently exist in the CombinedGT directory? (`ls .../3DVA/CombinedGT/`)
+   - Does `scripts/build_3dva_combined_gt.py` exist in the repo? What does it do — is it safe to run (idempotent, read-only source data)? Does it touch baseline evaluators?
+   - Are `blade-200K` and `rockerarm` in the model list defined in the 3DVA dataset config / JSON placement files?
+   - Are these models present in the OBJ dataset at `VISUAL_ATTENTION_3D_SHAPES_ROOT/3DModels-Simplif-up/`?
+
+2. **jessi — insufficient fixation frames:**
+   - 41 frames vs 450 required. What is the source of processed fixations for 3DVA_jessi? Check `FIXATION_ROOT` = `/mnt/ssd1/29d_kon/acm_2026/shared_release_data/v2.0-data-rc3/extracted/participant_fixations_offset0_full_cleaned/`
+   - Is jessi simply missing enough participant data, or is this a processing/naming issue?
+   - The code says "This model is a known blocker" — is jessi explicitly excluded in any config? Should it be removed from the model list in the sigma request JSON?
+
+3. **Impact assessment:**
+   - These 3 models are absent from the common_model_set for 3dva sigma ablation. This reduces 3dva from 32 → 29 common models. Is this acceptable for the paper, or do we need to fix before final runs?
+   - Should any of these 3 be removed from `manifest.json` model lists in the sigma request JSONs to avoid polluting run logs with known failures?
+
+**Constraints:** Do NOT touch baseline evaluators. Do NOT launch any server jobs. Read-only investigation only. Write findings back to this file.
+
 **Status: handing to GPT for review + root cause confirmation on 3dva/mamba_rgb failures.**
